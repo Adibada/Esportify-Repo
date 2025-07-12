@@ -1,0 +1,103 @@
+<!--Recherche-->
+<div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+
+    <!-- Recherche par nom d'évènement -->
+    <form id="searchEventName" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
+        <label for="eventName">Nom de l'évènement</label>
+        <div class="d-flex">
+            <input class="form-control me-2" type="search" id="eventName" name="eventName"
+                placeholder="Rechercher un évènement" />
+            <button class="btn btn-outline-success" type="submit">Valider</button>
+        </div>
+    </form>
+
+    <!--Recherche organisateur-->
+    <form id="searchEventOrganizer" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
+        <label for="organizerName">Nom de l'organisateur</label>
+        <div class="d-flex">
+            <input class="form-control me-2" type="search" id="organizerName" name="organizerName"
+                placeholder="Rechercher un organisateur" />
+            <button class="btn btn-outline-success" type="submit">Valider</button>
+        </div>
+    </form>
+
+   <form id="searchEventNumberCompetitors" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
+    <label for="minParticipants">Fourchette de participants</label>
+    <div class="d-flex gap-2">
+        <input class="form-control"
+               type="number"
+               id="minParticipants"
+               name="minParticipants"
+               min="0"
+               max="9999"
+               step="10"
+               placeholder="Min"/>
+
+        <input class="form-control"
+               type="number"
+               id="maxParticipants"
+               name="maxParticipants"
+               min="0"
+               max="9999"
+               step="10"
+               placeholder="Max"/>
+
+        <button class="btn btn-outline-success" type="submit" aria-label="Valider la recherche">
+            Valider
+        </button>
+    </div>
+</form>
+
+
+    <!--Recherche par date-->
+    <form id="formDateStart" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
+        <label for="searchDateStart">Evènement après :</label>
+        <div class="d-flex">
+            <input class="form-control me-2" type="date" id="searchDateStart" name="searchDateStart"
+                placeholder="Date de début" />
+            <button class="btn btn-outline-success" type="submit">Valider</button>
+        </div>
+    </form>
+
+    <form id="formDateEnd" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
+        <label for="searchDateEnd">Evènement avant :</label>
+        <div class="d-flex">
+            <input class="form-control me-2" type="date" id="searchDateEnd" name="searchDateEnd"
+                placeholder="Date de fin" />
+            <button class="btn btn-outline-success" type="submit">Valider</button>
+        </div>
+    </form>
+</div>
+
+<!--Bloc résultats-->
+<div class="bloc" aria-labelledby="event-title">
+
+    <!--Titre du bloc-->
+    <h2 id="event-title" class="text-start fs-1">Résultats des recherches</h2>
+
+    <!--Liens évènements à venir-->
+    <div class="mt-3">
+        <ul class="event-list">
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span id="eventName">The Ultra Mortal Fighter</span> /
+                    <span id="eventStart"><time datetime="2025-08-03">date</time></span> /
+                    <span id="numOfCompetitors"> 9999 Participants</span>
+                </a></li>
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span id="eventName">Tournoi de VirtuaSoccers 23</span> /
+                    <span id="eventStart"><time datetime="2025-08-10">date</time></span> /
+                    <span id="numOfCompetitors"> 9999 Participants</span>
+                </a></li>
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span id="eventName">Official Team of Marvels Championship</span> /
+                    <span id="eventStart"><time datetime="2025-08-17">date</time></span> /
+                    <span id="numOfCompetitors"> 9999 Participants</span>
+                </a></li>
+        </ul>
+    </div>
+</div>
+
+<!--Lien vers la création d'un nouvel évènement-->
+<div class="text-end  fs-1 mt-5">
+    <a href="/creationEvenement" data-show="organizer, admin" onclick="window.route(event)">Créer un nouvel évènement</a>
+</div>

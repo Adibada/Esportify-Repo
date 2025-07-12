@@ -1,0 +1,12 @@
+# public/.htaccess
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # On redirige tout sauf les fichiers/dossiers existants
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Tout le reste va vers index.html
+    RewriteRule ^ index.html [QSA,L]
+</IfModule>

@@ -1,0 +1,103 @@
+<div class="container w-75 mx-auto my-5" style="max-width: 400px;">
+    <form>
+        <div class="mb-3">
+            <label for="eventName" class="form-label" aria-labelledby="id">Nom de l'évènement</label>
+            <input type="text" class="form-control" id="eventName" placeholder="Titre" name="eventName" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="eventDetail" class="form-label" aria-labelledby="id">Détails de l'évènement</label>
+            <textarea class="form-control" id="eventDetail" placeholder="Description de l'évènement" name="eventDetail"
+                rows="4" required></textarea>
+        </div>
+
+        <div id="eventStart" class="d-flex flex-column flex-grow-1 flex-md-grow-0 mb-3" role="search"
+            aria-labelledby="id">
+            <label for="setDateStart">Début de l'évènement :</label>
+            <div class="d-flex">
+                <input class="form-control me-2" type="date" id="setDateStart" name="setDateStart"
+                    placeholder="Date de début" required />
+            </div>
+        </div>
+
+        <div id="eventEnd" class="d-flex flex-column flex-grow-1 flex-md-grow-0 mb-3" role="search"
+            aria-labelledby="id">
+            <label for="setDateEnd">Fin de l'évènement :</label>
+            <div class="d-flex">
+                <input class="form-control me-2" type="date" id="setDateEnd" name="setDateEnd" placeholder="Date de fin"
+                    required />
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="gameDetail" class="form-label" aria-labelledby="id">Détails du jeu</label>
+            <textarea class="form-control" id="gameDetail" placeholder="Description du jeu" name="gameDetail"
+                rows="4"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="gameGenre" class="form-label" aria-labelledby="id">Genre du jeu</label>
+            <input type="text" class="form-control" id="gameGenre" placeholder="Genre du jeu" name="gameGenre">
+        </div>
+
+        <div class="mb-3">
+            <label for="gamePlatform" class="form-label" aria-labelledby="id">Plateforme du jeu</label>
+            <input type="text" class="form-control" id="gamePlatform" placeholder="Plateforme du jeu"
+                name="gamePlatform" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="prize" class="form-label" aria-labelledby="id">Lot</label>
+            <input type="text" class="form-control" id="prize" placeholder="Lot" name="prize" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="image" class="form-label">Image de l'événement :</label>
+            <input type="file" id="image" name="image" accept="image/*" required>
+        </div>
+        
+        <!--Confirmation-->
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#confirmationModal">
+            Valider
+        </button>
+
+        <!--Modal de confirmation-->
+        <div class="modal" tabindex="-1" id="confirmationModal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirmer la création de l'évènement ?</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Êtes-vous sûr de vouloir créer un évènement avec ces informations ?
+                            Celui-ci sera en attente de validation par un administrateur.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="button" class="btn btn-primary">Sauvegarder les modifications</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Modal pour les champs manquants-->
+        <div class="modal" tabindex="-1" id="uncompleteModal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Champs requis manquants</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul id="missingFieldsList" class="list-group"></ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

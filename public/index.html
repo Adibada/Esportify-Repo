@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--CSS-->
+    <link rel="stylesheet" href="/scss/main.css">
+
+    <!--GoogleFonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+
+    <title>Document</title>
+
+</head>
+
+<body class="bg-black">
+    <header>
+        <nav class="navbar navbar-expand-lg" data-bs-theme="dark">
+            <div class="container-fluid">
+
+                <a class="navbar-brand fs-1 fw-bold" href="/contact" onclick="window.route(event)">ESPORTIFY</a>
+
+                <button class="navbar-toggler rounded-3" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse bg-dark" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto mb-5 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link fs-2 text-secondary pe-4" href="/">Accueil</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fs-2 text-secondary pe-4" href="/monProfil" data-show="connected"
+                                onclick="window.route(event)">Profil</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fs-2 text-secondary pe-4" href="/connexion" data-show="disconnected"
+                                onclick="window.route(event)">Connexion</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fs-2 text-secondary pe-4" href="/rechercheEvenements"
+                                onclick="window.route(event)">Évènements</a>
+                        </li>
+                    </ul>
+                    </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-page" class="text-secondary"></main>
+
+    <footer>
+        <div class="container">
+            <div class="row text-center gy-2">
+                <div class="col-6 fs-6 col-lg-3">
+                    <a href="">Mentions légales</a>
+                </div>
+                <div class="col-6 fs-6 col-lg-3">
+                    <a href="">Politique de confidentialité</a>
+                </div>
+                <div class="col-6 fs-6 col-lg-3">
+                    <a href="">Conditions d’utilisation</a>
+                </div>
+                <div class="col-6 fs-6 col-lg-3">
+                    <a href="">Politique de cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+   
+    <script type="module" src="Router/Router.js"></script>
+    <script type="module" src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>

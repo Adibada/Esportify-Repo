@@ -1,0 +1,122 @@
+<!--Bloc Accueil-->
+<div class="bloc" aria-labelledby="home-title">
+    <!--Titre-->
+    <div id="home-title" class="text-center fs-1">
+        <h1>L'e-sport partout pour tous ! </h1>
+    </div>
+
+    <!--Carousel Accueil-->
+    <div id="carouselExample" class="carousel slide">
+        <div class="carousel-inner rounded-4">
+            <div class="carousel-item active">
+                <img src="/Images/images accueil/groupe_jouant.jpg" class="carousel-img d-block w-100"
+                    alt="Groupe de joueurs">
+            </div>
+            <div class="carousel-item">
+                <img src="/Images/images accueil/multiécrans.jpg" class="carousel-img d-block w-100"
+                    alt="Dispositif à écrans multiples">
+            </div>
+            <div class="carousel-item">
+                <img src="/Images/images accueil/solo_joueur.jpg" class="carousel-img d-block w-100"
+                    style="object-position: center center;" alt="Un joueur solo">
+            </div>
+            <div class="carousel-item">
+                <img src="/Images/images accueil/solo_multiécran.jpg" class="carousel-img d-block w-100"
+                    alt="Un joueur seul devant un dispositif d'écrans">
+            </div>
+        </div >
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+
+    <!--Présentation et lien contact-->
+    <div class="text-end m-3">
+        <div>
+            <p class="fs-4"> <strong>Esportify</strong> est une organisation e-sportive dynamique dédiée à la
+                performance, à
+                l’innovation et à la passion du jeu. </p>
+        </div>
+        <div>
+            <a href="/contact" onclick="window.route(event)"><em>En savoir plus</em></a>
+        </div>
+    </div>
+</div>
+
+<!--Section Évènements en cours-->
+<div class="bloc" aria-labelledby="event-title">
+
+    <!--Titre du bloc-->
+    <h2 id="event-title" class="text-start fs-1">Évènements en cours</h2>
+
+    <!--Contenu évènement-->
+    <div class="row align-items-stretch" style="min-height: 100%;">
+
+        <!--Image évènement-->
+        <div class="col-md-6 mb-3 mb-md-0 d-flex">
+            <img src="/Images/images event/joueur et coach.jpg" class=" w-100 rounded-4"
+                style="height: 100%; object-fit: cover;" alt="Un compétiteur et son coach">
+        </div>
+
+        <!--Texte évènement-->
+        <div class="col-md-6 d-flex flex-column">
+            <div class="flex-grow-1">
+                <h3 class="mb-3 fs-1 text-center">
+                    <a href="/unEvenement" onclick="window.route(event)">Speedrun live NeaR Machinica</a>
+                </h3>
+            </div>
+            <div class="h-100 d-flex flex-column justify-content-between" style="min-height: 400px;">
+                <time datetime="2023-03-15T18:00:00" class="mb-1 fs-3">Début : 15 Mars 2023, 18h00</time>
+                <time datetime="2023-04-15T18:00:00" class="mb-1 fs-3">Fin : 15 Avril 2023, 18h00</time>
+                <p class="fs-2">Votre jeu d'action préféré achevé en moins de 2 heures, venez assister au prochain
+                    WR !
+                </p>
+                <p>organisateur : xXSuperProfilXx</p>
+                <p>Participants : 9999</p>
+            </div>
+
+            <!--Boutons-->
+            <div class="mt-auto d-flex justify-content-center gap-4" data-show="connected">
+                <button class="btn btn-outline-light mt-2 p-4">S'inscrire</button>
+                <button class="btn btn-outline-light mt-2 p-4">Suivre</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Section Évènements à venir-->
+<div class="bloc" aria-labelledby="event-title">
+
+    <!--Titre du bloc-->
+    <h2 id="event-title" class="text-start fs-1">Évènements à venir</h2>
+
+    <!--Liens évènements à venir-->
+    <div class="mt-3">
+        <ul class="event-list">
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span>The Ultra Mortal Fighter</span> /
+                    <span><time datetime="2025-08-03">date</time></span> /
+                    <span> 9999 Participants</span>
+                </a></li>
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span>Tournoi de VirtuaSoccers 23</span> /
+                    <span><time datetime="2025-08-10">date</time></span> /
+                    <span> 9999 Participants</span>
+                </a></li>
+            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
+                    <span>Official Team of Marvels Championship</span> /
+                    <span><time datetime="2025-08-17">date</time></span> /
+                    <span> 9999 Participants</span>
+                </a></li>
+        </ul>
+    </div>
+    <div class="me-3 mb-3">
+        <a href="/rechercheEvenements" onclick="window.route(event)"
+            class="fs-5 fs-md-3 text-end d-block me-2 mb-3">Voir tous
+            les évènements à venir</a>
+    </div>

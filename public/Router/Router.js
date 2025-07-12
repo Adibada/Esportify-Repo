@@ -1,0 +1,86 @@
+import Route from "./Route.js";
+import { allRoutes, websiteName } from "./allRoutes.js";
+
+// Création d'une route pour la page 404 (page introuvable)
+const route404 = new Route("/404", "Page introuvable", "/Pages/404.html", []);
+
+// Fonction pour récupérer la route correspondant à une URL donnée
+const getRouteByUrl = (url) => {
+  let currentRoute = null;
+  // Parcours de toutes les routes pour trouver la correspondance
+  allRoutes.forEach((element) => {
+    if (element.url == url) {
+      currentRoute = element;
+    }
+  });
+  // Si aucune correspondance n'est trouvée, on retourne la route 404
+  if (currentRoute != null) {
+    return currentRoute;
+  } else {
+    return route404;
+  }
+};
+
+// Fonction pour charger le contenu de la page
+const LoadContentPage = async () => {
+  const path = window.location.pathname;
+  const actualRoute = getRouteByUrl(path);
+
+  // Vérification des droits d'accès
+  const allRolesArray = actualRoute.authorize;
+  if (allRolesArray.length > 0) {
+    if (!isConnected()) {
+      window.location.replace("/connexion");
+      return;
+    } else {
+      const userRole = getRole();
+      if (!allRolesArray.includes(userRole)) {
+        window.location.replace("/404");
+        return;
+      }
+    }
+  }
+
+  // Récupération du contenu HTML
+  const html = await fetch(actualRoute.pathHtml).then((data) => data.text());
+  document.getElementById("main-page").innerHTML = html;
+
+  // Ajout du JavaScript associé à la page
+  if (actualRoute.pathJS !== "") {
+    const scriptTag = document.createElement("script");
+    scriptTag.type = "text/javascript";
+    scriptTag.src = actualRoute.pathJS;
+    document.body.appendChild(scriptTag);
+  }
+
+  // Mise à jour du titre de la page
+  document.title = `${actualRoute.title} - ${websiteName}`;
+
+  // Mise à jour des éléments visibles selon le rôle
+  editByRoles();
+};
+
+// Fonction pour gérer les événements de routage (clic sur les liens)
+const routeEvent = (event) => {
+  event = event || window.event;
+  event.preventDefault();
+  // Mise à jour de l'URL dans l'historique du navigateur
+  window.history.pushState({}, "", event.currentTarget.href);
+  // Chargement du contenu de la nouvelle page
+  LoadContentPage();
+};
+
+// Fonction pour la navigation des boutons
+window.navigate = function(path) {
+  if (window.location.pathname !== path) {
+    window.history.pushState({}, "", path);
+    LoadContentPage();
+  }
+}
+
+// Gestion de l'événement de retour en arrière dans l'historique du navigateur
+window.onpopstate = LoadContentPage;
+// Assignation de la fonction routeEvent à la propriété route de la fenêtre
+window.route = routeEvent;
+// Chargement du contenu de la page au chargement initial
+LoadContentPage();

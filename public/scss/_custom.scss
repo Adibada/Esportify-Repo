@@ -1,0 +1,19 @@
+// Custom.scss
+
+// Include any default variable overrides here (though functions won’t be available)
+
+//Palette de couleurs 
+$primary: #4F7EF3;
+$secondary: #F3C74F;
+$dark: #08256D;
+$black: #001037;
+
+//Polices de caractères
+$font-family-sans-serif: "Roboto Condensed", sans-serif, !default;
+$font-family-serif: "Roboto Condensed", serif;
+
+//Customisation Navbar
+$navbar-dark-brand-color: $secondary;
+$navbar-dark-icon-color: $secondary;
+
+@import "../node_modules/bootstrap/scss/bootstrap";
