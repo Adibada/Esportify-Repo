@@ -11982,26 +11982,46 @@ header {
   left: 0;
   width: 100%;
   height: 90px;
-  z-index: 100;
+  z-index: 1050;
   padding: 8px;
+}
+
+.navbar {
+  border-radius: 12px;
   background-color: #08256D;
-  border-radius: 2rem;
+}
+
+.navbar-collapse {
+  background-color: #08256D;
+  border-radius: 0 0 12px 12px;
+  width: 100%;
+  padding: 1rem;
+  z-index: 1040;
+}
+
+.navbar-nav {
+  list-style: none;
+  margin-left: auto;
+}
+
+.nav-link {
+  font-size: 2rem;
+  color: #F3C74F;
+  padding-right: auto;
 }
 
 @media (max-width: 576px) {
   .navbar-collapse {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-    z-index: 99;
-    background-color: #08256D;
     padding: 1rem;
   }
-  .navbar-collapse ul.navbar-nav {
-    background-color: inherit;
+  .navbar-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
-  .navbar-collapse li.nav-item {
-    padding-bottom: 1rem;
+  .nav-link {
+    font-size: 1rem;
   }
 }
 footer {
@@ -12015,9 +12035,15 @@ footer {
 }
 
 body {
-  padding: 100px 2% 100px 2%;
+  padding: 120px 2% 100px 2%;
+  background-color: #001037;
 }
 
+@media (max-width: 576px) {
+  body {
+    padding: 80px 2% 100px;
+  }
+}
 .bloc {
   margin-top: 12px;
   padding: 12px 12px;
@@ -12038,10 +12064,6 @@ body {
   height: 100%;
   -o-object-fit: cover;
      object-fit: cover;
-}
-
-#carouselExampleContact .carousel-inner {
-  width: 80vh;
 }
 
 .event-list {

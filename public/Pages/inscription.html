@@ -1,19 +1,25 @@
 <div class="container w-40 mx-auto">
     <form>
+        <!--Nom de profil-->
         <div class="mb-3 w-50 mx-auto">
             <label for="profilNameInput" class="form-label">Nom de profil</label>
-            <input type="text" class="form-control" id="profilNameInput" placeholder="Votre nom de profil" name="profilName">
+            <input type="text" class="form-control" id="profilNameInput" placeholder="Votre nom de profil"
+                name="profilName">
         </div>
+
+        <!--Email-->
         <div class="mb-3 w-50 mx-auto">
             <label for="emailInput" class="form-label">Email</label>
             <input type="email" class="form-control" id="emailInput" placeholder="test@mail.fr" name="email">
         </div>
 
+        <!--Date de naissance-->
         <div class="mb-3 w-50 mx-auto">
             <label for="birthDateInput" class="form-label">Date de naissance</label>
             <input type="date" class="form-control" id="birthDateInput" name="birthDate">
         </div>
 
+        <!--MDP-->
         <div class="row justify-content-center w-50 mx-auto">
             <div class="mb-3 col-12 col-md-5">
                 <label for="passwordInput" class="form-label">Mot de passe</label>
@@ -23,12 +29,22 @@
                 <label for="validatePasswordInput" class="form-label">Validez votre mot de passe</label>
                 <input type="password" class="form-control" id="validatePasswordInput" name="PasswordConfirm">
             </div>
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary">Inscription</button>
-            </div>
+        </div>
+
+        <!--Image de profil-->
+        <div class="mb-3">
+            <label for="image" class="form-label">Image de l'événement :</label>
+            <input type="file" id="image" name="image" accept="image/*" required>
+        </div>
+
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Inscription</button>
         </div>
     </form>
-    <div class="text-center pt-3">
-        <a href="/connexion" onclick="window.route(event)">Vous avez déjà un compte ? Connectez-vous ici !</a>
-    </div>
+</div>
+
+
+<div class="text-center pt-3">
+    <a href="/connexion" onclick="window.route(event)">Vous avez déjà un compte ? Connectez-vous ici !</a>
+</div>
 </div>
