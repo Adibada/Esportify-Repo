@@ -6,19 +6,27 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\EvenementsRepository;
+use App\Entity\Evenements;
+
 
 #[Route('api/evenements', name: 'app_api_evenements_')]
 
 class EvenementsController extends AbstractController
 {
-    $evenement = new evenements;
+    public function __construct(
+        private EntityManagerInterface $manager,
+        private EvenementsRepository $repository
+        ) {}
 
-    public function __construct(private EntityManagerInterface $manager, private EvenementRepository $repository)
-    #[Route(name: 'new', methods: 'POST')]
+    #[Route('/', name: 'new', methods: 'POST')]
+    
     public function new(): Response
     {
-        $evenement->setTitre( titre:'Near Machinica Speedrun' );
-        $evenement->setDescription( description: 'blablablabla');
+        $evenement = new Evenements;
+        $evenement->setTitre('Near Machinica Speedrun' );
+        $evenement->setDescription('blablablabla');
         $evenement->setStart( new\DateTimeImmutable());
 
         $this->manager->persist($evenement);
@@ -33,32 +41,51 @@ class EvenementsController extends AbstractController
     #[Route('/{id}', name: 'show', methods: 'GET')]
     public function show(int $id): Response
     {
+        $evenement = $this->repository->find($id);
+
         if (!$evenement){
             throw new \Exception( message: "Aucun événement trouvé");
         }
 
         return $this->json(
-            [ message => "evenement trouvé : {$evenement->getTitre()} for {$evenement->getId()} id"]);
+            [ 'message' => "evenement trouvé : {$evenement->getTitre()} for {$evenement->getId()} id"]);
     }
 
-    #[Route('/', name: 'edit', methods: 'PUT')]
-    public function edit(): Response
+    #[Route('/{id}', name: 'edit', methods: 'PUT')]
+    public function edit(Request $request, int $id): Response
     {
-         if (!$evenement){
-            throw new \Exception( message: "Aucun événement trouvé");
+        $evenement = $this->repository->find($id);
+
+        if (!$evenement) {
+            return $this->json(['message' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
         }
 
-        $evenement->setTitre("Titre de l'événement mis à jour");
+        $data = json_decode($request->getContent(), true);
+        $nouveauTitre = $data['titre'] ?? null;
+
+        if (!$nouveauTitre) {
+            return $this->json(['message' => "Titre manquant"], Response::HTTP_BAD_REQUEST);
+        }
+
+        $evenement->setTitre($nouveauTitre);
+        $this->manager->flush();
+
+        return $this->json(['message' => "Événement modifié avec succès"]); 
 
     }
 
-    #[Route('/', name: 'delete', methods: 'DELETE')]
-    public function delete(): Response
+    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    public function delete(int $id): Response
     {
-         if (!$evenement){
-            throw new \Exception( message: "Aucun événement trouvé");
+        $evenement = $this->repository->find($id);  
+
+        if (!$evenement) {
+            return $this->json(['message' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
         }
 
-        return $this->json([ message => "Evenement supprimé"], status: Response::HTTP_NO_CONTENT);
+        $this->manager->remove($evenement);
+        $this->manager->flush();
+
+        return $this->json(['message' => "Événement supprimé"], Response::HTTP_NO_CONTENT);
     }
 }
