@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\EvenementsRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,9 +22,6 @@ class Evenements
     #[ORM\Column(type: 'text')]
     private ?string $description = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $organisateur = null;
-
     #[ORM\Column]
     private ?\DateTimeImmutable $start = null;
 
@@ -33,13 +32,29 @@ class Evenements
     private ?string $lot = null;
 
     #[ORM\Column]
-    private ?int $competitors = null;
+    private ?int $numberCompetitors = null;
 
     #[ORM\Column(length: 255)]
     private ?string $statut = null;
 
     #[ORM\Column(length: 255)]
     private ?string $image = null;
+
+    #[ORM\ManyToMany(targetEntity: Jeux::class, inversedBy: 'evenements')]
+    private Collection $jeux;
+
+    #[ORM\ManyToMany(targetEntity: Profils::class, inversedBy: 'participations')]
+    private Collection $competitors;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Profils $organisateur = null;
+
+    public function __construct()
+    {
+        $this->jeux = new ArrayCollection();
+        $this->competitors = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -118,14 +133,14 @@ class Evenements
         return $this;
     }
 
-    public function getCompetitors(): ?int
+    public function getNumberCompetitors(): ?int
     {
-        return $this->competitors;
+        return $this->numberCompetitors;
     }
 
-    public function setCompetitors(int $competitors): static
+    public function setNumberCompetitors(int $numberCompetitors): static
     {
-        $this->competitors = $competitors;
+        $this->numberCompetitors = $numberCompetitors;
 
         return $this;
     }
@@ -150,6 +165,54 @@ class Evenements
     public function setImage(string $image): static
     {
         $this->image = $image;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Jeux>
+     */
+    public function getJeux(): Collection
+    {
+        return $this->Jeux;
+    }
+
+    public function addJeux(Jeux $jeux): static
+    {
+        if (!$this->Jeux->contains($jeux)) {
+            $this->Jeux->add($jeux);
+        }
+
+        return $this;
+    }
+
+    public function removeJeux(Jeux $jeux): static
+    {
+        $this->Jeux->removeElement($jeux);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Profils>
+     */
+    public function getCompetitors(): Collection
+    {
+        return $this->competitors;
+    }
+
+    public function addCompetitor(Profils $competitor): static
+    {
+        if (!$this->competitors->contains($competitor)) {
+            $this->competitors->add($competitor);
+        }
+
+        return $this;
+    }
+
+    public function removeCompetitor(Profils $competitor): static
+    {
+        $this->competitors->removeElement($competitor);
 
         return $this;
     }
