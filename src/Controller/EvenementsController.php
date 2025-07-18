@@ -9,83 +9,114 @@ use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\EvenementsRepository;
 use App\Entity\Evenements;
-
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Route('api/evenements', name: 'app_api_evenements_')]
 
 class EvenementsController extends AbstractController
 {
+
     public function __construct(
-        private EntityManagerInterface $manager,
-        private EvenementsRepository $repository
-        ) {}
+    private EntityManagerInterface $manager,
+    private EvenementsRepository $repository,
+    private SerializerInterface $serializer,
+    private UrlGeneratorInterface $urlGenerator
+    ) {}
 
-    #[Route('/', name: 'new', methods: 'POST')]
-    
-    public function new(): Response
+    #[Route('', name: 'new', methods: ['POST'])]
+    public function new(Request $request): JsonResponse
     {
-        $evenement = new Evenements;
-        $evenement->setTitre('Near Machinica Speedrun' );
-        $evenement->setDescription('blablablabla');
-        $evenement->setStart( new\DateTimeImmutable());
+        $data = json_decode($request->getContent(), true);
 
+        //Désérialisation sans l'organisateur
+        $evenement = $this->serializer->deserialize($request->getContent(), Evenements::class, 'json');
+
+        //Vérification de la présence de l'organisateur_id
+        if (!isset($data['organisateur_id'])) {
+            return $this->json(['error' => 'organisateur_id manquant'], Response::HTTP_BAD_REQUEST);
+        }
+
+        //Recherche du profil organisateur
+        $profil = $this->manager->getRepository(\App\Entity\Profils::class)->find($data['organisateur_id']);
+
+        //Vérification de l'existence et des droits
+        if (!$profil || strtolower($profil->getDroits()) !== 'organisateur') {
+            return $this->json(['error' => 'Ce profil n\'a pas les droits organisateur.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        //Association du profil organisateur
+        $evenement->setOrganisateur($profil);
+
+        //Sauvegarde
         $this->manager->persist($evenement);
         $this->manager->flush();
 
-        return $this->json(
-            ['message' => "Event resource created with {$evenement->getId()} id"],
-            status: Response::HTTP_CREATED,
+        $responseData = $this->serializer->serialize($evenement, 'json');
+        $location = $this->urlGenerator->generate(
+        'app_api_evenements_show',
+        ['id' => $evenement->getId()],
+        UrlGeneratorInterface::ABSOLUTE_URL
         );
+
+        return new JsonResponse($responseData, Response::HTTP_CREATED, ['Location' => $location], true);
     }
 
-    #[Route('/{id}', name: 'show', methods: 'GET')]
+    #[Route('/{id}', name: 'show', methods: ['GET'])]
     public function show(int $id): Response
     {
         $evenement = $this->repository->find($id);
 
         if (!$evenement){
-            throw new \Exception( message: "Aucun événement trouvé");
+            return $this->json(
+                ['error' => 'Événement non trouvé'],
+                Response::HTTP_NOT_FOUND
+            );
         }
 
-        return $this->json(
-            [ 'message' => "evenement trouvé : {$evenement->getTitre()} for {$evenement->getId()} id"]);
+        $data = $this->serializer->serialize($evenement, 'json');
+
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/{id}', name: 'edit', methods: 'PUT')]
+    #[Route('/{id}', name: 'edit', methods: ['PUT'])]
     public function edit(Request $request, int $id): Response
     {
         $evenement = $this->repository->find($id);
 
         if (!$evenement) {
-            return $this->json(['message' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
         }
 
         $data = json_decode($request->getContent(), true);
         $nouveauTitre = $data['titre'] ?? null;
 
         if (!$nouveauTitre) {
-            return $this->json(['message' => "Titre manquant"], Response::HTTP_BAD_REQUEST);
+            return $this->json(['error' => "Titre manquant"], Response::HTTP_BAD_REQUEST);
         }
 
         $evenement->setTitre($nouveauTitre);
         $this->manager->flush();
 
-        return $this->json(['message' => "Événement modifié avec succès"]); 
-
+        $data = $this->serializer->serialize($evenement, 'json');
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
+
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     public function delete(int $id): Response
     {
-        $evenement = $this->repository->find($id);  
+        $evenement = $this->repository->find($id);
 
         if (!$evenement) {
-            return $this->json(['message' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
         }
 
         $this->manager->remove($evenement);
         $this->manager->flush();
 
-        return $this->json(['message' => "Événement supprimé"], Response::HTTP_NO_CONTENT);
+        return $this->json(['message' => "Événement supprimé"], Response::HTTP_OK);
     }
+
 }

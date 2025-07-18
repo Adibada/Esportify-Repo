@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Profils;
 
 #[ORM\Entity(repositoryClass: EvenementsRepository::class)]
 class Evenements
@@ -46,9 +47,20 @@ class Evenements
     #[ORM\ManyToMany(targetEntity: Profils::class, inversedBy: 'participations')]
     private Collection $competitors;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(targetEntity: Profils::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?Profils $organisateur = null;
+
+    public function getOrganisateur(): ?Profils
+    {
+        return $this->organisateur;
+    }
+
+    public function setOrganisateur(?Profils $organisateur): self
+    {
+        $this->organisateur = $organisateur;
+        return $this;
+    }
 
     public function __construct()
     {
@@ -81,18 +93,6 @@ class Evenements
     public function setDescription(string $description): static
     {
         $this->description = $description;
-
-        return $this;
-    }
-
-    public function getOrganisateur(): ?string
-    {
-        return $this->organisateur;
-    }
-
-    public function setOrganisateur(string $organisateur): static
-    {
-        $this->organisateur = $organisateur;
 
         return $this;
     }
@@ -169,33 +169,25 @@ class Evenements
         return $this;
     }
 
-    /**
-     * @return Collection<int, Jeux>
-     */
     public function getJeux(): Collection
     {
-        return $this->Jeux;
+        return $this->jeux;
     }
 
     public function addJeux(Jeux $jeux): static
     {
-        if (!$this->Jeux->contains($jeux)) {
-            $this->Jeux->add($jeux);
+        if (!$this->jeux->contains($jeux)) {
+            $this->jeux->add($jeux);
         }
-
         return $this;
     }
 
     public function removeJeux(Jeux $jeux): static
     {
-        $this->Jeux->removeElement($jeux);
-
+        $this->jeux->removeElement($jeux);
         return $this;
     }
 
-    /**
-     * @return Collection<int, Profils>
-     */
     public function getCompetitors(): Collection
     {
         return $this->competitors;
