@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Core\Annotation\ApiResource; 
 use App\Repository\EvenementsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -9,7 +10,13 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Profils;
 
+
+/**
+ * @ApiResource()
+ */
+
 #[ORM\Entity(repositoryClass: EvenementsRepository::class)]
+
 class Evenements
 {
     #[ORM\Id]
@@ -61,7 +68,6 @@ class Evenements
 
     public function __construct()
     {
-        $this->jeux = new ArrayCollection();
         $this->competitors = new ArrayCollection();
     }
 
