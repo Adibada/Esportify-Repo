@@ -41,9 +41,6 @@ class Evenements
     #[ORM\Column(length: 255)]
     private ?string $image = null;
 
-    #[ORM\ManyToMany(targetEntity: Jeux::class, inversedBy: 'evenements')]
-    private Collection $jeux;
-
     #[ORM\ManyToMany(targetEntity: Profils::class, inversedBy: 'participations')]
     private Collection $competitors;
 
@@ -166,25 +163,6 @@ class Evenements
     {
         $this->image = $image;
 
-        return $this;
-    }
-
-    public function getJeux(): Collection
-    {
-        return $this->jeux;
-    }
-
-    public function addJeux(Jeux $jeux): static
-    {
-        if (!$this->jeux->contains($jeux)) {
-            $this->jeux->add($jeux);
-        }
-        return $this;
-    }
-
-    public function removeJeux(Jeux $jeux): static
-    {
-        $this->jeux->removeElement($jeux);
         return $this;
     }
 
