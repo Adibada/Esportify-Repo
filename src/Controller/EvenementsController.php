@@ -38,16 +38,16 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'organisateur_id manquant'], Response::HTTP_BAD_REQUEST);
         }
 
-        //Recherche du profil organisateur
-        $profil = $this->manager->getRepository(\App\Entity\Profils::class)->find($data['organisateur_id']);
+        //Recherche du user organisateur
+        $user = $this->manager->getRepository(\App\Entity\User::class)->find($data['organisateur_id']);
 
         //Vérification de l'existence et des droits
-        if (!$profil || strtolower($profil->getDroits()) !== 'organisateur') {
-            return $this->json(['error' => 'Ce profil n\'a pas les droits organisateur.'], Response::HTTP_BAD_REQUEST);
+        if (!$user || strtolower($user->getDroits()) !== 'organisateur') {
+            return $this->json(['error' => 'Ce user n\'a pas les droits organisateur.'], Response::HTTP_BAD_REQUEST);
         }
 
-        //Association du profil organisateur
-        $evenement->setOrganisateur($profil);
+        //Association du user organisateur
+        $evenement->setOrganisateur($user);
 
         //Sauvegarde
         $this->manager->persist($evenement);

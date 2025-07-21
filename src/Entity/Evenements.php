@@ -8,7 +8,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use App\Entity\Profils;
+use App\Entity\User;
 
 
 /**
@@ -48,19 +48,19 @@ class Evenements
     #[ORM\Column(length: 255)]
     private ?string $image = null;
 
-    #[ORM\ManyToMany(targetEntity: Profils::class, inversedBy: 'participations')]
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'participations')]
     private Collection $competitors;
 
-    #[ORM\ManyToOne(targetEntity: Profils::class)]
+    #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Profils $organisateur = null;
+    private ?User $organisateur = null;
 
-    public function getOrganisateur(): ?Profils
+    public function getOrganisateur(): ?User
     {
         return $this->organisateur;
     }
 
-    public function setOrganisateur(?Profils $organisateur): self
+    public function setOrganisateur(?User $organisateur): self
     {
         $this->organisateur = $organisateur;
         return $this;
@@ -177,7 +177,7 @@ class Evenements
         return $this->competitors;
     }
 
-    public function addCompetitor(Profils $competitor): static
+    public function addCompetitor(User $competitor): static
     {
         if (!$this->competitors->contains($competitor)) {
             $this->competitors->add($competitor);
@@ -186,7 +186,7 @@ class Evenements
         return $this;
     }
 
-    public function removeCompetitor(Profils $competitor): static
+    public function removeCompetitor(User $competitor): static
     {
         $this->competitors->removeElement($competitor);
 
