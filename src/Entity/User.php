@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use Symfony\Component\Serializer\Annotation\Groups;
 use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
@@ -25,9 +26,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $profilName = null;
+    private ?string $username = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $mail = null;
 
     #[ORM\Column]
@@ -42,44 +43,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?string $password = null;
 
+    #[ORM\Column(type: 'string', length: 255, unique: true)]
+    private string $apiToken;
+
+    public function __construct()
+    {
+        $this->apiToken = bin2hex(random_bytes( length: 20));
+        $this->participations = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    public function getProfilName(): ?string
-    {
-        return $this->profilName;
-    }
-
-    public function setProfilName(string $profilName): static
-    {
-        $this->Adibada = $profilName;
-
-        return $this;
-    }
-
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
     public function getUserIdentifier(): string
     {
-        return (string) $this->id;
+        return (string) $this->username;
     }
 
-    /**
-     * @deprecated since Symfony 5.3, use getUserIdentifier instead
-     */
     public function getUsername(): string
     {
-        return (string) $this->profilName;
+        return (string) $this->username;
     }
 
-      public function setUserName(string $profilName): static
+      public function setUsername(string $username): static
     {
-        $this->profilName = $profilName;
+        $this->username = $username;
 
         return $this;
     }
@@ -91,7 +81,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setMail(string $mail): static
     {
-        $this->Mail = $mail;
+        $this->mail = $mail;
 
         return $this;
     }
@@ -150,11 +140,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // $this->plainPassword = null;
     }
 
-      public function __construct()
-    {
-        $this->participations = new ArrayCollection();
-    }
-
         /**
      * @return Collection<int, Evenements>
      */
@@ -168,6 +153,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if (!$this->participations->contains($participation)) {
             $this->participations->add($participation);
             $participation->addCompetitor($this);
+        }
+
+        return $this;
+    }
+
+    public function getApiToken(): ?string
+    {
+        return $this->apiToken;
+    }
+
+    public function setApiToken(string $apiToken): self
+    {
+        $this->apiToken = $apiToken;
+        return $this;
+    }
+
+    public function removeParticipation(Evenements $participation): static
+    {
+        if ($this->participations->removeElement($participation)) {
+            $participation->removeCompetitor($this);
         }
 
         return $this;
