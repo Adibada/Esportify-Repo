@@ -9,26 +9,59 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\User;
-
+use OpenApi\Attributes as OA;
 
 #[Route('/api', name: 'app_api_')]
+#[OA\Tag(name: 'Security')]
 class SecurityController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $manager, private SerializerInterface $serializer)
-    {
-    }
+    public function __construct(
+        private EntityManagerInterface $manager,
+        private SerializerInterface $serializer
+    ) {}
 
-  #[Route('/registration', name: 'registration', methods: ['POST'])]
+    #[Route('/registration', name: 'registration', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/registration',
+        summary: 'Register a new user',
+        tags: ["Security"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'User created',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'user', type: 'string'),
+                        new OA\Property(property: 'apiToken', type: 'string'),
+                        new OA\Property(
+                            property: 'roles',
+                            type: 'array',
+                            items: new OA\Items(type: 'string')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 400, description: 'Bad request'),
+        ]
+    )]
     public function register(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
-{
+    {
         $user = $this->serializer->deserialize($request->getContent(), User::class, 'json');
 
-        //Hasher le mot de passe
         $user->setPassword($passwordHasher->hashPassword($user, $user->getPassword()));
-
-        //Générer un token API unique
         $user->setApiToken(bin2hex(random_bytes(32)));
 
         $this->manager->persist($user);
@@ -45,6 +78,39 @@ class SecurityController extends AbstractController
     }
 
     #[Route('/login', name: 'login', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/login',
+        summary: 'Login a user',
+        tags: ["Security"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User authenticated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'user', type: 'string'),
+                        new OA\Property(property: 'apiToken', type: 'string'),
+                        new OA\Property(
+                            property: 'roles',
+                            type: 'array',
+                            items: new OA\Items(type: 'string')
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Invalid credentials'),
+        ]
+    )]
     public function login(#[CurrentUser] ?User $user): JsonResponse
     {
         if (null === $user) {
@@ -58,4 +124,3 @@ class SecurityController extends AbstractController
         ]);
     }
 }
-

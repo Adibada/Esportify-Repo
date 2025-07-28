@@ -1,7 +1,13 @@
 api_platform:
-    mapping:
-        paths: ['%kernel.project_dir%/src/Entity']
-    patch_formats:
-        json: ['application/merge-patch+json']
-    swagger:
-        versions: [3]
+    enable_swagger: true       # active la génération du fichier OpenAPI
+    enable_swagger_ui: true    # active Swagger UI (/api)
+
+    openapi:
+        contact:
+            name: 'Esportify'
+            email: 'email@exemple.com'
+            url: ''
+        license:
+            name: 'MIT'
+            url: 'https://opensource.org/licenses/MIT'
+        termsOfService: 'https://ton-site.com/terms'
