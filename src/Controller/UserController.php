@@ -5,12 +5,12 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('api/users', name: 'app_api_users_')]
@@ -22,50 +22,58 @@ class UserController extends AbstractController
         private SerializerInterface $serializer
     ) {}
 
-    #[Route('/user', name: 'index')]
-    public function index(): Response
-    {
-        return $this->render('user/index.html.twig', [
-            'controller_name' => 'UserController',
-        ]);
-    }
-
     #[Route('', name: 'new', methods: ['POST'])]
+    #[OA\Post(
+        summary: 'Créer un nouvel utilisateur',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                type: 'object',
+                required: ['email', 'password', 'droits'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'password', type: 'string'),
+                    new OA\Property(property: 'droits', type: 'string', enum: ['organisateur', 'participant'])
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Utilisateur créé'),
+            new OA\Response(response: 400, description: 'Données invalides'),
+        ]
+    )]
     public function new(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
 
-        if (empty($data['name']) || empty($data['mail']) || empty($data['password']) || empty($data['roles'])) {
-            return $this->json(['error' => 'Champs obligatoires manquants'], Response::HTTP_BAD_REQUEST);
+        if (!isset($data['email'], $data['password'], $data['droits'])) {
+            return $this->json(['error' => 'Champs manquants'], Response::HTTP_BAD_REQUEST);
         }
 
         $user = new User();
-        $user->setName($data['name']);
-        $user->setEmail($data['mail']);
-
-        if (!empty($data['naissance'])) {
-            try {
-                $dateNaissance = new \DateTimeImmutable($data['naissance']);
-                $user->setNaissance($dateNaissance);
-            } catch (\Exception $e) {
-                return $this->json(['error' => 'Date de naissance invalide'], Response::HTTP_BAD_REQUEST);
-            }
-        }
-
-        $user->setPassword($data['password']);
-        $user->setRoles((array) $data['roles']);
+        $user->setEmail($data['email']);
+        $user->setPassword($data['password']); // à encoder si tu as un encodeur
+        $user->setDroits($data['droits']);
 
         $this->manager->persist($user);
         $this->manager->flush();
 
-        $jsonUser = $this->serializer->serialize($user, 'json');
-        $location = $this->generateUrl('app_api_users_show', ['id' => $user->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
-
-        return new JsonResponse($jsonUser, Response::HTTP_CREATED, ['Location' => $location], true);
+        $data = $this->serializer->serialize($user, 'json');
+        return new JsonResponse($data, Response::HTTP_CREATED, [], true);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
-    public function show(int $id): Response
+    #[OA\Get(
+        summary: 'Afficher un utilisateur par ID',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Utilisateur trouvé'),
+            new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
+        ]
+    )]
+    public function show(int $id): JsonResponse
     {
         $user = $this->repository->find($id);
 
@@ -78,7 +86,27 @@ class UserController extends AbstractController
     }
 
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
-    public function edit(Request $request, int $id): Response
+    #[OA\Put(
+        summary: 'Modifier un utilisateur',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                type: 'object',
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'droits', type: 'string')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Utilisateur modifié'),
+            new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
+        ]
+    )]
+    public function edit(Request $request, int $id): JsonResponse
     {
         $user = $this->repository->find($id);
 
@@ -87,28 +115,27 @@ class UserController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-
-        if (!empty($data['name'])) {
-            $user->setName($data['name']);
-        }
-        if (!empty($data['mail'])) {
-            $user->setEmail($data['mail']);
-        }
-        if (!empty($data['password'])) {
-            $user->setPassword($data['password']);
-        }
-        if (!empty($data['roles'])) {
-            $user->setRoles((array) $data['roles']);
-        }
+        if (isset($data['email'])) $user->setEmail($data['email']);
+        if (isset($data['droits'])) $user->setDroits($data['droits']);
 
         $this->manager->flush();
 
-        $jsonUser = $this->serializer->serialize($user, 'json');
-        return new JsonResponse($jsonUser, Response::HTTP_OK, [], true);
+        $data = $this->serializer->serialize($user, 'json');
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(int $id): Response
+    #[OA\Delete(
+        summary: 'Supprimer un utilisateur',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Utilisateur supprimé'),
+            new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
+        ]
+    )]
+    public function delete(int $id): JsonResponse
     {
         $user = $this->repository->find($id);
 
