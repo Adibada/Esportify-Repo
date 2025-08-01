@@ -1,9 +1,18 @@
 nelmio_api_doc:
     documentation:
         info:
-            title: 'My API'
-            description: 'API documentation with Nelmio and Symfony'
+            title: 'API Esportify'
+            description: 'Documentation API avec Nelmio et Symfony'
             version: '1.0.0'
+        components:
+            securitySchemes:
+                X-AUTH-TOKEN:
+                    type: apiKey
+                    name: X-AUTH-TOKEN
+                    in: header
+        security:
+            - X-AUTH-TOKEN: []
+
     areas:
         path_patterns:
             - ^/api(?!/docs)
