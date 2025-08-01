@@ -36,13 +36,15 @@ class Evenements
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
+    #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(nullable: true)]
     private ?int $numberCompetitors = null;
 
+    #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(length: 255)]
     private ?string $statut = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
     #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'participations')]
@@ -67,6 +69,7 @@ class Evenements
     {
         $this->competitors = new ArrayCollection();
         $this->numberCompetitors = 0;
+        $this->statut = self::STATUT_EN_ATTENTE;
     }
 
     public function getId(): ?int
@@ -121,6 +124,9 @@ class Evenements
 
         return $this;
     }
+
+    public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_VALIDE = 'valide';
 
     public function getStatut(): ?string
     {
