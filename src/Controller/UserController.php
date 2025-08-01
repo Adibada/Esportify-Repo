@@ -29,11 +29,12 @@ class UserController extends AbstractController
             required: true,
             content: new OA\JsonContent(
                 type: 'object',
-                required: ['email', 'password', 'droits'],
+                required: ['username', 'email', 'password', 'roles'],
                 properties: [
+                    new OA\Property(property: 'username', type: 'string'),
                     new OA\Property(property: 'email', type: 'string', format: 'email'),
                     new OA\Property(property: 'password', type: 'string'),
-                    new OA\Property(property: 'droits', type: 'string', enum: ['organisateur', 'participant'])
+                    new OA\Property(property: 'roles', type: 'string', enum: ['organisateur', 'participant'])
                 ]
             )
         ),
@@ -46,14 +47,15 @@ class UserController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        if (!isset($data['email'], $data['password'], $data['droits'])) {
+        if (!isset($data['username'], $data['email'], $data['password'], $data['roles'])) {
             return $this->json(['error' => 'Champs manquants'], Response::HTTP_BAD_REQUEST);
         }
 
         $user = new User();
+        $user->setUsername($data['username']);
         $user->setEmail($data['email']);
-        $user->setPassword($data['password']); // à encoder si tu as un encodeur
-        $user->setDroits($data['droits']);
+        $user->setPassword($data['password']);
+        $user->setRoles($data['roles']);
 
         $this->manager->persist($user);
         $this->manager->flush();
@@ -97,7 +99,7 @@ class UserController extends AbstractController
                 type: 'object',
                 properties: [
                     new OA\Property(property: 'email', type: 'string', format: 'email'),
-                    new OA\Property(property: 'droits', type: 'string')
+                    new OA\Property(property: 'roles', type: 'string')
                 ]
             )
         ),
@@ -116,7 +118,7 @@ class UserController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         if (isset($data['email'])) $user->setEmail($data['email']);
-        if (isset($data['droits'])) $user->setDroits($data['droits']);
+        if (isset($data['roles'])) $user->setRoles($data['roles']);
 
         $this->manager->flush();
 

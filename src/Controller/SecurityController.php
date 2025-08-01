@@ -26,13 +26,14 @@ class SecurityController extends AbstractController
     #[Route('/registration', name: 'registration', methods: ['POST'])]
     #[OA\Post(
         path: '/api/registration',
-        summary: 'Register a new user',
+        summary: 'Enregistrer un nouvel utilisateur',
         tags: ["Security"],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['email', 'password'],
+                required: ['username', 'email', 'password'],
                 properties: [
+                    new OA\Property(property: 'username', type: 'string'),
                     new OA\Property(property: 'email', type: 'string', format: 'email'),
                     new OA\Property(property: 'password', type: 'string', format: 'password'),
                 ]
@@ -41,10 +42,10 @@ class SecurityController extends AbstractController
         responses: [
             new OA\Response(
                 response: 201,
-                description: 'User created',
+                description: 'Nouvel utilisateur !',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'user', type: 'string'),
+                        new OA\Property(property: 'username', type: 'string'),
                         new OA\Property(property: 'apiToken', type: 'string'),
                         new OA\Property(
                             property: 'roles',
@@ -80,14 +81,14 @@ class SecurityController extends AbstractController
     #[Route('/login', name: 'login', methods: ['POST'])]
     #[OA\Post(
         path: '/api/login',
-        summary: 'Login a user',
+        summary: 'Connecter un utilisateur',
         tags: ["Security"],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['email', 'password'],
+                required: ['username', 'password'],
                 properties: [
-                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'username', type: 'string'),
                     new OA\Property(property: 'password', type: 'string', format: 'password'),
                 ]
             )

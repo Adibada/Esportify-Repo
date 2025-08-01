@@ -31,10 +31,12 @@ class EvenementsController extends AbstractController
             required: true,
             content: new OA\JsonContent(
                 type: 'object',
-                required: ['titre', 'date', 'organisateur_id'],
+                required: ['titre', 'description', 'start', 'end', 'organisateur_id'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string'),
-                    new OA\Property(property: 'date', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'description', type: 'string'),
+                    new OA\Property(property: 'start', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'end', type: 'string', format: 'date-time'),
                     new OA\Property(property: 'organisateur_id', type: 'integer')
                 ]
             )
@@ -56,8 +58,10 @@ class EvenementsController extends AbstractController
 
         $user = $this->manager->getRepository(\App\Entity\User::class)->find($data['organisateur_id']);
 
-        if (!$user || strtolower($user->getDroits()) !== 'organisateur') {
-            return $this->json(['error' => 'Ce user n\'a pas les droits organisateur.'], Response::HTTP_BAD_REQUEST);
+        $roles = $user->getRoles();
+
+        if (!$user || (!in_array('ROLE_ORGANISATEUR', $roles) && !in_array('ROLE_ADMIN', $roles))) {
+            return $this->json(['error' => 'Ce user n\'a pas les droits suffisants.'], Response::HTTP_BAD_REQUEST);
         }
 
         $evenement->setOrganisateur($user);
