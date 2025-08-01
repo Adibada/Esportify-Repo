@@ -86,7 +86,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
+        //Rôle minimum
         $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
@@ -115,9 +115,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Returning a salt is only needed, if you are not using a modern
-     * hashing algorithm (e.g. bcrypt or sodium) in your security.yaml.
-     *
      * @see UserInterface
      */
     public function getSalt(): ?string
@@ -134,7 +131,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         // $this->plainPassword = null;
     }
 
-        /**
+    /**
      * @return Collection<int, Evenements>
      */
     public function getParticipations(): Collection
@@ -152,6 +149,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function removeParticipation(Evenements $participation): static
+    {
+        if ($this->participations->removeElement($participation)) {
+            $participation->removeCompetitor($this);
+        }
+
+        return $this;
+    }
+
     public function getApiToken(): ?string
     {
         return $this->apiToken;
@@ -162,14 +168,4 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->apiToken = $apiToken;
         return $this;
     }
-
-    public function removeParticipation(Evenements $participation): static
-    {
-        if ($this->participations->removeElement($participation)) {
-            $participation->removeCompetitor($this);
-        }
-
-        return $this;
-    }
-
 }

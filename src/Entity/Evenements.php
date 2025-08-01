@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Core\Annotation\ApiResource; 
+use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\EvenementsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -30,16 +30,13 @@ class Evenements
     #[ORM\Column(type: 'text')]
     private ?string $description = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $start = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $lot = null;
-
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?int $numberCompetitors = null;
 
     #[ORM\Column(length: 255)]
@@ -69,6 +66,7 @@ class Evenements
     public function __construct()
     {
         $this->competitors = new ArrayCollection();
+        $this->numberCompetitors = 0;
     }
 
     public function getId(): ?int
@@ -124,30 +122,6 @@ class Evenements
         return $this;
     }
 
-    public function getLot(): ?string
-    {
-        return $this->lot;
-    }
-
-    public function setLot(string $lot): static
-    {
-        $this->lot = $lot;
-
-        return $this;
-    }
-
-    public function getNumberCompetitors(): ?int
-    {
-        return $this->numberCompetitors;
-    }
-
-    public function setNumberCompetitors(int $numberCompetitors): static
-    {
-        $this->numberCompetitors = $numberCompetitors;
-
-        return $this;
-    }
-
     public function getStatut(): ?string
     {
         return $this->statut;
@@ -172,6 +146,18 @@ class Evenements
         return $this;
     }
 
+        public function getNumberCompetitors(): ?int
+    {
+        return $this->numberCompetitors;
+    }
+
+    public function setNumberCompetitors(int $numberCompetitors): static
+    {
+        $this->numberCompetitors = $numberCompetitors;
+
+        return $this;
+    }
+
     public function getCompetitors(): Collection
     {
         return $this->competitors;
@@ -181,6 +167,7 @@ class Evenements
     {
         if (!$this->competitors->contains($competitor)) {
             $this->competitors->add($competitor);
+            $this->numberCompetitors++;
         }
 
         return $this;
@@ -188,7 +175,9 @@ class Evenements
 
     public function removeCompetitor(User $competitor): static
     {
-        $this->competitors->removeElement($competitor);
+        if ($this->competitors->removeElement($competitor)) {
+            $this->numberCompetitors = max(0, $this->numberCompetitors - 1);
+        }
 
         return $this;
     }
