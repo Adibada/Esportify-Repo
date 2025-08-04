@@ -3,67 +3,69 @@
 namespace App\Entity;
 
 use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Core\Annotation\ApiProperty;
 use App\Repository\EvenementsRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use App\Entity\User;
+use Symfony\Component\Serializer\Annotation\Groups;
 
-
-/**
- * @ApiResource()
- */
-
+#[ApiResource(
+    normalizationContext: ['groups' => ['evenement:read']],
+    denormalizationContext: ['groups' => ['evenement:write']]
+)]
 #[ORM\Entity(repositoryClass: EvenementsRepository::class)]
-
 class Evenements
 {
+    public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_VALIDE = 'valide';
+
+    #[Groups(['evenement:read'])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups(['evenement:read', 'evenement:write'])]
     #[ORM\Column(length: 255)]
     private ?string $titre = null;
 
-    #[ORM\Column(type: 'text')]
+    #[Groups(['evenement:read', 'evenement:write'])]
+    #[ORM\Column(type: Types::TEXT)]
     private ?string $description = null;
 
+    #[Groups(['evenement:read', 'evenement:write'])]
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $start = null;
 
+    #[Groups(['evenement:read', 'evenement:write'])]
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
+    #[Groups(['evenement:read'])]
     #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(nullable: true)]
-    private ?int $numberCompetitors = null;
+    private ?int $numberCompetitors = 0;
 
+    #[Groups(['evenement:read'])]
     #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(length: 255)]
-    private ?string $statut = null;
+    private ?string $statut = self::STATUT_EN_ATTENTE;
 
+    #[Groups(['evenement:read', 'evenement:write'])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
+    #[Groups(['evenement:read', 'evenement:write'])]
     #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'participations')]
     private Collection $competitors;
 
+    #[Groups(['evenement:read'])]
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
+    #[ApiProperty(normalizationContext: ['groups' => ['user:public']])]
     private ?User $organisateur = null;
-
-    public function getOrganisateur(): ?User
-    {
-        return $this->organisateur;
-    }
-
-    public function setOrganisateur(?User $organisateur): self
-    {
-        $this->organisateur = $organisateur;
-        return $this;
-    }
 
     public function __construct()
     {
@@ -85,7 +87,6 @@ class Evenements
     public function setTitre(string $titre): static
     {
         $this->titre = $titre;
-
         return $this;
     }
 
@@ -97,7 +98,6 @@ class Evenements
     public function setDescription(string $description): static
     {
         $this->description = $description;
-
         return $this;
     }
 
@@ -109,7 +109,6 @@ class Evenements
     public function setStart(\DateTimeImmutable $start): static
     {
         $this->start = $start;
-
         return $this;
     }
 
@@ -121,12 +120,8 @@ class Evenements
     public function setEnd(\DateTimeImmutable $end): static
     {
         $this->end = $end;
-
         return $this;
     }
-
-    public const STATUT_EN_ATTENTE = 'en_attente';
-    public const STATUT_VALIDE = 'valide';
 
     public function getStatut(): ?string
     {
@@ -136,7 +131,6 @@ class Evenements
     public function setStatut(string $statut): static
     {
         $this->statut = $statut;
-
         return $this;
     }
 
@@ -145,14 +139,13 @@ class Evenements
         return $this->image;
     }
 
-    public function setImage(string $image): static
+    public function setImage(?string $image): static
     {
         $this->image = $image;
-
         return $this;
     }
 
-        public function getNumberCompetitors(): ?int
+    public function getNumberCompetitors(): ?int
     {
         return $this->numberCompetitors;
     }
@@ -160,7 +153,6 @@ class Evenements
     public function setNumberCompetitors(int $numberCompetitors): static
     {
         $this->numberCompetitors = $numberCompetitors;
-
         return $this;
     }
 
@@ -175,7 +167,6 @@ class Evenements
             $this->competitors->add($competitor);
             $this->numberCompetitors++;
         }
-
         return $this;
     }
 
@@ -184,7 +175,17 @@ class Evenements
         if ($this->competitors->removeElement($competitor)) {
             $this->numberCompetitors = max(0, $this->numberCompetitors - 1);
         }
+        return $this;
+    }
 
+    public function getOrganisateur(): ?User
+    {
+        return $this->organisateur;
+    }
+
+    public function setOrganisateur(?User $organisateur): self
+    {
+        $this->organisateur = $organisateur;
         return $this;
     }
 }
