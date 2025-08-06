@@ -36,11 +36,11 @@ class Evenements
     private ?string $description = null;
 
     #[Groups(['evenement:read', 'evenement:write'])]
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $start = null;
 
     #[Groups(['evenement:read', 'evenement:write'])]
-    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
     #[Groups(['evenement:read'])]
