@@ -155,22 +155,20 @@ class EvenementsController extends AbstractController
     )]
     public function delete(int $id): Response
     {
-        $user = $this->getUser();
-
         if (!$this->isGranted('ROLE_ORGANISATEUR') && !$this->isGranted('ROLE_ADMIN')) {
-        return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
-    
-            $evenement = $this->repository->find($id);
-
-            if (!$evenement) {
-                return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
-            }
-
-            $this->manager->remove($evenement);
-            $this->manager->flush();
-
-            return $this->json(['message' => "Événement supprimé"], Response::HTTP_OK);
+            return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
         }
+
+        $evenement = $this->repository->find($id);
+
+        if (!$evenement) {
+            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->manager->remove($evenement);
+        $this->manager->flush();
+
+        return $this->json(['message' => "Événement supprimé"], Response::HTTP_OK);
     }
 
     #[IsGranted('ROLE_ADMIN')]

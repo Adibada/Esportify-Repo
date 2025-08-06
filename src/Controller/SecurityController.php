@@ -31,10 +31,10 @@ class SecurityController extends AbstractController
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['username', 'email', 'password'],
+                required: ['username', 'mail', 'password'],
                 properties: [
                     new OA\Property(property: 'username', type: 'string'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email'),
+                    new OA\Property(property: 'mail', type: 'string', format: 'email'),
                     new OA\Property(property: 'password', type: 'string', format: 'password'),
                 ]
             )

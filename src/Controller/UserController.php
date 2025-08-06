@@ -56,8 +56,14 @@ class UserController extends AbstractController
             content: new OA\JsonContent(
                 type: 'object',
                 properties: [
-                    new OA\Property(property: 'email', type: 'string', format: 'email'),
-                    new OA\Property(property: 'roles', type: 'string')
+                    new OA\Property(property: 'mail', type: 'string', format: 'email'),
+                    new OA\Property(property: 'roles',
+                        type: 'array',
+                        items: new OA\Items(
+                            type: "string",
+                            enum: ["USER", "ORGANISATEUR", "ADMIN"]
+                        )
+                    )
                 ]
             )
         ),
@@ -66,6 +72,7 @@ class UserController extends AbstractController
             new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
         ]
     )]
+
     public function edit(Request $request, int $id): JsonResponse
     {
         $user = $this->repository->find($id);
@@ -75,7 +82,7 @@ class UserController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        if (isset($data['email'])) $user->setEmail($data['email']);
+        if (isset($data['mail'])) $user->setmail($data['mail']);
         if (isset($data['roles'])) $user->setRoles($data['roles']);
 
         $this->manager->flush();

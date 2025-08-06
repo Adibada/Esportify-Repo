@@ -10,7 +10,9 @@ class UserNormalizer implements ContextAwareNormalizerInterface
 {
     private ObjectNormalizer $normalizer;
 
-    public function __construct(ObjectNormalizer $normalizer){}
+    public function __construct(ObjectNormalizer $normalizer){
+        $this->normalizer = $normalizer;
+    }
 
     public function supportsNormalization($data, string $format = null, array $context = []): bool
     {
