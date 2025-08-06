@@ -22,48 +22,6 @@ class UserController extends AbstractController
         private SerializerInterface $serializer
     ) {}
 
-    #[Route('', name: 'new', methods: ['POST'])]
-    #[OA\Post(
-        summary: 'Créer un nouvel utilisateur',
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                type: 'object',
-                required: ['username', 'email', 'password', 'roles'],
-                properties: [
-                    new OA\Property(property: 'username', type: 'string'),
-                    new OA\Property(property: 'email', type: 'string', format: 'email'),
-                    new OA\Property(property: 'password', type: 'string'),
-                    new OA\Property(property: 'roles', type: 'string', enum: ['organisateur', 'participant'])
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 201, description: 'Utilisateur créé'),
-            new OA\Response(response: 400, description: 'Données invalides'),
-        ]
-    )]
-    public function new(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        if (!isset($data['username'], $data['email'], $data['password'], $data['roles'])) {
-            return $this->json(['error' => 'Champs manquants'], Response::HTTP_BAD_REQUEST);
-        }
-
-        $user = new User();
-        $user->setUsername($data['username']);
-        $user->setEmail($data['email']);
-        $user->setPassword($data['password']);
-        $user->setRoles($data['roles']);
-
-        $this->manager->persist($user);
-        $this->manager->flush();
-
-        $data = $this->serializer->serialize($user, 'json');
-        return new JsonResponse($data, Response::HTTP_CREATED, [], true);
-    }
-
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     #[OA\Get(
         summary: 'Afficher un utilisateur par ID',
