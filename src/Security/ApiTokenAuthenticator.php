@@ -17,12 +17,12 @@ class ApiTokenAuthenticator extends AbstractAuthenticator
 
     public function supports(Request $request): ?bool
     {
-        return $request->headers->has('Authorization');
+        return $request->headers->has('X-AUTH-TOKEN');
     }
 
     public function authenticate(Request $request): SelfValidatingPassport
     {
-        $token = str_replace('Bearer ', '', $request->headers->get('Authorization'));
+        $token = str_replace('Bearer ', '', $request->headers->get('X-AUTH-TOKEN'));
 
         return new SelfValidatingPassport(
             new UserBadge($token, fn ($token) => $this->userRepository->findOneBy(['apiToken' => $token]))

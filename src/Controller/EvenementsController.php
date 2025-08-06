@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 
 #[Route('api/evenements', name: 'app_api_evenements_')]
 class EvenementsController extends AbstractController
@@ -24,45 +25,39 @@ class EvenementsController extends AbstractController
         private UrlGeneratorInterface $urlGenerator
     ) {}
 
+    #[IsGranted('ROLE_ORGANISATEUR')]
     #[Route('', name: 'new', methods: ['POST'])]
     #[OA\Post(
         summary: 'Créer un nouvel événement',
+        security: [['X-AUTH-TOKEN' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 type: 'object',
-                required: ['titre', 'description', 'start', 'end', 'organisateur_id'],
+                required: ['titre', 'description', 'start', 'end'],
                 properties: [
                     new OA\Property(property: 'titre', type: 'string'),
                     new OA\Property(property: 'description', type: 'string'),
                     new OA\Property(property: 'start', type: 'string', format: 'date-time'),
                     new OA\Property(property: 'end', type: 'string', format: 'date-time'),
-                    new OA\Property(property: 'organisateur_id', type: 'integer')
                 ]
             )
         ),
         responses: [
             new OA\Response(response: 201, description: 'Événement créé'),
             new OA\Response(response: 400, description: 'Données invalides'),
+            new OA\Response(response: 403, description: 'Accès non autorisé'),
         ]
     )]
     public function new(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $user = $this->getUser();
+
+        if (!$this->isGranted('ROLE_ORGANISATEUR') && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
+        }
 
         $evenement = $this->serializer->deserialize($request->getContent(), Evenements::class, 'json');
-
-        if (!isset($data['organisateur_id'])) {
-            return $this->json(['error' => 'organisateur_id manquant'], Response::HTTP_BAD_REQUEST);
-        }
-
-        $user = $this->manager->getRepository(\App\Entity\User::class)->find($data['organisateur_id']);
-
-        $roles = $user->getRoles();
-
-        if (!$user || (!in_array('ROLE_ORGANISATEUR', $roles) && !in_array('ROLE_ADMIN', $roles))) {
-            return $this->json(['error' => 'Ce user n\'a pas les droits suffisants.'], Response::HTTP_BAD_REQUEST);
-        }
 
         $evenement->setOrganisateur($user);
         $this->manager->persist($evenement);
@@ -101,6 +96,7 @@ class EvenementsController extends AbstractController
         return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
+    #[IsGranted('ROLE_ORGANISATEUR')]
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Modifier un événement',
@@ -144,9 +140,11 @@ class EvenementsController extends AbstractController
         return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
 
+    #[IsGranted('ROLE_ADMIN')]
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     #[OA\Delete(
         summary: 'Supprimer un événement',
+        security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
@@ -157,15 +155,46 @@ class EvenementsController extends AbstractController
     )]
     public function delete(int $id): Response
     {
-        $evenement = $this->repository->find($id);
+        $user = $this->getUser();
 
-        if (!$evenement) {
-            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+        if (!$this->isGranted('ROLE_ORGANISATEUR') && !$this->isGranted('ROLE_ADMIN')) {
+        return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
+    
+            $evenement = $this->repository->find($id);
+
+            if (!$evenement) {
+                return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+            }
+
+            $this->manager->remove($evenement);
+            $this->manager->flush();
+
+            return $this->json(['message' => "Événement supprimé"], Response::HTTP_OK);
         }
+    }
 
-        $this->manager->remove($evenement);
-        $this->manager->flush();
+    #[IsGranted('ROLE_ADMIN')]
+    #[Route('/{id}/valider', name: 'evenement_valider', methods: ['PUT'])]
+    #[OA\Put(
+        summary: 'Valider un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Événement validé'),
+            new OA\Response(response: 404, description: 'Événement non trouvé'),
+        ]
+    )]
 
-        return $this->json(['message' => "Événement supprimé"], Response::HTTP_OK);
+    public function valider(Evenements $evenement, EntityManagerInterface $em): JsonResponse
+    {
+        $evenement->setStatut(Evenements::STATUT_VALIDE);
+        $em->flush();
+
+        return new JsonResponse([
+            'message' => 'Événement validé avec succès',
+            'statut' => $evenement->getStatut(),
+        ]);
     }
 }

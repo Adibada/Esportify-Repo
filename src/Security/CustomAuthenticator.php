@@ -33,12 +33,15 @@ class CustomAuthenticator extends AbstractAuthenticator
 
     public function supports(Request $request): ?bool
     {
-        // Auth via token
+        file_put_contents(__DIR__.'/log.txt', "supports() called\n", FILE_APPEND);
+        return $request->headers->has('X-AUTH-TOKEN');
+
+        //Auth via token
         if ($request->headers->has('X-AUTH-TOKEN')) {
             return true;
         }
 
-        // Auth via username/password
+        //Auth via username/password
         if ($request->getPathInfo() === '/api/login' && $request->isMethod('POST')) {
             return true;
         }
