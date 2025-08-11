@@ -45,11 +45,6 @@ class Evenements
 
     #[Groups(['evenement:read'])]
     #[ApiProperty(readable: true, writable: false)]
-    #[ORM\Column(nullable: true)]
-    private ?int $numberCompetitors = 0;
-
-    #[Groups(['evenement:read'])]
-    #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(length: 255)]
     private ?string $statut = self::STATUT_EN_ATTENTE;
 
@@ -57,8 +52,15 @@ class Evenements
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'participations')]
+    #[Groups(['evenement:read'])]
+    #[ApiProperty(readable: true, writable: false)]
+    public function getNumberCompetitors(): int
+    {
+        return $this->competitors->count();
+    }
+
+    #[Groups(['evenement:read'])]
+    #[ORM\ManyToMany(targetEntity: User::class)]
     private Collection $competitors;
 
     #[Groups(['evenement:read'])]
@@ -70,7 +72,6 @@ class Evenements
     public function __construct()
     {
         $this->competitors = new ArrayCollection();
-        $this->numberCompetitors = 0;
         $this->statut = self::STATUT_EN_ATTENTE;
     }
 
@@ -145,17 +146,6 @@ class Evenements
         return $this;
     }
 
-    public function getNumberCompetitors(): ?int
-    {
-        return $this->numberCompetitors;
-    }
-
-    public function setNumberCompetitors(int $numberCompetitors): static
-    {
-        $this->numberCompetitors = $numberCompetitors;
-        return $this;
-    }
-
     public function getCompetitors(): Collection
     {
         return $this->competitors;
@@ -165,16 +155,13 @@ class Evenements
     {
         if (!$this->competitors->contains($competitor)) {
             $this->competitors->add($competitor);
-            $this->numberCompetitors++;
         }
         return $this;
     }
 
     public function removeCompetitor(User $competitor): static
     {
-        if ($this->competitors->removeElement($competitor)) {
-            $this->numberCompetitors = max(0, $this->numberCompetitors - 1);
-        }
+        $this->competitors->removeElement($competitor);
         return $this;
     }
 
