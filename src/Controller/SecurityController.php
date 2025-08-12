@@ -45,7 +45,7 @@ class SecurityController extends AbstractController
                 description: 'Nouvel utilisateur !',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'username', type: 'string'),
+                        new OA\Property(property: 'user', type: 'string'),
                         new OA\Property(property: 'apiToken', type: 'string'),
                         new OA\Property(
                             property: 'roles',
@@ -60,9 +60,27 @@ class SecurityController extends AbstractController
     )]
     public function register(Request $request, UserPasswordHasherInterface $passwordHasher): JsonResponse
     {
-        $user = $this->serializer->deserialize($request->getContent(), User::class, 'json');
+        try {
+            $user = $this->serializer->deserialize($request->getContent(), User::class, 'json');
+        } catch (\Exception $e) {
+            return new JsonResponse(['message' => 'Invalid JSON'], Response::HTTP_BAD_REQUEST);
+        }
 
-        $user->setPassword($passwordHasher->hashPassword($user, $user->getPassword()));
+        // Validation simple
+        if (
+            empty($user->getUsername()) ||
+            empty($user->getMail()) ||
+            !filter_var($user->getMail(), FILTER_VALIDATE_EMAIL) ||
+            empty($user->getPassword())
+        ) {
+            return new JsonResponse(['message' => 'Username, mail and password are required and mail must be valid'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Hash password
+        $hashedPassword = $passwordHasher->hashPassword($user, $user->getPassword());
+        $user->setPassword($hashedPassword);
+
+        // Générer apiToken
         $user->setApiToken(bin2hex(random_bytes(32)));
 
         $this->manager->persist($user);
@@ -72,7 +90,7 @@ class SecurityController extends AbstractController
             [
                 'user' => $user->getUserIdentifier(),
                 'apiToken' => $user->getApiToken(),
-                'roles' => $user->getRoles()
+                'roles' => $user->getRoles(),
             ],
             Response::HTTP_CREATED
         );
