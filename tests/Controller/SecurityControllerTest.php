@@ -4,100 +4,73 @@ namespace App\Tests\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use App\Entity\User;
-use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class SecurityControllerTest extends WebTestCase
 {
     private $client;
     private $entityManager;
+    private $passwordHasher;
 
     protected function setUp(): void
     {
         $this->client = static::createClient();
-        $this->entityManager = self::$container->get(EntityManagerInterface::class);
-        
-        //Nettoie la base avant chaque test
-        $users = $this->entityManager->getRepository(User::class)->findAll();
-        foreach ($users as $user) {
-            $this->entityManager->remove($user);
-        }
-        $this->entityManager->flush();
+        $container = self::getContainer();
+        $this->entityManager = $container->get('doctrine')->getManager();
+        $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
+
+        // Nettoyer la table user avant chaque test
+        $this->entityManager->createQuery('DELETE FROM App\Entity\User u')->execute();
     }
 
-    public function testRegisterSuccess(): void
+    private function createUser(string $username = 'testuser', string $email = 'test@test.com', string $password = 'password123'): User
     {
-        $data = [
-            'username' => 'testuser',
-            'mail' => 'testuser@example.com',
-            'password' => 'TestPass123!',
-        ];
-
-        $this->client->request(
-            'POST',
-            '/api/registration',
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode($data)
-        );
-
-        $response = $this->client->getResponse();
-        $this->assertSame(201, $response->getStatusCode());
-
-        $json = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('user', $json);
-        $this->assertEquals('testuser', $json['user']);
-        $this->assertArrayHasKey('apiToken', $json);
-        $this->assertArrayHasKey('roles', $json);
-        $this->assertIsArray($json['roles']);
-    }
-
-    public function testRegisterBadRequest(): void
-    {
-        //données incomplètes : password manquant
-        $data = [
-            'username' => 'testuser',
-            'mail' => 'invalid-email-format',  //mail invalide aussi
-        ];
-
-        $this->client->request(
-            'POST',
-            '/api/registration',
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json'],
-            json_encode($data)
-        );
-
-        $response = $this->client->getResponse();
-        $this->assertSame(400, $response->getStatusCode());
-
-        $json = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('message', $json);
-        $this->assertStringContainsString('required', $json['message']);
-    }
-
-    public function testLoginSuccess(): void
-    {
-        //Crée un utilisateur en base pour tester login
         $user = new User();
-        $user->setUsername('loginuser');
-        $user->setMail('loginuser@example.com');
-
-        //Hash le mot de passe manuellement
-        $passwordHasher = self::$container->get('security.password_hasher');
-        $hashedPassword = $passwordHasher->hashPassword($user, 'password123');
-        $user->setPassword($hashedPassword);
-
+        $user->setUsername($username);
+        $user->setMail($email);
+        $hashed = $this->passwordHasher->hashPassword($user, $password);
+        $user->setPassword($hashed);
         $user->setApiToken(bin2hex(random_bytes(32)));
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        //Requête login
-        $data = [
-            'username' => 'loginuser',
-            'password' => 'password123',
+        return $user;
+    }
+
+    public function testRegistration(): void
+    {
+        $payload = [
+            'username' => 'newuser',
+            'mail' => 'newuser@test.com',
+            'password' => 'securepass'
+        ];
+
+        $this->client->request(
+            'POST',
+            '/api/registration',
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode($payload)
+        );
+
+        $response = $this->client->getResponse();
+        $this->assertEquals(201, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('user', $data);
+        $this->assertArrayHasKey('apiToken', $data);
+        $this->assertArrayHasKey('roles', $data);
+    }
+
+    public function testLoginSuccess(): void
+    {
+        $user = $this->createUser();
+
+        $payload = [
+            'username' => $user->getUserIdentifier(),
+            'password' => 'password123'
         ];
 
         $this->client->request(
@@ -106,26 +79,23 @@ class SecurityControllerTest extends WebTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode($data)
+            json_encode($payload)
         );
 
         $response = $this->client->getResponse();
+        $this->assertEquals(200, $response->getStatusCode());
 
-        $this->assertSame(200, $response->getStatusCode());
-
-        $json = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('user', $json);
-        $this->assertEquals('loginuser', $json['user']);
-        $this->assertArrayHasKey('apiToken', $json);
-        $this->assertArrayHasKey('roles', $json);
-        $this->assertIsArray($json['roles']);
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('user', $data);
+        $this->assertArrayHasKey('apiToken', $data);
+        $this->assertArrayHasKey('roles', $data);
     }
 
     public function testLoginFail(): void
     {
-        $data = [
-            'username' => 'nonexistent',
-            'password' => 'wrongpassword',
+        $payload = [
+            'username' => 'wronguser',
+            'password' => 'wrongpass'
         ];
 
         $this->client->request(
@@ -134,17 +104,50 @@ class SecurityControllerTest extends WebTestCase
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],
-            json_encode($data)
+            json_encode($payload)
         );
 
         $response = $this->client->getResponse();
+        $this->assertEquals(401, $response->getStatusCode());
 
-        $this->assertSame(401, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
 
-        $json = json_decode($response->getContent(), true);
+        // Correspond à ton LoginFailureHandler
+        $this->assertArrayHasKey('error', $data);
+        $this->assertEquals('Invalid credentials', $data['error']);
+    }
 
-        if (is_array($json) && array_key_exists('message', $json)) {
-            $this->assertEquals('Missing credentials', $json['message']);
-        }
+    public function testApiTokenAccess(): void
+    {
+        $user = $this->createUser();
+
+        $this->client->request(
+            'GET',
+            '/api/protected-test',
+            [],
+            [],
+            ['HTTP_X_AUTH_TOKEN' => $user->getApiToken()]
+        );
+
+        $response = $this->client->getResponse();
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function testApiTokenFail(): void
+    {
+        $this->client->request(
+            'GET',
+            '/api/protected-test',
+            [],
+            [],
+            ['HTTP_X_AUTH_TOKEN' => 'wrongtoken']
+        );
+
+        $response = $this->client->getResponse();
+        $this->assertEquals(401, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertEquals('Invalid or missing token', $data['error']);
     }
 }

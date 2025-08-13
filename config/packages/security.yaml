@@ -11,13 +11,12 @@ security:
                 property: username
 
     firewalls:
-
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
         login:
-            pattern: ^/api/login$
+            pattern: ^/api/login
             stateless: true
             json_login:
                 check_path: /api/login
@@ -25,7 +24,6 @@ security:
                 password_path: password
                 success_handler: App\Security\LoginSuccessHandler
                 failure_handler: App\Security\LoginFailureHandler
-            custom_authenticator: App\Security\CustomAuthenticator
 
         api:
             pattern: ^/api
@@ -38,4 +36,4 @@ security:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/registration, roles: PUBLIC_ACCESS }
         - { path: ^/api/doc, roles: PUBLIC_ACCESS }
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY   }
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }

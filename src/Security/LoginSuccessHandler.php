@@ -9,14 +9,14 @@ use Symfony\Component\HttpFoundation\Request;
 
 class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 {
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token): JsonResponse
+    public function onAuthenticationSuccess(\Symfony\Component\HttpFoundation\Request $request, TokenInterface $token): JsonResponse
     {
         $user = $token->getUser();
 
         return new JsonResponse([
             'user' => $user->getUserIdentifier(),
+            'apiToken' => $user->getApiToken(),
             'roles' => $user->getRoles(),
-            'apiToken' => $user->getApiToken()
         ]);
     }
 }

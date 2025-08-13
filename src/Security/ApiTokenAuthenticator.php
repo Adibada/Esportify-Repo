@@ -2,33 +2,39 @@
 
 namespace App\Security;
 
+use App\Repository\UserRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use App\Repository\UserRepository;
 
 class ApiTokenAuthenticator extends AbstractAuthenticator
 {
-    public function __construct(private UserRepository $userRepository) {}
+    private UserRepository $userRepository;
 
-    public function supports(Request $request): ?bool
+    public function __construct(UserRepository $userRepository)
+    {
+        $this->userRepository = $userRepository;
+    }
+
+    public function supports(Request $request): bool
     {
         return $request->headers->has('X-AUTH-TOKEN');
     }
 
-    public function authenticate(Request $request): SelfValidatingPassport
+    public function authenticate(Request $request): Passport
     {
-        $token = str_replace('Bearer ', '', $request->headers->get('X-AUTH-TOKEN'));
+        $token = $request->headers->get('X-AUTH-TOKEN');
 
-        return new SelfValidatingPassport(
-            new UserBadge($token, fn ($token) => $this->userRepository->findOneBy(['apiToken' => $token]))
-        );
+        return new SelfValidatingPassport(new UserBadge($token, function ($apiToken) {
+            return $this->userRepository->findOneBy(['apiToken' => $apiToken]);
+        }));
     }
-
+    
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?JsonResponse
     {
         return null;
@@ -39,3 +45,4 @@ class ApiTokenAuthenticator extends AbstractAuthenticator
         return new JsonResponse(['error' => 'Invalid or missing token'], JsonResponse::HTTP_UNAUTHORIZED);
     }
 }
+                                    
