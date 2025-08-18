@@ -19,15 +19,15 @@ class SecurityControllerTest extends WebTestCase
         $this->entityManager = $container->get('doctrine')->getManager();
         $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
-        // Nettoyer la table user avant chaque test
+        //Nettoyage
         $this->entityManager->createQuery('DELETE FROM App\Entity\User u')->execute();
     }
 
-    private function createUser(string $username = 'testuser', string $email = 'test@test.com', string $password = 'password123'): User
+    private function createUser(string $username = 'testuser', string $mail = 'test@test.com', string $password = 'password123'): User
     {
         $user = new User();
         $user->setUsername($username);
-        $user->setMail($email);
+        $user->setMail($mail);
         $hashed = $this->passwordHasher->hashPassword($user, $password);
         $user->setPassword($hashed);
         $user->setApiToken(bin2hex(random_bytes(32)));

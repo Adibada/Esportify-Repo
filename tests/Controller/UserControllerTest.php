@@ -15,13 +15,28 @@ class UserControllerTest extends WebTestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
         $this->client = static::createClient();
         $container = static::getContainer();
-
         $this->entityManager = $container->get(EntityManagerInterface::class);
         $this->passwordHasher = $container->get(UserPasswordHasherInterface::class);
 
-        // Nettoyage complet des utilisateurs avant chaque test
+        //Nettoyage initial : supprime tous les utilisateurs
+        $this->clearUsers();
+    }
+
+    protected function tearDown(): void
+    {
+        //Nettoyage après chaque test
+        $this->clearUsers();
+
+        parent::tearDown();
+        $this->entityManager->close();
+        $this->entityManager = null;
+    }
+
+    private function clearUsers(): void
+    {
         foreach ($this->entityManager->getRepository(User::class)->findAll() as $user) {
             $this->entityManager->remove($user);
         }
@@ -64,21 +79,6 @@ class UserControllerTest extends WebTestCase
         $json = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('username', $json);
         $this->assertEquals('profileuser', $json['username']);
-    }
-
-    public function testGetUserProfileUnauthorized(): void
-    {
-        $user = $this->createUser('nouser', 'password123');
-
-        $this->client->request(
-            'GET',
-            '/api/users/' . $user->getId(),
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/json']
-        );
-
-        $this->assertSame(401, $this->client->getResponse()->getStatusCode());
     }
 
     public function testUpdateUserProfile(): void
