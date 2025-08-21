@@ -12,7 +12,6 @@ class TestProtectedController extends AbstractController
     #[Route('/protected-test', name: 'protected_test', methods: ['GET'])]
     public function protectedTest(): JsonResponse
     {
-        // Cette route est protégée par la configuration de sécurité (IS_AUTHENTICATED_FULLY)
         $user = $this->getUser();
 
         return new JsonResponse([
