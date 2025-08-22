@@ -23,7 +23,7 @@ function setCookie(name, value, days) {
     document.cookie = name + "=" + (value || "") + expires + "; path=/";
 }
 
-//récupération du cookie
+//Récupération du cookie
 function getCookie(name) {
     let nameEQ = name + "=";
     let ca = document.cookie.split(';');
@@ -86,7 +86,7 @@ document.querySelectorAll('.navbar-collapse .nav-link').forEach(link => {
   link.addEventListener('click', () => {
     const navbarCollapse = document.querySelector('.navbar-collapse');
     if (navbarCollapse.classList.contains('show')) {
-      // Ferme la navbar en mode mobile
+      //Ferme la navbar en mode mobile
       new bootstrap.Collapse(navbarCollapse).hide();
     }
   });

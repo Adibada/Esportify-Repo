@@ -4,6 +4,7 @@ const emailInput = document.getElementById("emailInput");
 const birthDateInput = document.getElementById("birthDateInput");
 const passwordInput = document.getElementById("passwordInput");
 const confirmPasswordInput = document.getElementById("validatePasswordInput");
+const btnValidation = document.getElementById("btn-valid-incsription")
 
 //Checkup de changement dans les inputs
 profilNameInput.addEventListener("change", validateForm);
@@ -12,16 +13,13 @@ birthDateInput.addEventListener("change", validateForm);
 passwordInput.addEventListener("change", validateForm);
 confirmPasswordInput.addEventListener("change", validateForm);
 
-//Fonction de formulaire entièrement valide
-function validateForm() {
-    validateName(profilNameInput);
-    validateEmail(emailInput);
-    validateBirthDate(birthDateInput);
-    validateName(passwordInput);
-    validatePassword(confirmPasswordInput);
-}
+//Variables de formualire valide
+const nomOk = validateName(profilNameInput);
+const mailOk = validateEmail(emailInput);
+const birthOk = validateBirthDate(birthDateInput);
+const passwordOk = validateName(passwordInput)&&validatePassword(confirmPasswordInput);
 
-//Fonction de validation des inputs texte
+//Fonction de validation de l'input name
 function validateName(input) {
     if (input.value.length > 3 && input.value.length < 30) {
         input.classList.remove("is-invalid");
@@ -67,3 +65,5 @@ function validatePassword(input) {
         input.classList.add("is-invalid");
     }
 }
+
+function validateForm() {
