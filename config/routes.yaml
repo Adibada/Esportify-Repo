@@ -1,3 +1,8 @@
 #index:
 #    path: /
 #    controller: App\Controller\DefaultController::index
+frontend:
+    path: /{reactRouting}
+    controller: App\Controller\FrontendController::index
+    requirements:
+        reactRouting: ".+"
