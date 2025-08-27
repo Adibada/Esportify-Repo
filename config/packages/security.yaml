@@ -15,8 +15,9 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        login:
-            pattern: ^/api/login
+        # Firewall pour login et registration (pas de token requis)
+        login_registration:
+            pattern: ^/api/(login|registration)
             stateless: true
             json_login:
                 check_path: /api/login
@@ -25,6 +26,7 @@ security:
                 success_handler: App\Security\LoginSuccessHandler
                 failure_handler: App\Security\LoginFailureHandler
 
+        # Firewall général pour le reste de l'API
         api:
             pattern: ^/api
             stateless: true

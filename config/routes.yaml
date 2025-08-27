@@ -1,8 +1,31 @@
-#index:
-#    path: /
-#    controller: App\Controller\DefaultController::index
+# Nelmio API Doc (doit venir en premier)
+nelmio_api_doc_ui:
+    path: /api/doc
+    controller: nelmio_api_doc.controller.swagger_ui
+
+nelmio_api_doc_json:
+    path: /api/doc.json
+    controller: nelmio_api_doc.controller.swagger_json
+
+nelmio_api_doc_yaml:
+    path: /api/doc.yaml
+    controller: nelmio_api_doc.controller.swagger_yaml
+
+# SecurityController
+app_security:
+    resource: ../src/Controller/SecurityController.php
+    type: annotation
+
+# API Platform
+api_platform:
+    resource: .
+    type: api_platform
+    prefix: /api
+
+# Catch-all SPA (toujours en dernier)
 frontend:
     path: /{reactRouting}
     controller: App\Controller\FrontendController::index
     requirements:
-        reactRouting: ".+"
+        reactRouting: "^(?!api).*"
+

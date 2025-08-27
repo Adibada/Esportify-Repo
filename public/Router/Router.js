@@ -13,6 +13,12 @@ const getRouteByUrl = (url) => allRoutes.find(r => r.url === url) || route404;
 // Charger le contenu d'une page
 const LoadContentPage = async () => {
     const path = window.location.pathname;
+
+    // Ne jamais intercepter les routes API
+    if (path.startsWith("/api")) {
+        return; // laisse Symfony gérer la requête
+    }
+
     const actualRoute = getRouteByUrl(path);
 
     // Vérification des droits
@@ -26,25 +32,39 @@ const LoadContentPage = async () => {
             .then(r => r.ok ? r.text() : fetch(BASE_URL + route404.pathHtml + "?v=" + Date.now()).then(r2 => r2.text()));
         document.getElementById("main-page").innerHTML = html;
     } catch (err) {
-        console.error(err);
+        console.error("Erreur fetch HTML :", err);
         document.getElementById("main-page").innerHTML = "<h1>Erreur lors du chargement</h1>";
     }
 
-    // Chargement du JS spécifique à la page
+    // Chargement du JS spécifique
     if (actualRoute.pathJS) {
+        // Supprimer ancien script si existant
         const oldScript = document.getElementById("page-script");
         if (oldScript) oldScript.remove();
 
-        const script = document.createElement("script");
-        script.src = BASE_URL + actualRoute.pathJS + "?v=" + Date.now();
-        script.id = "page-script";
-        document.body.appendChild(script);
+        try {
+            // Essayer d'importer comme module ES
+            const module = await import(BASE_URL + actualRoute.pathJS + "?v=" + Date.now());
+            if (module.default) {
+                module.default(); // ⚡ Appelle initPage() si export default
+            } else {
+                console.log("Module chargé mais pas d'export default, code passif exécuté");
+            }
+        } catch (err) {
+            // Si import échoue (fichier non module), charger en script classique
+            console.warn("Import module échoué, injection script classique :", err);
+            const script = document.createElement("script");
+            script.src = BASE_URL + actualRoute.pathJS + "?v=" + Date.now();
+            script.id = "page-script";
+            document.body.appendChild(script);
+        }
     }
 
     // Mise à jour du titre
     document.title = `${actualRoute.title} - ${websiteName}`;
     editByRoles();
 };
+
 
 // Gestion des clics
 window.route = (e) => { 

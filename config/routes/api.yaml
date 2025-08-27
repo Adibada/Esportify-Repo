@@ -1,0 +1,8 @@
+# config/routes/api.yaml
+api_register:
+    path: /api/register
+    controller: App\Controller\Api\UserController::register
+
+api_doc:
+    path: /api/doc
+    controller: nelmio_api_doc.controller.swagger_ui
