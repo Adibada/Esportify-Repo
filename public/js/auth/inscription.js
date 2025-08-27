@@ -1,69 +1,90 @@
-//Variables enregistrant les inputs
-const profilNameInput = document.getElementById("profilNameInput");
-const emailInput = document.getElementById("emailInput");
-const birthDateInput = document.getElementById("birthDateInput");
-const passwordInput = document.getElementById("passwordInput");
-const confirmPasswordInput = document.getElementById("validatePasswordInput");
-const btnValidation = document.getElementById("btn-valid-incsription")
+export default function initInscriptionPage() {
+    const profilNameInput = document.getElementById("profilNameInput");
+    const mailInput = document.getElementById("mailInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const confirmPasswordInput = document.getElementById("validatePasswordInput");
+    const btnValidationInscription = document.getElementById("btn-valid-inscription");
 
-//Checkup de changement dans les inputs
-profilNameInput.addEventListener("change", validateForm);
-emailInput.addEventListener("change", validateForm);
-birthDateInput.addEventListener("change", validateForm);
-passwordInput.addEventListener("change", validateForm);
-confirmPasswordInput.addEventListener("change", validateForm);
+    btnValidationInscription.disabled = true;
 
-//Variables de formualire valide
-const nomOk = validateName(profilNameInput);
-const mailOk = validateEmail(emailInput);
-const birthOk = validateBirthDate(birthDateInput);
-const passwordOk = validateName(passwordInput)&&validatePassword(confirmPasswordInput);
+    profilNameInput.addEventListener("input", validateForm);
+    mailInput.addEventListener("input", validateForm);
+    passwordInput.addEventListener("input", validateForm);
+    confirmPasswordInput.addEventListener("input", validateForm);
 
-//Fonction de validation de l'input name
-function validateName(input) {
-    if (input.value.length > 3 && input.value.length < 30) {
-        input.classList.remove("is-invalid");
-        input.classList.add("is-valid");
-    } else {
-        input.classList.remove("is-valid");
-        input.classList.add("is-invalid");
+    btnValidationInscription.addEventListener("click", inscrireUser);
+
+    function validateName(input) {
+        const valid = input.value.trim().length > 3 && input.value.trim().length < 30;
+        toggleInputClass(input, valid);
+        return valid;
+    }
+
+    function validateMail(input) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const valid = emailRegex.test(input.value.trim());
+        toggleInputClass(input, valid);
+        return valid;
+    }
+
+    function validatePassword() {
+        const pwd = passwordInput.value.trim();
+        const confirmPwd = confirmPasswordInput.value.trim();
+        const valid = pwd.length >= 6 && pwd === confirmPwd;
+
+        toggleInputClass(passwordInput, pwd.length >= 6);
+        toggleInputClass(confirmPasswordInput, valid);
+
+        return valid;
+    }
+
+    function toggleInputClass(input, isValid) {
+        if (isValid) {
+            input.classList.remove("is-invalid");
+            input.classList.add("is-valid");
+        } else {
+            input.classList.remove("is-valid");
+            input.classList.add("is-invalid");
+        }
+    }
+    
+    function validateForm() {
+        const nomOk = validateName(profilNameInput);
+        const mailOk = validateMail(mailInput);
+        const passwordOk = validatePassword();
+
+        btnValidationInscription.disabled = !(nomOk && mailOk && passwordOk);
+    }
+
+    function inscrireUser() {
+        console.log("Bouton cliqué !");
+        btnValidationInscription.disabled = true;
+
+        const payload = {
+            username: profilNameInput.value.trim(),
+            mail: mailInput.value.trim(),
+            password: passwordInput.value.trim()
+        };
+
+        fetch("http://127.0.0.1:8000/api/registration", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error("Erreur HTTP " + response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Succès:", data);
+                alert("Inscription réussie !");
+            })
+            .catch(error => {
+                console.error("Erreur:", error);
+                alert("Échec de l'inscription !");
+            })
+            .finally(() => {
+                btnValidationInscription.disabled = false;
+            });
     }
 }
-//Fonction de validation de l'input email
-function validateEmail(input) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const userEmail = emailInput.value;
-    if (userEmail.match(emailRegex)) {
-        input.classList.remove("is-invalid");
-        input.classList.add("is-valid");
-    } else {
-        input.classList.remove("is-valid");
-        input.classList.add("is-invalid");
-    }
-}
-
-//Fonction de validation de l'input date
-function validateBirthDate(input) {
-    const birthDate = new Date(input.value);
-    const today = new Date();
-    if (input.value && birthDate < today) {
-        input.classList.remove("is-invalid");
-        input.classList.add("is-valid");
-    } else {
-        input.classList.remove("is-valid");
-        input.classList.add("is-invalid");
-    }
-}
-
-//Fonction de validation de l'input mot de passe
-function validatePassword(input) {
-    if (confirmPasswordInput.value === passwordInput.value) {
-        input.classList.remove("is-invalid");
-        input.classList.add("is-valid");
-    } else {
-        input.classList.remove("is-valid");
-        input.classList.add("is-invalid");
-    }
-}
-
-function validateForm() {
