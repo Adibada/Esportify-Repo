@@ -57,6 +57,8 @@ class SecurityController extends AbstractController
             return new JsonResponse(['message' => 'Username, mail and password are required and mail must be valid'], Response::HTTP_BAD_REQUEST);
         }
 
+        $user->setRoles(['ROLE_USER']);
+
         $user->setPassword($passwordHasher->hashPassword($user, $user->getPassword()));
         $user->setApiToken(bin2hex(random_bytes(32)));
 
