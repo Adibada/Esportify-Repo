@@ -1,37 +1,103 @@
-//Fonction pour le bouton modification de profil 
+// Récupération du profil et affichage du nom + participations
+const token = getToken();
+
+function loadUserProfile() {
+    fetch('/api/users/monProfil', {
+        headers: {
+            'X-AUTH-TOKEN': token
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Non authentifié ou erreur serveur");
+        return res.json();
+    })
+    .then(user => {
+        // Nom de profil
+        const profilName = document.getElementById("profilName");
+        if (profilName) profilName.textContent = user.username || "Nom indisponible";
+
+        // Participations
+        const eventList = document.querySelector(".event-list");
+        if (eventList) {
+            eventList.innerHTML = "";
+
+            if (!user.participations || user.participations.length === 0) {
+                eventList.innerHTML = `<li>Aucune participation</li>`;
+            } else {
+                user.participations.forEach(event => {
+                    const li = document.createElement("li");
+                    li.classList.add("event-in-list");
+
+                    li.innerHTML = `
+                        <a href="/evenements/${event.id}" onclick="window.route(event)">
+                            <span class="eventName">${event.titre}</span> /
+                            <span class="eventStart">
+                                <time datetime="${event.start}">
+                                    ${new Date(event.start).toLocaleDateString()}
+                                </time>
+                            </span> /
+                            <span class="numOfCompetitors">
+                                ${event.numberCompetitors} Participants
+                            </span>
+                        </a>
+                    `;
+
+                    eventList.appendChild(li);
+                });
+            }
+        }
+
+        // Suppression du compte
+        const deleteButton = document.getElementById("deleteAccountBtn");
+        if (deleteButton) {
+            deleteButton.addEventListener("click", () => {
+                if (!confirm("Voulez-vous vraiment supprimer votre compte ?")) return;
+
+                fetch('/api/users/' + user.id, {
+                    method: 'DELETE',
+                    headers: { 'X-AUTH-TOKEN': token }
+                })
+                .then(res => {
+                    if (res.ok) {
+                        alert("Compte supprimé !");
+                        navigate("/");
+                    } else {
+                        return res.json().then(data => { throw new Error(data.error); });
+                    }
+                })
+                .catch(err => alert("Erreur : " + err.message));
+            });
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur : " + err.message);
+        navigate("/connexion");
+    });
+}
+
+// Boutons modifier et déconnexion
 function modifyAccount() {
     navigate("/modifierProfil");
 }
 
-//Fonction pour le bouton déconnexion
 function signOut() {
-  eraseCookie(tokenCookieName);
-  eraseCookie(roleCookieName);
-  if (typeof navigate === "function") {
+    eraseCookie(tokenCookieName);
+    eraseCookie(roleCookieName);
     navigate("/connexion");
-  } else {
-    console.error("navigate() n'est pas défini !");
-  }
 }
 
-// Attacher les événements aux boutons
+// Attacher événements
 function attachProfilePageEvents() {
-  const modifyAccButton = document.getElementById("modifyAccountBtn");
-  const signoutButton = document.getElementById("signoutBtn");
-  const deleteButton = document.getElementById("deleteAccountBtn"); // à implémenter si nécessaire
+    const modifyAccButton = document.getElementById("modifyAccountBtn");
+    const signoutButton = document.getElementById("signoutBtn");
 
-  if (modifyAccButton) {
-    modifyAccButton.addEventListener("click", modifyAccount);
-  }
+    if (modifyAccButton) modifyAccButton.addEventListener("click", modifyAccount);
+    if (signoutButton) signoutButton.addEventListener("click", signOut);
 
-  if (signoutButton) {
-    signoutButton.addEventListener("click", signOut);
-  }
-
-  if (deleteButton) {
-    deleteButton.addEventListener("click", () => {
-    });
-  }
+    // Charger le profil et participations
+    loadUserProfile();
 }
 
+// Initialisation
 attachProfilePageEvents();
