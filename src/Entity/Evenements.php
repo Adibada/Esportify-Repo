@@ -27,32 +27,32 @@ class Evenements
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
+    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(length: 255)]
     private ?string $titre = null;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
+    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(type: Types::TEXT)]
     private ?string $description = null;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
+    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $start = null;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
+    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
-    #[Groups(['evenement:read'])]
+    #[Groups(['evenement:read', 'user:public'])]
     #[ApiProperty(readable: true, writable: false)]
     #[ORM\Column(length: 255)]
     private ?string $statut = self::STATUT_EN_ATTENTE;
 
-    #[Groups(['evenement:read', 'evenement:write'])]
+    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
-    #[Groups(['evenement:read'])]
+    #[Groups(['evenement:read', 'user:public'])]
     #[ApiProperty(readable: true, writable: false)]
     public function getNumberCompetitors(): int
     {
@@ -63,7 +63,7 @@ class Evenements
     #[ORM\ManyToMany(targetEntity: User::class)]
     private Collection $competitors;
 
-    #[Groups(['evenement:read'])]
+    #[Groups(['evenement:read', 'user:public'])]
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
     #[ApiProperty(normalizationContext: ['groups' => ['user:public']])]
