@@ -33,7 +33,7 @@ class UserController extends AbstractController
             new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(string|int $id): JsonResponse
     {
         $user = $this->repository->find($id);
 
@@ -114,5 +114,50 @@ class UserController extends AbstractController
         $this->manager->flush();
 
         return $this->json(['message' => 'Utilisateur supprimé'], Response::HTTP_OK);
+    }
+
+    //Renvoie les informations de l'utilisateur connecté
+    #[Route('/monProfil', name: 'mon_profil', methods: ['GET'])]
+    #[OA\Get(
+    summary: 'Récupérer les informations du profil de l’utilisateur connecté',
+    description: 'Renvoie les informations publiques de l’utilisateur connecté (username, rôle, participations)',
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: 'Profil récupéré avec succès',
+            content: new OA\JsonContent(
+                type: 'object',
+                properties: [
+                    new OA\Property(property: 'username', type: 'string'),
+                    new OA\Property(
+                        property: 'roles',
+                        type: 'array',
+                        items: new OA\Items(type: 'string')
+                    ),
+                    new OA\Property(
+                        property: 'participations',
+                        type: 'array',
+                        items: new OA\Items(type: 'object', properties: [
+                            new OA\Property(property: 'nom', type: 'string')
+                        ])
+                    ),
+                ]
+            )
+        ),
+        new OA\Response(
+            response: 401,
+            description: 'Utilisateur non authentifié'
+        )
+    ],
+    security: [['bearerAuth' => []]]
+    )]
+    public function monProfil(): Response
+    {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Non authentifié'], 401);
+        }
+        return $this->json($user, 200, [], ['groups' => 'user:public']);
     }
 }
