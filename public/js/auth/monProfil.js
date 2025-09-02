@@ -1,7 +1,6 @@
 // Récupération du profil et affichage du nom + participations
-const token = getToken();
-
 function loadUserProfile() {
+    const token = getToken();   
     fetch('/api/users/monProfil', {
         headers: {
             'X-AUTH-TOKEN': token
