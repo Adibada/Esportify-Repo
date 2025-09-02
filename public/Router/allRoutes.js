@@ -14,7 +14,7 @@ export const allRoutes = [
 
     //Routes Evènements
     new Route("/rechercheEvenements","Recherche d'évènements", "/Pages/rechercheEvenements.html", []),
-    new Route("/unEvenement", "Evenement", "/Pages/Evenements/unEvenement.html", []),
+    new Route("/evenement", "Evenement", "/Pages/Evenements/evenement.html", [], "/js/evenement.js"),
     new Route("/creationEvenement", "Création d'évènement", "/Pages/creationEvenement.html", ["organizer", "admin"]),
 ];
 
