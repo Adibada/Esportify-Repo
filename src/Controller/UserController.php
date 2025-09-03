@@ -158,6 +158,6 @@ class UserController extends AbstractController
         if (!$user) {
             return $this->json(['error' => 'Non authentifié'], 401);
         }
-        return $this->json($user, 200, [], ['groups' => 'user:public']);
+        return $this->json($user, 200, [], ['groups' => 'user:write']);
     }
 }

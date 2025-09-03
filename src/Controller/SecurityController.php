@@ -113,4 +113,41 @@ class SecurityController extends AbstractController
             'roles' => $user->getRoles(),
         ]);
     }
+
+    #[Route('/me', name: 'me', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/me',
+        summary: 'Récupère les infos du user connecté via le token',
+        tags: ['Security'],
+        parameters: [
+            new OA\Parameter(
+                name: 'Authorization',
+                in: 'header',
+                required: true,
+                description: 'Bearer token',
+                schema: new OA\Schema(type: 'string')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Infos du user'),
+            new OA\Response(response: 401, description: 'Token invalide'),
+            new OA\Response(response: 404, description: 'User non trouvé'),
+        ]
+    )]
+    public function me(Request $request): JsonResponse
+    {
+        $token = $request->headers->get('X-AUTH-TOKEN');
+        if (!$token) {
+            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
+        }
+        $user = $this->userRepository->findOneBy(['apiToken' => $token]);
+        if (!$user) {
+            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
+        }
+        return new JsonResponse([
+            'user' => $user->getUserIdentifier(),
+            'mail' => $user->getMail(),
+            'roles' => $user->getRoles(),
+        ]);
+    }
 }

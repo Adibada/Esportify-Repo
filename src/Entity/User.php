@@ -40,8 +40,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[Groups(['user:write'])]
-    #[ORM\Column(type: 'string', length: 255, unique: true)]
-    private string $apiToken;
+    #[ORM\Column(type: "string", length: 255, unique: true, nullable: true)]
+    private ?string $apiToken = null;
 
     #[Groups(['user:public'])]
     #[ORM\ManyToMany(targetEntity: Evenements::class, mappedBy: 'competitors')]
@@ -51,7 +51,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->apiToken = bin2hex(random_bytes(20));
         $this->participations = new ArrayCollection();
-    }
+    }   
 
     public function getId(): ?int
     {
