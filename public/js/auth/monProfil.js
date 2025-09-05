@@ -1,7 +1,7 @@
 // Récupération du profil et affichage du nom + participations
 function loadUserProfile() {
     const token = getToken();   
-    fetch('/api/users/monProfil', {
+    fetch('/api/me', {
         headers: {
             'X-AUTH-TOKEN': token
         }
@@ -13,20 +13,18 @@ function loadUserProfile() {
     .then(user => {
         // Nom de profil
         const profilName = document.getElementById("profilName");
-        if (profilName) profilName.textContent = user.username || "Nom indisponible";
+        if (profilName) profilName.textContent = user.user || "Nom indisponible";
 
-        // Participations
+        // Participations (à adapter si la route /api/me retourne ce champ)
         const eventList = document.querySelector(".event-list");
         if (eventList) {
             eventList.innerHTML = "";
-
             if (!user.participations || user.participations.length === 0) {
                 eventList.innerHTML = `<li>Aucune participation</li>`;
             } else {
                 user.participations.forEach(event => {
                     const li = document.createElement("li");
                     li.classList.add("event-in-list");
-
                     li.innerHTML = `
                         <a href="/evenements/${event.id}" onclick="window.route(event)">
                             <span class="eventName">${event.titre}</span> /
@@ -40,7 +38,6 @@ function loadUserProfile() {
                             </span>
                         </a>
                     `;
-
                     eventList.appendChild(li);
                 });
             }
