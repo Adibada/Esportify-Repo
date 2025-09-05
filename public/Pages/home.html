@@ -50,42 +50,18 @@
 
 <!--Section Évènements en cours-->
 <div class="bloc" aria-labelledby="event-title">
-
     <!--Titre du bloc-->
     <h2 id="event-title" class="text-start fs-1">Évènements en cours</h2>
 
-    <!--Contenu évènement-->
-    <div class="row align-items-stretch" style="min-height: 100%;">
-
-        <!--Image évènement-->
-        <div class="col-md-6 mb-3 mb-md-0 d-flex">
-            <img src="/Images/images event/joueur et coach.jpg" class=" w-100 rounded-4"
-                style="height: 100%; object-fit: cover;" alt="Un compétiteur et son coach">
-        </div>
-
-        <!--Texte évènement-->
-        <div class="col-md-6 d-flex flex-column">
-            <div class="flex-grow-1">
-                <h3 class="mb-3 fs-1 text-center">
-                    <a href="/evenement" onclick="window.route(event)">Speedrun live NeaR Machinica</a>
-                </h3>
-            </div>
-            <div class="h-100 d-flex flex-column justify-content-between" style="min-height: 400px;">
-                <time datetime="2023-03-15T18:00:00" class="mb-1 fs-3">Début : 15 Mars 2023, 18h00</time>
-                <time datetime="2023-04-15T18:00:00" class="mb-1 fs-3">Fin : 15 Avril 2023, 18h00</time>
-                <p class="fs-2">Votre jeu d'action préféré achevé en moins de 2 heures, venez assister au prochain
-                    WR !
-                </p>
-                <p>organisateur : xXSuperProfilXx</p>
-                <p>Participants : 9999</p>
-            </div>
-
-            <!--Boutons-->
-            <div class="mt-auto d-flex justify-content-center gap-4" data-show="connected">
-                <button class="btn btn-outline-light mt-2 p-4">S'inscrire</button>
-                <button class="btn btn-outline-light mt-2 p-4">Suivre</button>
-            </div>
-        </div>
+    <!--Carrousel dynamique évènements en cours-->
+    <div id="eventCarousel" class="carousel slide">
+        <div class="carousel-inner event-carousel-inner" id="eventCarouselInner"></div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#eventCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#eventCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
     </div>
 </div>
 
@@ -120,3 +96,4 @@
             class="fs-5 fs-md-3 text-end d-block me-2 mb-3">Voir tous
             les évènements à venir</a>
     </div>
+</div>
