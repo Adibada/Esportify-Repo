@@ -1,72 +1,117 @@
 <!--Recherche-->
 <div class="bloc d-flex flex-wrap justify-content-center gap-3 mb-5">
 
-    <!-- Recherche par nom d'évènement -->
-    <form id="searchEventName" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
-        <label for="eventName">Nom de l'évènement</label>
-        <div class="d-flex">
-            <input class="form-control me-2" type="search" id="eventName" name="eventName"
-                placeholder="Rechercher un évènement" />
-            <button class="btn btn-outline-success" type="submit">Valider</button>
+    <!-- Barre de recherche rapide -->
+    <div class="w-100 mb-3">
+        <form id="quickSearchForm" class="d-flex justify-content-center" role="search" aria-label="Recherche rapide d'événements">
+            <div class="input-group" style="max-width: 600px;">
+                <input class="form-control form-control-lg" type="search" id="quickSearchInput" 
+                       placeholder="Recherche rapide : nom d'événement, organisateur..." />
+                <button class="btn btn-primary btn-lg" type="submit">
+                    <i class="fas fa-search"></i> Rechercher
+                </button>
+            </div>
+        </form>
+        
+        <!-- Bouton pour afficher/masquer la recherche avancée -->
+        <div class="text-center mt-2">
+            <button type="button" class="btn btn-link btn-sm" id="toggleAdvancedSearch">
+                <i class="fas fa-cog"></i> Recherche avancée
+            </button>
         </div>
-    </form>
-
-    <!--Recherche organisateur-->
-    <form id="searchEventOrganizer" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
-        <label for="organizerName">Nom de l'organisateur</label>
-        <div class="d-flex">
-            <input class="form-control me-2" type="search" id="organizerName" name="organizerName"
-                placeholder="Rechercher un organisateur" />
-            <button class="btn btn-outline-success" type="submit">Valider</button>
-        </div>
-    </form>
-
-   <form id="searchEventNumberCompetitors" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
-    <label for="minParticipants">Fourchette de participants</label>
-    <div class="d-flex gap-2">
-        <input class="form-control"
-               type="number"
-               id="minParticipants"
-               name="minParticipants"
-               min="0"
-               max="9999"
-               step="10"
-               placeholder="Min"/>
-
-        <input class="form-control"
-               type="number"
-               id="maxParticipants"
-               name="maxParticipants"
-               min="0"
-               max="9999"
-               step="10"
-               placeholder="Max"/>
-
-        <button class="btn btn-outline-success" type="submit" aria-label="Valider la recherche">
-            Valider
-        </button>
     </div>
-</form>
 
+    <!-- Recherche avancée (masquée par défaut) -->
+    <div id="advancedSearchContainer" class="w-100" style="display: none;">
+        <div class="row g-3">
+            <!-- Recherche par nom d'évènement -->
+            <div class="col-md-6 col-lg-4">
+                <form id="searchEventName" role="search" aria-label="Recherche par nom d'événement">
+                    <label for="eventName" class="form-label">Nom de l'évènement</label>
+                    <div class="input-group">
+                        <input class="form-control" type="search" id="eventName" name="eventName"
+                            placeholder="Rechercher un évènement" />
+                        <button class="btn btn-outline-success" type="submit">Valider</button>
+                    </div>
+                </form>
+            </div>
 
-    <!--Recherche par date-->
-    <form id="formDateStart" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
-        <label for="searchDateStart">Evènement après :</label>
-        <div class="d-flex">
-            <input class="form-control me-2" type="date" id="searchDateStart" name="searchDateStart"
-                placeholder="Date de début" />
-            <button class="btn btn-outline-success" type="submit">Valider</button>
+            <!--Recherche organisateur-->
+            <div class="col-md-6 col-lg-4">
+                <form id="searchEventOrganizer" role="search" aria-label="Recherche par organisateur">
+                    <label for="organizerName" class="form-label">Nom de l'organisateur</label>
+                    <div class="input-group">
+                        <input class="form-control" type="search" id="organizerName" name="organizerName"
+                            placeholder="Rechercher un organisateur" />
+                        <button class="btn btn-outline-success" type="submit">Valider</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Recherche par nombre de participants -->
+            <div class="col-md-6 col-lg-4">
+                <form id="searchEventNumberCompetitors" role="search" aria-label="Recherche par nombre de participants">
+                    <label for="minParticipants" class="form-label">Fourchette de participants</label>
+                    <div class="input-group">
+                        <input class="form-control"
+                               type="number"
+                               id="minParticipants"
+                               name="minParticipants"
+                               min="0"
+                               max="9999"
+                               step="10"
+                               placeholder="Min"/>
+
+                        <input class="form-control"
+                               type="number"
+                               id="maxParticipants"
+                               name="maxParticipants"
+                               min="0"
+                               max="9999"
+                               step="10"
+                               placeholder="Max"/>
+
+                        <button class="btn btn-outline-success" type="submit" aria-label="Valider la recherche">
+                            Valider
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!--Recherche par date-->
+            <div class="col-md-6 col-lg-4">
+                <form id="formDateStart" role="search" aria-label="Recherche par date de début">
+                    <label for="searchDateStart" class="form-label">Évènement après :</label>
+                    <div class="input-group">
+                        <input class="form-control" type="date" id="searchDateStart" name="searchDateStart" />
+                        <button class="btn btn-outline-success" type="submit">Valider</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <form id="formDateEnd" role="search" aria-label="Recherche par date de fin">
+                    <label for="searchDateEnd" class="form-label">Évènement avant :</label>
+                    <div class="input-group">
+                        <input class="form-control" type="date" id="searchDateEnd" name="searchDateEnd" />
+                        <button class="btn btn-outline-success" type="submit">Valider</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Bouton pour recherche combinée -->
+            <div class="col-12">
+                <div class="d-flex justify-content-center gap-2 mt-3">
+                    <button type="button" class="btn btn-success" id="combinedSearchBtn">
+                        <i class="fas fa-search"></i> Recherche combinée
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="resetAllBtn">
+                        <i class="fas fa-undo"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
         </div>
-    </form>
-
-    <form id="formDateEnd" class="d-flex flex-column flex-grow-1 flex-md-grow-0" role="search" aria-labelledby="id">
-        <label for="searchDateEnd">Evènement avant :</label>
-        <div class="d-flex">
-            <input class="form-control me-2" type="date" id="searchDateEnd" name="searchDateEnd"
-                placeholder="Date de fin" />
-            <button class="btn btn-outline-success" type="submit">Valider</button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <!--Bloc résultats-->
@@ -78,21 +123,13 @@
     <!--Liens évènements à venir-->
     <div class="mt-3">
         <ul class="event-list">
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span id="eventName">The Ultra Mortal Fighter</span> /
-                    <span id="eventStart"><time datetime="2025-08-03">date</time></span> /
-                    <span id="numOfCompetitors"> 9999 Participants</span>
-                </a></li>
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span id="eventName">Tournoi de VirtuaSoccers 23</span> /
-                    <span id="eventStart"><time datetime="2025-08-10">date</time></span> /
-                    <span id="numOfCompetitors"> 9999 Participants</span>
-                </a></li>
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span id="eventName">Official Team of Marvels Championship</span> /
-                    <span id="eventStart"><time datetime="2025-08-17">date</time></span> /
-                    <span id="numOfCompetitors"> 9999 Participants</span>
-                </a></li>
+            <!-- Les résultats seront chargés dynamiquement par JavaScript -->
+            <li class="text-center py-4 text-muted">
+                <div class="spinner-border">
+                    <span class="visually-hidden">Chargement des événements...</span>
+                </div>
+                <div class="mt-2">Chargement des événements...</div>
+            </li>
         </ul>
     </div>
 </div>

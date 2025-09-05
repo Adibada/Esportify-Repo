@@ -73,7 +73,7 @@ class EvenementsController extends AbstractController
         return new JsonResponse($responseData, Response::HTTP_CREATED, ['Location' => $location], true);
     }
 
-    #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     #[OA\Get(
         summary: 'Afficher un événement par ID',
         parameters: [
@@ -84,17 +84,24 @@ class EvenementsController extends AbstractController
             new OA\Response(response: 404, description: 'Événement non trouvé'),
         ]
     )]
-    public function show(int $id): Response
+    public function show(int $id): JsonResponse
     {
         $evenement = $this->repository->find($id);
 
-        if (!$evenement){
+        if (!$evenement) {
             return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
         }
 
-        $data = $this->serializer->serialize($evenement, 'json');
+        // Sérialisation avec groupes pour exposer les champs nécessaires
+        $data = $this->serializer->serialize(
+            $evenement,
+            'json',
+            ['groups' => ['evenement:read', 'user:public']]
+        );
+
         return new JsonResponse($data, Response::HTTP_OK, [], true);
     }
+
 
     #[IsGranted('ROLE_ORGANISATEUR')]
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
@@ -195,4 +202,59 @@ class EvenementsController extends AbstractController
             'statut' => $evenement->getStatut(),
         ]);
     }
+
+    #[Route('/{id}/participer', name: 'participer_evenement', methods: ['POST'])]
+    public function participer(int $id, EvenementsRepository $repoEvenements): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) return $this->json(['error' => 'Non authentifié'], 401);
+
+        $event = $repoEvenements->find($id);
+        if (!$event) return $this->json(['error' => 'Événement introuvable'], 404);
+
+        $user->addParticipation($event);
+        $this->manager->flush();
+
+        return $this->json([
+            'message' => "Participation enregistrée",
+            'numberCompetitors' => $event->getNumberCompetitors()
+        ]);
+    }
+
+    #[Route('', name: 'list', methods: ['GET'])]
+    public function list(): JsonResponse
+    {
+        $evenements = $this->repository->findAll();
+        $data = $this->serializer->serialize(
+            $evenements,
+            'json',
+            ['groups' => ['evenement:read', 'user:public']]
+        );
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/en-cours', name: 'current', methods: ['GET'])]
+    public function current(): JsonResponse
+    {
+        $now = new \DateTimeImmutable();
+        $qb = $this->repository->createQueryBuilder('e');
+        $qb->where('e.start <= :now')
+           ->andWhere('e.end >= :now')
+           ->andWhere('e.statut = :statut')
+           ->setParameter('now', $now)
+           ->setParameter('statut', Evenements::STATUT_VALIDE)
+           ->setMaxResults(3); // Limite à 3 évènements
+        $events = $qb->getQuery()->getResult();
+        if (!$events || count($events) === 0) {
+            return $this->json([], Response::HTTP_OK);
+        }
+        $data = $this->serializer->serialize(
+            $events,
+            'json',
+            ['groups' => ['evenement:read', 'user:public']]
+        );
+        return new JsonResponse(json_decode($data), Response::HTTP_OK, []);
+    }
 }
+
+

@@ -95,6 +95,45 @@ body {
   object-fit: cover;
 }
 
+//Customisation du carousel des événements
+#eventCarousel .carousel-inner {
+  height: auto;
+  min-height: 400px;
+}
+
+#eventCarousel .carousel-item {
+  height: auto;
+  min-height: 400px;
+}
+
+// Version mobile pour le carousel des événements
+@media (max-width: 576px) {
+  #eventCarousel .carousel-inner {
+    min-height: 600px;
+  }
+  
+  #eventCarousel .carousel-item {
+    min-height: 600px;
+  }
+  
+  #eventCarousel .event-carousel-item .row {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  #eventCarousel .event-carousel-img {
+    max-height: 250px;
+    width: 100%;
+    object-fit: cover;
+  }
+  
+  #eventCarousel .event-carousel-text-col {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+}
+
 //Customisation de la liste d'évènements
 .event-list {
   font-size: 1.2rem;

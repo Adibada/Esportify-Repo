@@ -3,7 +3,7 @@ import Route from "./Route.js";
 //Définir ici vos routes
 export const allRoutes = [
     //Routes Générales
-    new Route("/", "Accueil", "/Pages/home.html", []),
+    new Route("/", "Accueil", "/Pages/home.html", [], "/js/home.js"),
     new Route("/contact", "Contact", "/Pages/contact.html", []),
 
     //Routes Profils
@@ -13,7 +13,7 @@ export const allRoutes = [
     new Route("/modifierProfil", "Modifier Profil", "/Pages/modifierProfil.html", []),
 
     //Routes Evènements
-    new Route("/rechercheEvenements","Recherche d'évènements", "/Pages/rechercheEvenements.html", []),
+    new Route("/rechercheEvenements","Recherche d'évènements", "/Pages/rechercheEvenements.html", [], "/js/rechercheEvenements.js"),
     new Route("/evenement", "Evenement", "/Pages/Evenements/evenement.html", [], "/js/evenement.js"),
     new Route("/creationEvenement", "Création d'évènement", "/Pages/creationEvenement.html", ["organizer", "admin"]),
 ];
