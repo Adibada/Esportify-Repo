@@ -18,8 +18,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ORM\Entity(repositoryClass: EvenementsRepository::class)]
 class Evenements
 {
-    public const STATUT_EN_ATTENTE = 'en_attente';
-    public const STATUT_VALIDE = 'valide';
 
     #[Groups(['evenement:read'])]
     #[ORM\Id]
@@ -45,8 +43,8 @@ class Evenements
 
     #[Groups(['evenement:read', 'user:public'])]
     #[ApiProperty(readable: true, writable: false)]
-    #[ORM\Column(length: 255)]
-    private ?string $statut = self::STATUT_EN_ATTENTE;
+    #[ORM\Column(length: 255, options: ['default' => 'en attente'])]
+    private ?string $statut = 'en attente';
 
     #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
     #[ORM\Column(length: 255, nullable: true)]
@@ -72,7 +70,7 @@ class Evenements
     public function __construct()
     {
         $this->competitors = new ArrayCollection();
-        $this->statut = self::STATUT_EN_ATTENTE;
+        $this->statut = 'en attente';
     }
 
     public function getId(): ?int
