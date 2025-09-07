@@ -40,7 +40,16 @@
         <!--Boutons-->
         <div class="mt-auto d-flex justify-content-center gap-4" data-show="connected">
             <button class="btn btn-outline-light mt-2 p-4" id="participateBtn">Participer</button>
-            <button class="btn btn-outline-light mt-2 p-4">Suivre</button>
+        </div>
+        
+        <!--Boutons Admin (validation) - masqués par défaut-->
+        <div class="mt-3 d-flex justify-content-center gap-3" id="adminValidationButtons" style="display: none !important;" data-show="admin">
+            <button class="btn btn-success px-4 py-2" id="validateBtn">
+                <i class="fas fa-check me-2"></i>Valider l'événement
+            </button>
+            <button class="btn btn-danger px-4 py-2" id="rejectBtn">
+                <i class="fas fa-times me-2"></i>Refuser l'événement
+            </button>
         </div>
     </div>
 </div>

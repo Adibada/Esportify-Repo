@@ -73,22 +73,12 @@
 
     <!--Liens évènements à venir-->
     <div class="mt-3">
-        <ul class="event-list">
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span>The Ultra Mortal Fighter</span> /
-                    <span><time datetime="2025-08-03">date</time></span> /
-                    <span> 9999 Participants</span>
-                </a></li>
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span>Tournoi de VirtuaSoccers 23</span> /
-                    <span><time datetime="2025-08-10">date</time></span> /
-                    <span> 9999 Participants</span>
-                </a></li>
-            <li class="event-in-list"><a href="/unEvenement" onclick="window.route(event)">
-                    <span>Official Team of Marvels Championship</span> /
-                    <span><time datetime="2025-08-17">date</time></span> /
-                    <span> 9999 Participants</span>
-                </a></li>
+        <ul class="event-list" id="upcomingEventsList">
+            <!-- Les événements à venir seront chargés dynamiquement -->
+            <li class="text-center py-3 text-muted">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                Chargement des événements à venir...
+            </li>
         </ul>
     </div>
     <div class="me-3 mb-3">

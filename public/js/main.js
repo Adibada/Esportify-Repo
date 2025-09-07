@@ -60,23 +60,31 @@ function editByRoles() {
     let elementsToEdit = document.querySelectorAll('[data-show]');
 
     elementsToEdit.forEach(element => {
-        switch (element.dataset.show) {
-            case "disconnected":
-                if (userConnected)
-                    element.classList.add('d-none');
-                break;
-            case "connected":
-                if (!userConnected)
-                    element.classList.add('d-none');
-                break;
-            case "admin":
-                if (!userConnected || userRole !== "admin")
-                    element.classList.add('d-none');
-                break;
-            case "organizer":
-                if (!userConnected || userRole !== "organizer")
-                    element.classList.add('d-none');
-                break;
+        const showValues = element.dataset.show.split(',').map(s => s.trim());
+        let shouldShow = false;
+
+        showValues.forEach(value => {
+            switch (value) {
+                case "disconnected":
+                    if (!userConnected) shouldShow = true;
+                    break;
+                case "connected":
+                    if (userConnected) shouldShow = true;
+                    break;
+                case "admin":
+                    if (userConnected && userRole === "ROLE_ADMIN") shouldShow = true;
+                    break;
+                case "organizer":
+                case "organisateur":
+                    if (userConnected && userRole === "ROLE_ORGANISATEUR") shouldShow = true;
+                    break;
+            }
+        });
+
+        if (!shouldShow) {
+            element.classList.add('d-none');
+        } else {
+            element.classList.remove('d-none');
         }
     })
 }

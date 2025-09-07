@@ -150,4 +150,47 @@ class SecurityController extends AbstractController
             'roles' => $user->getRoles(),
         ]);
     }
+
+    #[Route('/me/participations', name: 'me_participations', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/me/participations',
+        summary: 'Récupère les participations du user connecté',
+        tags: ['Security'],
+        parameters: [
+            new OA\Parameter(
+                name: 'X-AUTH-TOKEN',
+                in: 'header',
+                required: true,
+                description: 'Token d\'authentification',
+                schema: new OA\Schema(type: 'string')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des participations'),
+            new OA\Response(response: 401, description: 'Token invalide'),
+        ]
+    )]
+    public function meParticipations(Request $request, SerializerInterface $serializer): JsonResponse
+    {
+        $token = $request->headers->get('X-AUTH-TOKEN');
+        if (!$token) {
+            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user = $this->userRepository->findOneBy(['apiToken' => $token]);
+        if (!$user) {
+            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Récupérer les participations de l'utilisateur
+        $participations = $user->getParticipations();
+
+        $data = $serializer->serialize(
+            $participations,
+            'json',
+            ['groups' => ['evenement:read', 'user:public']]
+        );
+
+        return new JsonResponse(json_decode($data), Response::HTTP_OK, []);
+    }
 }

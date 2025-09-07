@@ -15,33 +15,8 @@ function loadUserProfile() {
         const profilName = document.getElementById("profilName");
         if (profilName) profilName.textContent = user.user || "Nom indisponible";
 
-        // Participations (à adapter si la route /api/me retourne ce champ)
-        const eventList = document.querySelector(".event-list");
-        if (eventList) {
-            eventList.innerHTML = "";
-            if (!user.participations || user.participations.length === 0) {
-                eventList.innerHTML = `<li>Aucune participation</li>`;
-            } else {
-                user.participations.forEach(event => {
-                    const li = document.createElement("li");
-                    li.classList.add("event-in-list");
-                    li.innerHTML = `
-                        <a href="/evenements/${event.id}" onclick="window.route(event)">
-                            <span class="eventName">${event.titre}</span> /
-                            <span class="eventStart">
-                                <time datetime="${event.start}">
-                                    ${new Date(event.start).toLocaleDateString()}
-                                </time>
-                            </span> /
-                            <span class="numOfCompetitors">
-                                ${event.numberCompetitors} Participants
-                            </span>
-                        </a>
-                    `;
-                    eventList.appendChild(li);
-                });
-            }
-        }
+        // Charger les participations séparément
+        loadUserParticipations(token);
 
         // Suppression du compte
         const deleteButton = document.getElementById("deleteAccountBtn");
@@ -69,6 +44,62 @@ function loadUserProfile() {
         console.error(err);
         alert("Erreur : " + err.message);
         navigate("/connexion");
+    });
+}
+
+// Charger les participations de l'utilisateur
+function loadUserParticipations(token) {
+    fetch('/api/me/participations', {
+        headers: {
+            'X-AUTH-TOKEN': token
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Erreur lors du chargement des participations");
+        return res.json();
+    })
+    .then(participations => {
+        const eventList = document.querySelector(".event-list");
+        if (!eventList) return;
+
+        eventList.innerHTML = "";
+        
+        if (!participations || participations.length === 0) {
+            eventList.innerHTML = `<li class="text-center py-3 text-muted">Aucune participation</li>`;
+        } else {
+            participations.forEach(event => {
+                const li = document.createElement("li");
+                li.classList.add("event-in-list");
+                li.innerHTML = `
+                    <a href="/evenement?id=${event.id}" onclick="window.route(event)">
+                        <span>${event.titre || 'Sans titre'}</span>
+                        <span>/</span>
+                        <span><time datetime="${event.start}">${new Date(event.start).toLocaleDateString()}</time></span>
+                        <span>/</span>
+                        <span>${event.numberCompetitors || 0} Participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</span>
+                        <span>/</span>
+                        <span class="badge bg-${event.statut === 'valide' ? 'success' : 'secondary'}">${event.statut || 'en attente'}</span>
+                    </a>
+                `;
+                eventList.appendChild(li);
+            });
+        }
+    })
+    .catch(err => {
+        console.error('Erreur participations:', err);
+        const eventList = document.querySelector(".event-list");
+        if (eventList) {
+            eventList.innerHTML = `
+                <li class="text-center py-3 text-danger">
+                    <div>Erreur lors du chargement des participations</div>
+                    <div class="mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="loadUserProfile()">
+                            Réessayer
+                        </button>
+                    </div>
+                </li>
+            `;
+        }
     });
 }
 

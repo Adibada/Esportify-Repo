@@ -1,8 +1,6 @@
 console.log("home.js chargé !");
 
 function createEventSlide(event, isActive = false) {
-    const inscriptionButtonId = `inscription-btn-${event.id}`;
-    
     return `
     <div class="carousel-item event-carousel-item${isActive ? ' active' : ''}">
         <div class="row align-items-stretch p-2 h-100">
@@ -10,20 +8,17 @@ function createEventSlide(event, isActive = false) {
                 <img src="${event.image || '/Images/images event/joueur et coach.jpg'}" class="event-carousel-img rounded-4" style="width: 98%; max-width: 420px; height: auto; max-height: 420px; object-fit: cover; border-radius: 1rem; box-shadow: 0 0 16px #0004;" alt="Image évènement">
             </div>
             <div class="col-md-6 d-flex flex-column bg-dark bg-opacity-75 event-carousel-text-col">
-                <div class="flex-grow-1">
-                    <h3 class="mb-3 fs-1 text-center">
+                <div class="mb-4">
+                    <h3 class="mb-0 fs-1 text-center">
                         <a href="/evenement?id=${event.id}" onclick="window.route(event)">${event.titre || 'Titre indisponible'}</a>
                     </h3>
                 </div>
-                <div class="d-flex flex-column justify-content-between" style="min-height: 180px;">
-                    <p class="mb-1 fs-3">Début : ${new Date(event.start).toLocaleString()}</p>
-                    <p class="mb-1 fs-3">Fin : ${new Date(event.end).toLocaleString()}</p>
-                    <p class="fs-2">${event.description || ''}</p>
-                    <p>Organisateur : ${event.organisateur?.username || 'Non renseigné'}</p>
-                    <p>Participants : ${event.numberCompetitors || 0}</p>
-                </div>
-                <div class="mt-auto d-flex flex-wrap justify-content-center gap-3 pb-3">
-                    <button id="${inscriptionButtonId}" class="btn btn-outline-light mt-2 px-4 py-2">S'inscrire</button>
+                <div class="d-flex flex-column justify-content-start flex-grow-1">
+                    <p class="mb-2 fs-3">Début : ${new Date(event.start).toLocaleString()}</p>
+                    <p class="mb-2 fs-3">Fin : ${new Date(event.end).toLocaleString()}</p>
+                    <p class="mb-3 fs-2">${event.description || ''}</p>
+                    <p class="mb-1">Organisateur : ${event.organisateur?.username || 'Non renseigné'}</p>
+                    <p class="mb-0">Participants : ${event.numberCompetitors || 0}</p>
                 </div>
             </div>
         </div>
@@ -60,46 +55,72 @@ function fillEventCarousel() {
             // Ajoute la slide "recherche" (active si aucun évènement)
             slides.push(createSearchSlide(slides.length === 0));
             carouselInner.innerHTML = slides.join('');
-            
-            // Attache les gestionnaires d'événements après avoir ajouté le contenu au DOM
-            setTimeout(() => {
-                attachInscriptionHandlers(events);
-            }, 100);
         })
         .catch(err => console.error('Erreur chargement évènements en cours :', err));
 }
 
-// Fonction pour gérer l'inscription à un événement
-function handleInscription(eventId) {
-    // Vérifie si l'utilisateur est connecté
-    if (!isConnected()) {
-        // Redirige vers la page de connexion si non connecté en utilisant le système de routage
-        window.location.assign('/connexion');
-        return;
-    }
-    
-    // Si l'utilisateur est connecté, traite l'inscription
-    // TODO: Implémenter la logique d'inscription à l'événement
-    console.log(`Inscription à l'événement ${eventId}`);
-    alert('Fonctionnalité d\'inscription en cours de développement');
-}
+// Fonction pour charger les événements à venir
+function loadUpcomingEvents() {
+    const upcomingEventsList = document.getElementById('upcomingEventsList');
+    if (!upcomingEventsList) return;
 
-// Fonction pour attacher les gestionnaires d'événements aux boutons d'inscription
-function attachInscriptionHandlers(events) {
-    if (Array.isArray(events)) {
-        events.forEach(event => {
-            const button = document.getElementById(`inscription-btn-${event.id}`);
-            if (button) {
-                button.addEventListener('click', () => handleInscription(event.id));
+    fetch('/api/evenements')
+        .then(res => res.json())
+        .then(events => {
+            if (!Array.isArray(events)) return;
+            
+            // Filtrer les événements à venir (date de début > maintenant)
+            const now = new Date();
+            const upcomingEvents = events
+                .filter(event => new Date(event.start) > now)
+                .sort((a, b) => new Date(a.start) - new Date(b.start))
+                .slice(0, 3); // Prendre seulement les 3 premiers
+            
+            if (upcomingEvents.length === 0) {
+                upcomingEventsList.innerHTML = `
+                    <li class="text-center py-3 text-muted">
+                        <div>Aucun événement à venir pour le moment</div>
+                        <div class="mt-2">
+                            <a href="/rechercheEvenements" onclick="window.route(event)" class="btn btn-outline-primary btn-sm">
+                                Voir tous les événements
+                            </a>
+                        </div>
+                    </li>
+                `;
+                return;
             }
+            
+            // Générer le HTML pour les événements à venir
+            const eventsHTML = upcomingEvents.map(event => `
+                <li class="event-in-list">
+                    <a href="/evenement?id=${event.id}" onclick="window.route(event)">
+                        <span>${event.titre || 'Sans titre'}</span>
+                        <span>/</span>
+                        <span><time datetime="${event.start}">${new Date(event.start).toLocaleDateString()}</time></span>
+                        <span>/</span>
+                        <span>${event.numberCompetitors || 0} Participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</span>
+                    </a>
+                </li>
+            `).join('');
+            
+            upcomingEventsList.innerHTML = eventsHTML;
+        })
+        .catch(err => {
+            console.error('Erreur lors du chargement des événements à venir:', err);
+            upcomingEventsList.innerHTML = `
+                <li class="text-center py-3 text-danger">
+                    <div>Erreur lors du chargement des événements</div>
+                    <div class="mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="loadUpcomingEvents()">
+                            Réessayer
+                        </button>
+                    </div>
+                </li>
+            `;
         });
-    } else if (events && events.id) {
-        const button = document.getElementById(`inscription-btn-${events.id}`);
-        if (button) {
-            button.addEventListener('click', () => handleInscription(events.id));
-        }
-    }
 }
 
 // Exécution immédiate après injection
 fillEventCarousel();
+// Exécuter le chargement des événements à venir
+loadUpcomingEvents();

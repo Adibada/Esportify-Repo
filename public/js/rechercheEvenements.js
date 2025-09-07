@@ -60,7 +60,8 @@ async function searchEvents(filters = {}, page = 1) {
         currentFilters = { ...filters };
         currentPage = page;
         
-        displayResults(data.events || data, data.total || data.length, page);
+        // Utiliser la nouvelle structure de réponse de l'API
+        displayResults(data.events || [], data.totalCount || 0, data.page || page, data.totalPages || 1);
         
     } catch (error) {
         showErrorState(error.message);
@@ -100,7 +101,7 @@ function showErrorState(message) {
 }
 
 // Fonction pour afficher les résultats
-function displayResults(events, total = 0, page = 1) {
+function displayResults(events, total = 0, page = 1, totalPages = 1) {
     const resultsContainer = document.querySelector('.event-list');
     const titleElement = document.getElementById('event-title');
     
@@ -144,8 +145,8 @@ function displayResults(events, total = 0, page = 1) {
     resultsContainer.innerHTML = eventsHTML;
     
     // Ajouter la pagination si nécessaire
-    if (total > itemsPerPage) {
-        addPagination(total, page);
+    if (totalPages > 1) {
+        addPagination(total, page, totalPages);
     } else {
         removePagination();
     }
@@ -254,35 +255,6 @@ function resetAllForms() {
 
 // Fonction pour initialiser les gestionnaires d'événements
 function initializeSearchHandlers() {
-    // Recherche rapide
-    const quickSearchForm = document.getElementById('quickSearchForm');
-    if (quickSearchForm) {
-        quickSearchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const query = document.getElementById('quickSearchInput')?.value.trim();
-            if (query) {
-                // La recherche rapide cherche dans le titre et l'organisateur
-                searchEvents({ 
-                    titre: query,
-                    organisateur: query 
-                }, 1);
-            }
-        });
-    }
-    
-    // Bouton pour afficher/masquer la recherche avancée
-    const toggleAdvancedSearch = document.getElementById('toggleAdvancedSearch');
-    const advancedSearchContainer = document.getElementById('advancedSearchContainer');
-    if (toggleAdvancedSearch && advancedSearchContainer) {
-        toggleAdvancedSearch.addEventListener('click', () => {
-            const isVisible = advancedSearchContainer.style.display !== 'none';
-            advancedSearchContainer.style.display = isVisible ? 'none' : 'block';
-            toggleAdvancedSearch.innerHTML = isVisible 
-                ? '<i class="fas fa-cog"></i> Recherche avancée'
-                : '<i class="fas fa-times"></i> Masquer la recherche avancée';
-        });
-    }
-    
     // Recherche par nom d'événement
     const searchEventNameForm = document.getElementById('searchEventName');
     if (searchEventNameForm) {
@@ -371,17 +343,6 @@ function initializeSearchHandlers() {
             // Ctrl+Entrée pour lancer une recherche combinée
             performCombinedSearch();
         }
-        if (e.key === 'Escape') {
-            // Echap pour fermer la recherche avancée
-            const advancedSearchContainer = document.getElementById('advancedSearchContainer');
-            const toggleBtn = document.getElementById('toggleAdvancedSearch');
-            if (advancedSearchContainer && advancedSearchContainer.style.display !== 'none') {
-                advancedSearchContainer.style.display = 'none';
-                if (toggleBtn) {
-                    toggleBtn.innerHTML = '<i class="fas fa-cog"></i> Recherche avancée';
-                }
-            }
-        }
     });
 }
 
@@ -417,8 +378,6 @@ function resetAllForms() {
     document.querySelectorAll('form').forEach(form => {
         form.reset();
     });
-    const quickSearchInput = document.getElementById('quickSearchInput');
-    if (quickSearchInput) quickSearchInput.value = '';
     currentFilters = {};
     currentPage = 1;
     

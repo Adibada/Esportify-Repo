@@ -1,0 +1,13 @@
+# config/packages/dev/framework.yaml
+when@dev:
+    framework:
+        # Désactive le cache HTTP en développement
+        http_cache: false
+        
+        # Configuration pour éviter les problèmes de cache
+        cache:
+            default_redis_provider: ~
+            
+        # Configuration pour éviter les problèmes de cache des assets
+        assets:
+            strict_mode: false

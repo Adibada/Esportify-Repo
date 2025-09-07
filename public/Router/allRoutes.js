@@ -14,8 +14,8 @@ export const allRoutes = [
 
     //Routes Evènements
     new Route("/rechercheEvenements","Recherche d'évènements", "/Pages/rechercheEvenements.html", [], "/js/rechercheEvenements.js"),
-    new Route("/evenement", "Evenement", "/Pages/Evenements/evenement.html", [], "/js/evenement.js"),
-    new Route("/creationEvenement", "Création d'évènement", "/Pages/creationEvenement.html", ["organizer", "admin"]),
+    new Route("/evenement", "Evenement", "/Pages/evenement.html", [], "/js/evenement.js"),
+    new Route("/creationEvenement", "Création d'évènement", "/Pages/creationEvenement.html", ["ROLE_ORGANISATEUR", "ROLE_ADMIN"], "/js/creationEvenement.js"),
 ];
 
 //Le titre s'affiche comme ceci : Route.titre - websiteName
