@@ -145,6 +145,7 @@ class SecurityController extends AbstractController
             return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
         }
         return new JsonResponse([
+            'id' => $user->getId(),
             'user' => $user->getUserIdentifier(),
             'mail' => $user->getMail(),
             'roles' => $user->getRoles(),
@@ -192,5 +193,49 @@ class SecurityController extends AbstractController
         );
 
         return new JsonResponse(json_decode($data), Response::HTTP_OK, []);
+    }
+
+    #[Route('/me', name: 'delete_me', methods: ['DELETE'])]
+    #[OA\Delete(
+        path: '/api/me',
+        summary: 'Supprimer le compte de l\'utilisateur connecté',
+        tags: ['Security'],
+        parameters: [
+            new OA\Parameter(
+                name: 'X-AUTH-TOKEN',
+                in: 'header',
+                required: true,
+                description: 'Token d\'authentification',
+                schema: new OA\Schema(type: 'string')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 204, description: 'Compte supprimé avec succès'),
+            new OA\Response(response: 401, description: 'Token invalide'),
+            new OA\Response(response: 404, description: 'Utilisateur introuvable')
+        ]
+    )]
+    public function deleteMe(Request $request): JsonResponse
+    {
+        $token = $request->headers->get('X-AUTH-TOKEN');
+        if (!$token) {
+            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $user = $this->userRepository->findOneBy(['apiToken' => $token]);
+        if (!$user) {
+            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Anonymiser les commentaires de l'utilisateur avant suppression
+        foreach ($user->getCommentaires() as $commentaire) {
+            $commentaire->setAuteur(null); // Détache le commentaire de l'utilisateur
+        }
+
+        // Supprimer l'utilisateur (les commentaires restent mais anonymes)
+        $this->manager->remove($user);
+        $this->manager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }
