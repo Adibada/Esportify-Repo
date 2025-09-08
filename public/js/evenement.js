@@ -1,5 +1,36 @@
 // evenement.js - Version optimisée
 
+// Utilitaires pour les cookies et tokens
+const tokenCookieName = "accesstoken";
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function getToken() {
+    return getCookie(tokenCookieName);
+}
+
+function isConnected() {
+    return getToken() !== null;
+}
+
+function getUserId() {
+    const userId = getCookie('userId');
+    return userId ? parseInt(userId) : null;
+}
+
+function getRole() {
+    return getCookie('role');
+}
+
 // Récupération de l'ID depuis l'URL
 const eventId = new URLSearchParams(window.location.search).get('id');
 
@@ -34,8 +65,8 @@ const updateEvent = (event) => {
     const updates = [
         { id: "eventName", content: event.titre },
         { id: "eventDescription", content: event.description },
-        { id: "eventOrganizer", content: event.organisateur?.nom },
-        { id: "numOfCompetitors", content: `Participants : ${event.numberCompetitors || 0}` },
+        { id: "eventOrganizer", content: event.organisateur?.username || `Utilisateur ID: ${event.organisateur?.id || 'Non défini'}` },
+        { id: "numOfCompetitors", content: event.numberCompetitors || 0 },
         { id: "eventStart", content: new Date(event.start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventEnd", content: new Date(event.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventStatus", content: event.statut }
@@ -43,18 +74,34 @@ const updateEvent = (event) => {
 
     updates.forEach(({ id, content }) => {
         const elem = document.getElementById(id);
-        if (elem && content) {
+        if (elem) {
             if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
-                elem.value = content;
+                elem.value = content || '';
             } else {
-                elem.textContent = content;
+                // Cas spéciaux pour préserver le formatage HTML
+                if (id === 'eventOrganizer') {
+                    elem.innerHTML = `<p><strong>Organisateur :</strong> ${content || 'Non défini'}</p>`;
+                } else if (id === 'numOfCompetitors') {
+                    elem.innerHTML = `<p><strong>Participants :</strong> ${content || 0}</p>`;
+                } else if (id === 'eventStatus') {
+                    elem.innerHTML = `<p><strong>Statut de validation :</strong> ${content || 'Non défini'}</p>`;
+                } else {
+                    elem.textContent = content || '';
+                }
             }
         }
     });
 
-    // Gérer les boutons admin
+    // Gérer les boutons admin et de participation
     if (isConnected()) {
         updateAdminButtons(event);
+        // Passer le statut de l'événement à la fonction de mise à jour du bouton
+        checkParticipationStatus(eventId).then(status => {
+            updateParticipationButton(status, event.statut);
+        });
+    } else {
+        // Masquer le bouton de participation pour les utilisateurs non connectés
+        hideParticipationButton();
     }
 };
 
@@ -80,12 +127,6 @@ const loadEvent = async () => {
         const event = await res.json();
         updateEvent(event);
         
-        // Vérifier le statut de participation si connecté
-        if (isConnected()) {
-            const status = await checkParticipationStatus(eventId);
-            updateParticipationButton(status);
-        }
-        
     } catch (err) {
         setState('error', err.message);
     }
@@ -107,22 +148,42 @@ const checkParticipationStatus = async (eventId) => {
 };
 
 // Mise à jour du bouton de participation
-const updateParticipationButton = (status) => {
+const updateParticipationButton = (status, eventStatus) => {
     const btn = document.querySelector("#participateBtn, .btn-participate, [data-participate]");
     if (!btn) return;
 
-    if (status.isParticipant) {
-        btn.textContent = "Annuler ma participation";
-        btn.className = "btn btn-warning";
-        btn.onclick = () => cancelParticipation(eventId);
-    } else if (status.isOrganizer) {
+    if (status.isOrganizer) {
         btn.textContent = "Organisateur";
         btn.className = "btn btn-secondary";
         btn.disabled = true;
+    } else if (eventStatus !== 'valide') {
+        // Désactiver le bouton si l'événement n'est pas validé
+        btn.textContent = "Participation impossible";
+        btn.className = "btn btn-secondary";
+        btn.disabled = true;
+    } else if (status.isParticipant) {
+        btn.textContent = "Annuler ma participation";
+        btn.className = "btn btn-warning";
+        btn.disabled = false;
+        btn.onclick = () => cancelParticipation(eventId);
     } else {
         btn.textContent = "Participer";
         btn.className = "btn btn-success";
+        btn.disabled = false;
         btn.onclick = () => participer(eventId);
+    }
+};
+
+// Masquer le bouton de participation
+const hideParticipationButton = () => {
+    const btn = document.querySelector("#participateBtn, .btn-participate, [data-participate]");
+    if (btn) {
+        btn.style.display = 'none';
+    }
+    // Masquer aussi le conteneur parent s'il a l'attribut data-show="connected"
+    const container = document.querySelector('[data-show="connected"]');
+    if (container) {
+        container.style.display = 'none';
     }
 };
 
@@ -199,7 +260,9 @@ const refreshEventData = async () => {
             
             if (isConnected()) {
                 const status = await checkParticipationStatus(eventId);
-                updateParticipationButton(status);
+                updateParticipationButton(status, event.statut);
+            } else {
+                hideParticipationButton();
             }
         }
     } catch (err) {
@@ -267,29 +330,163 @@ const checkAdminRights = () => {
 const updateAdminButtons = (event) => {
     if (!checkAdminRights()) return;
 
-    const adminContainer = document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
+    const adminContainer = document.getElementById('adminValidationButtons') || document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
     if (!adminContainer) return;
 
     adminContainer.style.display = 'block';
 
     if (event.statut === 'en attente') {
         adminContainer.innerHTML = `
-            <div class="mt-3 p-3 border rounded bg-light">
-                <h6>Actions administrateur :</h6>
-                <button class="btn btn-success me-2" onclick="validateEvent('${eventId}')">Valider</button>
-                <button class="btn btn-danger" onclick="rejectEvent('${eventId}')">Rejeter</button>
+            <div class="mt-3 d-flex justify-content-center gap-3">
+                <button class="btn btn-success px-4 py-2" onclick="validateEvent('${eventId}')">
+                    <i class="fas fa-check me-2"></i>Valider l'événement
+                </button>
+                <button class="btn btn-danger px-4 py-2" onclick="rejectEvent('${eventId}')">
+                    <i class="fas fa-times me-2"></i>Refuser l'événement
+                </button>
             </div>`;
+    } else {
+        adminContainer.style.display = 'none';
     }
 };
 
 // Chargement des commentaires
 const loadComments = async () => {
-    // Implémentation simplifiée - à développer si nécessaire
+    try {
+        const res = await fetch(`/api/commentaires/evenement/${eventId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (res.ok) {
+            const comments = await res.json();
+            displayComments(comments);
+        } else {
+            displayComments([]);
+        }
+    } catch (error) {
+        displayComments([]);
+    }
+};
+
+// Affichage des commentaires
+const displayComments = (comments) => {
+    const commentsList = document.getElementById('commentsList');
+    if (!commentsList) return;
+
+    if (comments.length === 0) {
+        commentsList.innerHTML = `
+            <ul>
+                <li class="text-muted">
+                    <span>Aucun commentaire pour le moment.</span>
+                </li>
+            </ul>
+        `;
+        return;
+    }
+
+    const commentsHtml = comments.map(comment => {
+        const date = new Date(comment.createdAt).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const isAuthor = isConnected() && comment.auteur && getUserId() === comment.auteur.id;
+        const isAdmin = isConnected() && getRole() === 'ROLE_ADMIN';
+        const canDelete = isAuthor || isAdmin;
+
+        // Nom de l'auteur (ou "Utilisateur supprimé" si l'auteur n'existe plus)
+        const authorName = comment.auteur ? comment.auteur.username : 'Utilisateur supprimé';
+        const authorClass = comment.auteur ? '' : 'text-muted font-italic';
+
+        return `
+            <li class="comment-item mb-3 p-3 border rounded">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong class="${authorClass}">${authorName}</strong>
+                        <small class="text-muted ms-2">${date}</small>
+                    </div>
+                    ${canDelete ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>` : ''}
+                </div>
+                <p class="mt-2 mb-0">${comment.contenu}</p>
+            </li>
+        `;
+    }).join('');
+
+    commentsList.innerHTML = `<ul class="list-unstyled">${commentsHtml}</ul>`;
 };
 
 // Ajout de commentaire
 const addComment = async () => {
-    // Implémentation simplifiée - à développer si nécessaire
+    const commentInput = document.getElementById('commentInput');
+    if (!commentInput) return;
+
+    const contenu = commentInput.value.trim();
+    if (!contenu) {
+        alert('Veuillez saisir un commentaire');
+        return;
+    }
+
+    if (!isConnected()) {
+        alert('Vous devez être connecté pour commenter');
+        return;
+    }
+
+    try {
+        const token = getToken();
+        const res = await fetch('/api/commentaires', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            },
+            body: JSON.stringify({
+                contenu: contenu,
+                evenementId: parseInt(eventId)
+            })
+        });
+
+        if (res.ok) {
+            commentInput.value = ''; // Vider le champ
+            await loadComments(); // Recharger les commentaires
+        } else {
+            alert('Erreur lors de l\'ajout du commentaire');
+        }
+    } catch (error) {
+        alert('Erreur lors de l\'ajout du commentaire');
+    }
+};
+
+// Suppression de commentaire
+const deleteComment = async (commentId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+        return;
+    }
+
+    try {
+        const token = getToken();
+        const res = await fetch(`/api/commentaires/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-AUTH-TOKEN': token
+            }
+        });
+
+        if (res.ok) {
+            await loadComments(); // Recharger les commentaires
+        } else {
+            alert('Erreur lors de la suppression du commentaire');
+        }
+    } catch (error) {
+        alert('Erreur lors de la suppression du commentaire');
+    }
 };
 
 // Initialisation principale
