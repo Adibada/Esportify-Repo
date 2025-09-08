@@ -67,9 +67,13 @@ class Evenements
     #[ApiProperty(normalizationContext: ['groups' => ['user:public']])]
     private ?User $organisateur = null;
 
+    #[ORM\OneToMany(mappedBy: 'evenement', targetEntity: Commentaires::class, orphanRemoval: true)]
+    private Collection $commentaires;
+
     public function __construct()
     {
         $this->competitors = new ArrayCollection();
+        $this->commentaires = new ArrayCollection();
         $this->statut = 'en attente';
     }
 
@@ -171,6 +175,35 @@ class Evenements
     public function setOrganisateur(?User $organisateur): self
     {
         $this->organisateur = $organisateur;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Commentaires>
+     */
+    public function getCommentaires(): Collection
+    {
+        return $this->commentaires;
+    }
+
+    public function addCommentaire(Commentaires $commentaire): static
+    {
+        if (!$this->commentaires->contains($commentaire)) {
+            $this->commentaires->add($commentaire);
+            $commentaire->setEvenement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCommentaire(Commentaires $commentaire): static
+    {
+        if ($this->commentaires->removeElement($commentaire)) {
+            if ($commentaire->getEvenement() === $this) {
+                $commentaire->setEvenement(null);
+            }
+        }
+
         return $this;
     }
 }

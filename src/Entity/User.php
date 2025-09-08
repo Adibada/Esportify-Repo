@@ -47,10 +47,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Evenements::class, mappedBy: 'competitors')]
     private Collection $participations;
 
+    #[ORM\OneToMany(mappedBy: 'auteur', targetEntity: Commentaires::class)]
+    private Collection $commentaires;
+
     public function __construct()
     {
         $this->apiToken = bin2hex(random_bytes(20));
         $this->participations = new ArrayCollection();
+        $this->commentaires = new ArrayCollection();
     }   
 
     public function getId(): ?int
@@ -151,6 +155,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApiToken(string $apiToken): self
     {
         $this->apiToken = $apiToken;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Commentaires>
+     */
+    public function getCommentaires(): Collection
+    {
+        return $this->commentaires;
+    }
+
+    public function addCommentaire(Commentaires $commentaire): static
+    {
+        if (!$this->commentaires->contains($commentaire)) {
+            $this->commentaires->add($commentaire);
+            $commentaire->setAuteur($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCommentaire(Commentaires $commentaire): static
+    {
+        if ($this->commentaires->removeElement($commentaire)) {
+            if ($commentaire->getAuteur() === $this) {
+                $commentaire->setAuteur(null);
+            }
+        }
+
         return $this;
     }
 }
