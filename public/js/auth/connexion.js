@@ -31,12 +31,12 @@ function checkCredential() {
         .then((result) => {
             setToken(result.apiToken);
             setCookie("role", result.roles && result.roles[0] ? result.roles[0] : "user", 7);
+            setCookie("userId", result.id, 7);
             alert("Connexion réussie !");
             window.location.replace("/");
         })
         .catch((error) => {
             alert("Informations incorrectes, veuillez réessayer.");
-            console.error(error);
         });
 }
 

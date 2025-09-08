@@ -22,26 +22,34 @@ function loadUserProfile() {
         const deleteButton = document.getElementById("deleteAccountBtn");
         if (deleteButton) {
             deleteButton.addEventListener("click", () => {
-                if (!confirm("Voulez-vous vraiment supprimer votre compte ?")) return;
+                if (!confirm("Voulez-vous vraiment supprimer votre compte ? Cette action est irréversible.")) return;
+                
+                // Deuxième confirmation
+                if (!confirm("Êtes-vous absolument sûr ? Toutes vos données seront perdues définitivement.")) return;
 
-                fetch('/api/users/' + user.id, {
+                fetch('/api/me', {
                     method: 'DELETE',
                     headers: { 'X-AUTH-TOKEN': token }
                 })
                 .then(res => {
                     if (res.ok) {
-                        alert("Compte supprimé !");
+                        alert("Compte supprimé avec succès !");
+                        // Supprimer les cookies et rediriger vers l'accueil
+                        eraseCookie(tokenCookieName);
+                        eraseCookie(roleCookieName);
+                        eraseCookie('userId');
                         navigate("/");
                     } else {
-                        return res.json().then(data => { throw new Error(data.error); });
+                        return res.json().then(data => { throw new Error(data.message || 'Erreur lors de la suppression'); });
                     }
                 })
-                .catch(err => alert("Erreur : " + err.message));
+                .catch(err => {
+                    alert("Erreur lors de la suppression du compte : " + err.message);
+                });
             });
         }
     })
     .catch(err => {
-        console.error(err);
         alert("Erreur : " + err.message);
         navigate("/connexion");
     });
@@ -86,7 +94,6 @@ function loadUserParticipations(token) {
         }
     })
     .catch(err => {
-        console.error('Erreur participations:', err);
         const eventList = document.querySelector(".event-list");
         if (eventList) {
             eventList.innerHTML = `

@@ -1,5 +1,3 @@
-console.log("home.js chargé !");
-
 function createEventSlide(event, isActive = false) {
     return `
     <div class="carousel-item event-carousel-item${isActive ? ' active' : ''}">
@@ -56,7 +54,9 @@ function fillEventCarousel() {
             slides.push(createSearchSlide(slides.length === 0));
             carouselInner.innerHTML = slides.join('');
         })
-        .catch(err => console.error('Erreur chargement évènements en cours :', err));
+        .catch(err => {
+            // Silently handle errors - carousel will remain empty
+        });
 }
 
 // Fonction pour charger les événements à venir
@@ -106,7 +106,6 @@ function loadUpcomingEvents() {
             upcomingEventsList.innerHTML = eventsHTML;
         })
         .catch(err => {
-            console.error('Erreur lors du chargement des événements à venir:', err);
             upcomingEventsList.innerHTML = `
                 <li class="text-center py-3 text-danger">
                     <div>Erreur lors du chargement des événements</div>

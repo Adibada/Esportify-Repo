@@ -1,9 +1,6 @@
 // creationEvenement.js
-console.log('Creation événement JS chargé - Version ' + Date.now());
-
 // Initialisation de la page
 function initPage() {
-    console.log('Initialisation page création événement - DEBUT');
     
     // Vérification que l'utilisateur a les droits
     if (!isConnected()) {
@@ -13,8 +10,6 @@ function initPage() {
     }
     
     const role = getRole();
-    console.log('Debug - Rôle récupéré:', role);
-    console.log('Debug - Cookie role brut:', getCookie('role'));
     
     if (!role || (role !== 'ROLE_ORGANISATEUR' && role !== 'ROLE_ADMIN')) {
         alert('Vous n\'avez pas les droits pour créer un événement.');
@@ -22,86 +17,64 @@ function initPage() {
         return;
     }
     
-    console.log('Appel setupFormHandlers...');
     // Attendre que le DOM soit complètement rendu
     setTimeout(() => {
         setupFormHandlers();
     }, 100);
-    console.log('initPage terminé avec succès');
 }
 
 // Configuration des gestionnaires d'événements du formulaire
 function setupFormHandlers() {
-    console.log('setupFormHandlers - DEBUT');
     
     // Gestionnaire pour le bouton de validation (ouverture modal)
     const validateBtn = document.querySelector('[data-bs-target="#confirmationModal"]');
-    console.log('Bouton validation trouvé:', validateBtn);
     if (validateBtn) {
         validateBtn.addEventListener('click', validateForm);
     }
     
     // Gestionnaire pour le bouton de sauvegarde dans le modal
     const saveBtn = document.querySelector('.modal-footer .btn-primary');
-    console.log('Bouton sauvegarde trouvé:', saveBtn);
     if (saveBtn) {
         saveBtn.addEventListener('click', createEvent);
     }
     
     // Gestionnaires pour les options d'image
-    console.log('Appel setupImageTypeHandlers...');
     setupImageTypeHandlers();
-    console.log('setupFormHandlers terminé');
 }
 
 // Configuration des gestionnaires pour le choix du type d'image
 function setupImageTypeHandlers() {
-    console.log('setupImageTypeHandlers - DEBUT');
-    console.log('Contenu du main-page:', document.getElementById('main-page'));
-    console.log('Tous les éléments avec des IDs:', document.querySelectorAll('[id]'));
     
     const imageTypeFile = document.getElementById('imageTypeFile');
     const imageTypeUrl = document.getElementById('imageTypeUrl');
     const imageFileContainer = document.getElementById('imageFileContainer');
     const imageUrlContainer = document.getElementById('imageUrlContainer');
     
-    console.log('Elements trouvés:');
-    console.log('- imageTypeFile:', imageTypeFile);
-    console.log('- imageTypeUrl:', imageTypeUrl);
-    console.log('- imageFileContainer:', imageFileContainer);
-    console.log('- imageUrlContainer:', imageUrlContainer);
     
     if (imageTypeFile && imageTypeUrl && imageFileContainer && imageUrlContainer) {
-        console.log('Tous les éléments trouvés, ajout des listeners...');
         
         imageTypeFile.addEventListener('change', () => {
-            console.log('Radio File sélectionné');
             if (imageTypeFile.checked) {
                 imageFileContainer.style.display = 'block';
                 imageUrlContainer.style.display = 'none';
                 // Vider l'URL si on switch vers fichier
                 document.getElementById('imageUrl').value = '';
-                console.log('Interface fichier activée');
             }
         });
         
         imageTypeUrl.addEventListener('change', () => {
-            console.log('Radio URL sélectionné');
             if (imageTypeUrl.checked) {
                 imageFileContainer.style.display = 'none';
                 imageUrlContainer.style.display = 'block';
                 // Vider le fichier si on switch vers URL
                 document.getElementById('imageFile').value = '';
-                console.log('Interface URL activée');
             }
         });
         
-        console.log('Listeners ajoutés avec succès');
-    } else {
-        console.error('Erreur: certains éléments sont manquants!');
+        // État initial - afficher le conteneur d'URL par défaut
+        imageUrlContainer.style.display = 'block';
+        imageFileContainer.style.display = 'none';
     }
-    
-    console.log('setupImageTypeHandlers terminé');
 }
 
 // Validation du formulaire avant ouverture du modal
@@ -192,14 +165,20 @@ function showMissingFieldsModal(missingFields) {
 
 // Fonction pour créer l'événement
 function createEvent() {
-    const token = getCookie('auth_token');
+    const token = getToken();
+    
     const formData = new FormData();
     
     // Données de base de l'événement
-    formData.append('name', document.getElementById('eventName').value);
-    formData.append('detail', document.getElementById('eventDetail').value);
-    formData.append('dateStart', document.getElementById('setDateStart').value);
-    formData.append('dateEnd', document.getElementById('setDateEnd').value);
+    const eventName = document.getElementById('eventName').value;
+    const eventDetail = document.getElementById('eventDetail').value;
+    const dateStart = document.getElementById('setDateStart').value;
+    const dateEnd = document.getElementById('setDateEnd').value;
+    
+    formData.append('name', eventName);
+    formData.append('detail', eventDetail);
+    formData.append('dateStart', dateStart);
+    formData.append('dateEnd', dateEnd);
     
     // Gestion de l'image selon le type sélectionné
     const imageTypeFile = document.getElementById('imageTypeFile');
@@ -221,7 +200,7 @@ function createEvent() {
     fetch('/api/evenements', {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`
+            'X-AUTH-TOKEN': token
         },
         body: formData
     })
@@ -229,46 +208,65 @@ function createEvent() {
         if (response.ok) {
             return response.json();
         } else {
-            throw new Error('Erreur lors de la creation de l\'evenement');
+            // Récupérer le message d'erreur détaillé
+            return response.text().then(text => {
+                throw new Error(`Erreur ${response.status}: ${text}`);
+            });
         }
     })
     .then(data => {
-        console.log('Evenement cree avec succes:', data);
+        // Fermer le modal avant la redirection
+        const modal = document.getElementById('confirmationModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+        
+        // Nettoyer les classes Bootstrap qui bloquent le scroll
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        // Supprimer le backdrop s'il existe
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
+        alert('Événement créé avec succès !');
+        
         // Redirection vers la page de l'événement
         if (data.id) {
-            navigateTo(`/evenement/${data.id}`);
+            window.navigate(`/evenement?id=${data.id}`);
         } else {
-            navigateTo('/rechercheEvenements');
+            window.navigate('/rechercheEvenements');
         }
     })
     .catch(error => {
-        console.error('Erreur:', error);
+        // Fermer le modal en cas d'erreur aussi
+        const modal = document.getElementById('confirmationModal');
+        if (modal) {
+            const bsModal = bootstrap.Modal.getInstance(modal);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        }
+        
+        // Nettoyer les classes Bootstrap qui bloquent le scroll
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        
+        // Supprimer le backdrop s'il existe
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+        
         alert('Erreur lors de la creation de l\'evenement. Veuillez ressayer.');
     });
-}
-
-// Fonctions utilitaires (si elles ne sont pas déjà disponibles globalement)
-function getToken() {
-    return getCookie('accesstoken');
-}
-
-function getCookie(name) {
-    let nameEQ = name + "=";
-    let ca = document.cookie.split(';');
-    for (const element of ca) {
-        let c = element;
-        while (c.startsWith(' ')) c = c.substring(1, c.length);
-        if (c.startsWith(nameEQ)) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-function isConnected() {
-    return !!getToken()?.trim();
-}
-
-function getRole() {
-    return getCookie('role');
 }
 
 // Export par défaut pour le router

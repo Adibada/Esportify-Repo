@@ -89,11 +89,9 @@ export default function initInscriptionPage() {
                 return response.json();
             })
             .then(data => {
-                console.log("Succès:", data);
                 alert("Inscription réussie !");
             })
             .catch(error => {
-                console.error("Erreur:", error);
                 alert("Échec de l'inscription !");
             })
             .finally(() => {
