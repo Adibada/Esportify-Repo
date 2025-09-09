@@ -15,6 +15,10 @@ function loadUserProfile() {
         const profilName = document.getElementById("profilName");
         if (profilName) profilName.textContent = user.user || "Nom indisponible";
 
+        // Adresse email
+        const profilEmail = document.getElementById("profilEmail");
+        if (profilEmail) profilEmail.textContent = user.mail || "Email indisponible";
+
         // Charger les participations séparément
         loadUserParticipations(token);
 
