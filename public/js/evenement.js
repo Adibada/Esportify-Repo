@@ -34,6 +34,13 @@ function getRole() {
 // Récupération de l'ID depuis l'URL
 const eventId = new URLSearchParams(window.location.search).get('id');
 
+// Variables pour l'infinite scroll des commentaires
+let commentsPage = 1;
+let commentsPerPage = 10;
+let allComments = [];
+let isLoadingComments = false;
+let hasMoreComments = true;
+
 // États d'affichage
 const setState = (type, content) => {
     const elem = document.getElementById("eventName");
@@ -350,9 +357,27 @@ const updateAdminButtons = (event) => {
     }
 };
 
-// Chargement des commentaires
-const loadComments = async () => {
+// Chargement des commentaires avec pagination
+const loadComments = async (reset = false) => {
+    if (isLoadingComments || (!hasMoreComments && !reset)) return;
+    
+    if (reset) {
+        commentsPage = 1;
+        allComments = [];
+        hasMoreComments = true;
+    }
+    
+    isLoadingComments = true;
+    
+    // Afficher l'indicateur de chargement
+    if (commentsPage === 1) {
+        showCommentsLoading();
+    } else {
+        addCommentsLoadingIndicator();
+    }
+    
     try {
+        // Récupérer tous les commentaires pour cette implémentation simple
         const res = await fetch(`/api/commentaires/evenement/${eventId}`, {
             method: 'GET',
             headers: {
@@ -362,21 +387,46 @@ const loadComments = async () => {
 
         if (res.ok) {
             const comments = await res.json();
-            displayComments(comments);
+            
+            if (reset) {
+                allComments = comments;
+            }
+            
+            // Simuler la pagination côté client
+            const startIndex = (commentsPage - 1) * commentsPerPage;
+            const endIndex = startIndex + commentsPerPage;
+            const pageComments = allComments.slice(startIndex, endIndex);
+            
+            hasMoreComments = endIndex < allComments.length;
+            
+            if (reset) {
+                displayComments(pageComments, true);
+            } else {
+                displayComments(pageComments, false);
+            }
+            
+            commentsPage++;
         } else {
-            displayComments([]);
+            if (reset) {
+                displayComments([], true);
+            }
         }
     } catch (error) {
-        displayComments([]);
+        if (reset) {
+            displayComments([], true);
+        }
+    } finally {
+        isLoadingComments = false;
+        removeCommentsLoadingIndicator();
     }
 };
 
 // Affichage des commentaires
-const displayComments = (comments) => {
+const displayComments = (comments, reset = true) => {
     const commentsList = document.getElementById('commentsList');
     if (!commentsList) return;
 
-    if (comments.length === 0) {
+    if (reset && comments.length === 0) {
         commentsList.innerHTML = `
             <ul>
                 <li class="text-muted">
@@ -402,14 +452,14 @@ const displayComments = (comments) => {
 
         // Nom de l'auteur (ou "Utilisateur supprimé" si l'auteur n'existe plus)
         const authorName = comment.auteur ? comment.auteur.username : 'Utilisateur supprimé';
-        const authorClass = comment.auteur ? '' : 'text-muted font-italic';
+        const authorClass = comment.auteur ? '' : 'comment-author-deleted';
 
         return `
             <li class="comment-item mb-3 p-3 border rounded">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <strong class="${authorClass}">${authorName}</strong>
-                        <small class="text-muted ms-2">${date}</small>
+                        <small class="comment-date ms-2">${date}</small>
                     </div>
                     ${canDelete ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteComment(${comment.id})">
                         <i class="fas fa-trash"></i>
@@ -420,7 +470,74 @@ const displayComments = (comments) => {
         `;
     }).join('');
 
-    commentsList.innerHTML = `<ul class="list-unstyled">${commentsHtml}</ul>`;
+    if (reset) {
+        commentsList.innerHTML = `<ul class="list-unstyled" id="comments-list-ul">${commentsHtml}</ul>`;
+    } else {
+        // Ajouter les nouveaux commentaires à la liste existante
+        const existingUl = commentsList.querySelector('#comments-list-ul');
+        if (existingUl) {
+            existingUl.insertAdjacentHTML('beforeend', commentsHtml);
+        } else {
+            commentsList.innerHTML = `<ul class="list-unstyled" id="comments-list-ul">${commentsHtml}</ul>`;
+        }
+    }
+};
+
+// Fonctions pour l'indicateur de chargement
+const showCommentsLoading = () => {
+    const commentsList = document.getElementById('commentsList');
+    if (commentsList) {
+        commentsList.innerHTML = `
+            <div class="comments-loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <div class="mt-2">Chargement des commentaires...</div>
+            </div>
+        `;
+    }
+};
+
+const addCommentsLoadingIndicator = () => {
+    const commentsList = document.getElementById('commentsList');
+    const existingIndicator = commentsList.querySelector('.comments-loading');
+    
+    if (!existingIndicator && commentsList) {
+        commentsList.insertAdjacentHTML('beforeend', `
+            <div class="comments-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <div class="mt-1">Chargement de plus de commentaires...</div>
+            </div>
+        `);
+    }
+};
+
+const removeCommentsLoadingIndicator = () => {
+    const loadingIndicator = document.querySelector('.comments-loading');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+};
+
+// Gestionnaire de scroll pour l'infinite scroll
+const setupInfiniteScroll = () => {
+    const commentsList = document.getElementById('commentsList');
+    if (!commentsList) return;
+    
+    commentsList.addEventListener('scroll', () => {
+        const scrollTop = commentsList.scrollTop;
+        const scrollHeight = commentsList.scrollHeight;
+        const clientHeight = commentsList.clientHeight;
+        
+        // Déclencher le chargement quand on arrive à 80% du scroll
+        if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+            if (!isLoadingComments && hasMoreComments) {
+                loadComments(false);
+            }
+        }
+    });
 };
 
 // Ajout de commentaire
@@ -455,7 +572,7 @@ const addComment = async () => {
 
         if (res.ok) {
             commentInput.value = ''; // Vider le champ
-            await loadComments(); // Recharger les commentaires
+            await loadComments(true); // Recharger les commentaires
         } else {
             alert('Erreur lors de l\'ajout du commentaire');
         }
@@ -480,7 +597,7 @@ const deleteComment = async (commentId) => {
         });
 
         if (res.ok) {
-            await loadComments(); // Recharger les commentaires
+            await loadComments(true); // Recharger les commentaires
         } else {
             alert('Erreur lors de la suppression du commentaire');
         }
@@ -504,7 +621,10 @@ const init = () => {
     
     // Charger l'événement et les commentaires
     loadEvent();
-    loadComments();
+    loadComments(true);
+    
+    // Configurer l'infinite scroll pour les commentaires
+    setupInfiniteScroll();
 
     // Gestionnaire pour les commentaires
     document.querySelectorAll('button').forEach(btn => {
