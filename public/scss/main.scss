@@ -208,3 +208,86 @@ body {
   border-color: $primary;
   border-right-color: transparent;
 }
+
+// Styles pour les pages de profils
+.profile-header {
+  background: linear-gradient(135deg, rgba($primary, 0.1), rgba($secondary, 0.1));
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-info {
+  margin-top: 1rem;
+}
+
+.user-card .card,
+.event-item .card,
+.participation-item .card {
+  border: 1px solid rgba($primary, 0.2);
+  transition: all 0.3s ease;
+}
+
+.user-card .card:hover,
+.event-item .card:hover,
+.participation-item .card:hover {
+  border-color: $primary;
+  box-shadow: 0 4px 12px rgba($primary, 0.15);
+  transform: translateY(-2px);
+}
+
+.profile-details .card-header,
+.organized-events .card-header,
+.participations .card-header {
+  background-color: rgba($primary, 0.1);
+  border-bottom: 1px solid rgba($primary, 0.2);
+}
+
+.search-section {
+  background: rgba($dark, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.search-section .input-group {
+  max-width: 100%;
+}
+
+.search-section .form-control {
+  border: 2px solid rgba($primary, 0.2);
+  border-radius: 8px 0 0 8px;
+}
+
+.search-section .form-control:focus {
+  border-color: $primary;
+  box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+}
+
+.search-section .btn {
+  border-radius: 0 8px 8px 0;
+  border: 2px solid $primary;
+}
+
+.results-container {
+  margin-top: 1.5rem;
+}
+
+// Responsive pour les profils
+@media (max-width: 768px) {
+  .profile-header {
+    padding: 1.5rem;
+    text-align: center;
+  }
+  
+  .user-card .row,
+  .event-item .row,
+  .participation-item .row {
+    text-align: center;
+  }
+  
+  .user-card .col-md-4,
+  .event-item .col-md-4,
+  .participation-item .col-md-4 {
+    margin-top: 1rem;
+  }
+}

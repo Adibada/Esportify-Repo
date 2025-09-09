@@ -8,6 +8,8 @@ export const allRoutes = [
 
     //Routes Profils
     new Route("/monProfil", "Mon Profil", "/Pages/monProfil.html", [], "/js/auth/monProfil.js"),
+    new Route("/rechercheProfils", "Recherche de profils", "/Pages/rechercheProfils.html", [], "/js/rechercheProfils.js"),
+    new Route("/profil", "Profil utilisateur", "/Pages/profil.html", [], "/js/profil.js"),
     new Route("/connexion", "Connexion", "/Pages/connexion.html", [], "/js/auth/connexion.js"),
     new Route("/inscription", "Inscription", "/Pages/inscription.html", [], "/js/auth/inscription.js"),
     new Route("/modifierProfil", "Modifier Profil", "/Pages/modifierProfil.html", []),

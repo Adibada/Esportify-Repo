@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche de profils - Esportify</title>
+</head>
+<body>
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <h1 class="text-center mb-4" style="color: var(--primary);">Recherche de profils</h1>
+                
+                <!-- Barre de recherche -->
+                <div class="search-section mb-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Rechercher un utilisateur par nom...">
+                        <button class="btn btn-primary" type="button" id="searchButton">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Indicateur de chargement -->
+                <div id="loadingIndicator" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+
+                <!-- Message d'information -->
+                <div id="infoMessage" class="alert alert-info text-center">
+                    Utilisez la barre de recherche pour trouver des utilisateurs.
+                </div>
+
+                <!-- Résultats de recherche -->
+                <div id="searchResults" class="results-container">
+                    <!-- Les résultats seront affichés ici -->
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

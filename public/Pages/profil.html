@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil utilisateur - Esportify</title>
+</head>
+<body>
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- Indicateur de chargement -->
+                <div id="loadingIndicator" class="text-center">
+                    <div class="spinner-border text-primary">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p class="mt-2">Chargement du profil...</p>
+                </div>
+
+                <!-- Contenu du profil -->
+                <div id="profileContent" class="d-none">
+                    <!-- En-tête du profil -->
+                    <div class="profile-header text-center mb-4">
+                        <h1 class="mb-3" style="color: var(--primary);">Profil de <span id="username"></span></h1>
+                        <div class="profile-info">
+                            <p class="text-muted mb-1">Membre depuis le <span id="memberSince"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Informations du profil -->
+                    <div class="profile-details mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="mb-0">Informations du profil</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Nom d'utilisateur</h5>
+                                        <p id="profileUsername" class="text-muted"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Statut</h5>
+                                        <p id="userStatus" class="text-muted"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Événements organisés -->
+                    <div class="organized-events mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="mb-0">Événements organisés</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="organizedEvents">
+                                    <!-- Les événements organisés seront affichés ici -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Participations -->
+                    <div class="participations">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="mb-0">Participations aux événements</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="participations">
+                                    <!-- Les participations seront affichées ici -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message d'erreur -->
+                <div id="errorMessage" class="alert alert-danger d-none">
+                    <h4>Erreur</h4>
+                    <p id="errorText"></p>
+                    <button class="btn btn-primary" onclick="history.back()">Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -47,6 +47,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Evenements::class, mappedBy: 'competitors')]
     private Collection $participations;
 
+    #[Groups(['user:public'])]
+    #[ORM\OneToMany(mappedBy: 'organisateur', targetEntity: Evenements::class)]
+    private Collection $evenements;
+
     #[ORM\OneToMany(mappedBy: 'auteur', targetEntity: Commentaires::class)]
     private Collection $commentaires;
 
@@ -54,6 +58,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->apiToken = bin2hex(random_bytes(20));
         $this->participations = new ArrayCollection();
+        $this->evenements = new ArrayCollection();
         $this->commentaires = new ArrayCollection();
     }   
 
@@ -142,6 +147,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->participations->removeElement($participation)) {
             $participation->removeCompetitor($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Evenements>
+     */
+    public function getEvenements(): Collection
+    {
+        return $this->evenements;
+    }
+
+    public function addEvenement(Evenements $evenement): static
+    {
+        if (!$this->evenements->contains($evenement)) {
+            $this->evenements->add($evenement);
+            $evenement->setOrganisateur($this);
+        }
+
+        return $this;
+    }
+
+    public function removeEvenement(Evenements $evenement): static
+    {
+        if ($this->evenements->removeElement($evenement)) {
+            if ($evenement->getOrganisateur() === $this) {
+                $evenement->setOrganisateur(null);
+            }
         }
 
         return $this;

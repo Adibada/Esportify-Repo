@@ -5,11 +5,11 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -21,6 +21,44 @@ class UserController extends AbstractController
         private UserRepository $repository,
         private SerializerInterface $serializer
     ) {}
+
+    #[Route('/search', name: 'search', methods: ['GET'])]
+    #[OA\Get(
+        summary: 'Rechercher des utilisateurs par nom',
+        parameters: [
+            new OA\Parameter(
+                name: 'query',
+                in: 'query',
+                required: true,
+                description: 'Terme de recherche',
+                schema: new OA\Schema(type: 'string')
+            )
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des utilisateurs trouvés'),
+            new OA\Response(response: 400, description: 'Paramètre de recherche manquant'),
+        ]
+    )]
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->query->get('query');
+        
+        if (!$query || strlen($query) < 2) {
+            return $this->json(['error' => 'Le terme de recherche doit contenir au moins 2 caractères'], 400);
+        }
+
+        $users = $this->repository->findByUsernameContaining($query);
+        
+        $result = array_map(function($user) {
+            return [
+                'id' => $user->getId(),
+                'username' => $user->getUserIdentifier(),
+                'roles' => $user->getRoles()
+            ];
+        }, $users);
+
+        return $this->json($result);
+    }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     #[OA\Get(
@@ -38,126 +76,42 @@ class UserController extends AbstractController
         $user = $this->repository->find($id);
 
         if (!$user) {
-            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+            return $this->json(['error' => 'Utilisateur non trouvé'], 404);
         }
 
-        $data = $this->serializer->serialize($user, 'json');
-        return new JsonResponse($data, Response::HTTP_OK, [], true);
-    }
+        $userData = [
+            'id' => $user->getId(),
+            'username' => $user->getUserIdentifier(),
+            'mail' => $user->getMail(),
+            'roles' => $user->getRoles(),
+            'evenements' => [],
+            'participations' => []
+        ];
 
-    #[Route('/{id}', name: 'edit', methods: ['PUT'])]
-    #[OA\Put(
-        summary: 'Modifier un utilisateur',
-        parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
-        ],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'mail', type: 'string', format: 'email'),
-                    new OA\Property(property: 'roles',
-                        type: 'array',
-                        items: new OA\Items(
-                            type: "string",
-                            enum: ["USER", "ORGANISATEUR", "ADMIN"]
-                        )
-                    )
-                ]
-            )
-        ),
-        responses: [
-            new OA\Response(response: 200, description: 'Utilisateur modifié'),
-            new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
-        ]
-    )]
-
-    public function edit(Request $request, int $id): JsonResponse
-    {
-        $user = $this->repository->find($id);
-
-        if (!$user) {
-            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+        // Ajouter les événements organisés par l'utilisateur
+        foreach ($user->getEvenements() as $event) {
+            $userData['evenements'][] = [
+                'id' => $event->getId(),
+                'titre' => $event->getTitre(),
+                'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
+                'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
+                'statut' => $event->getStatut(),
+                'description' => $event->getDescription()
+            ];
         }
 
-        $data = json_decode($request->getContent(), true);
-        if (isset($data['mail'])) $user->setmail($data['mail']);
-        if (isset($data['roles'])) $user->setRoles($data['roles']);
-
-        $this->manager->flush();
-
-        $data = $this->serializer->serialize($user, 'json');
-        return new JsonResponse($data, Response::HTTP_OK, [], true);
-    }
-
-    #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
-    #[OA\Delete(
-        summary: 'Supprimer un utilisateur',
-        parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
-        ],
-        responses: [
-            new OA\Response(response: 200, description: 'Utilisateur supprimé'),
-            new OA\Response(response: 404, description: 'Utilisateur non trouvé'),
-        ]
-    )]
-    public function delete(int $id): JsonResponse
-    {
-        $user = $this->repository->find($id);
-
-        if (!$user) {
-            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+        // Ajouter les participations (événements où l'utilisateur participe)
+        foreach ($user->getParticipations() as $event) {
+            $userData['participations'][] = [
+                'id' => $event->getId(),
+                'titre' => $event->getTitre(),
+                'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
+                'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
+                'statut' => $event->getStatut(),
+                'description' => $event->getDescription()
+            ];
         }
 
-        $this->manager->remove($user);
-        $this->manager->flush();
-
-        return $this->json(['message' => 'Utilisateur supprimé'], Response::HTTP_OK);
-    }
-
-    //Renvoie les informations de l'utilisateur connecté
-    #[Route('/monProfil', name: 'mon_profil', methods: ['GET'])]
-    #[OA\Get(
-    summary: 'Récupérer les informations du profil de l’utilisateur connecté',
-    description: 'Renvoie les informations publiques de l’utilisateur connecté (username, rôle, participations)',
-    responses: [
-        new OA\Response(
-            response: 200,
-            description: 'Profil récupéré avec succès',
-            content: new OA\JsonContent(
-                type: 'object',
-                properties: [
-                    new OA\Property(property: 'username', type: 'string'),
-                    new OA\Property(
-                        property: 'roles',
-                        type: 'array',
-                        items: new OA\Items(type: 'string')
-                    ),
-                    new OA\Property(
-                        property: 'participations',
-                        type: 'array',
-                        items: new OA\Items(type: 'object', properties: [
-                            new OA\Property(property: 'nom', type: 'string')
-                        ])
-                    ),
-                ]
-            )
-        ),
-        new OA\Response(
-            response: 401,
-            description: 'Utilisateur non authentifié'
-        )
-    ],
-    security: [['bearerAuth' => []]]
-    )]
-    public function monProfil(): Response
-    {
-        $user = $this->getUser();
-
-        if (!$user) {
-            return $this->json(['error' => 'Non authentifié'], 401);
-        }
-        return $this->json($user, 200, [], ['groups' => 'user:write']);
+        return $this->json($userData);
     }
 }
