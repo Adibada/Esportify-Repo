@@ -154,4 +154,57 @@ body {
 //Customisatiion du bloc fil de commentaire
 #commentsList {
   background-color: $black;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $primary $dark;
+}
+
+// Webkit scrollbar pour Chrome/Safari
+#commentsList::-webkit-scrollbar {
+  width: 8px;
+}
+
+#commentsList::-webkit-scrollbar-track {
+  background: $dark;
+  border-radius: 4px;
+}
+
+#commentsList::-webkit-scrollbar-thumb {
+  background: $primary;
+  border-radius: 4px;
+}
+
+#commentsList::-webkit-scrollbar-thumb:hover {
+  background: lighten($primary, 10%);
+}
+
+// Styles pour les commentaires
+.comment-date {
+  color: $primary !important;
+}
+
+.comment-item {
+  background-color: rgba($primary, 0.05);
+  border-color: rgba($primary, 0.2) !important;
+}
+
+.comment-author-deleted {
+  color: $secondary !important;
+  font-style: italic;
+}
+
+// Indicateur de chargement pour l'infinite scroll
+.comments-loading {
+  text-align: center;
+  padding: 20px;
+  color: $primary;
+  font-size: 0.9rem;
+}
+
+.comments-loading .spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-color: $primary;
+  border-right-color: transparent;
 }

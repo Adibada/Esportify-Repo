@@ -12117,4 +12117,54 @@ body {
 
 #commentsList {
   background-color: #001037;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4F7EF3 #08256D;
+}
+
+#commentsList::-webkit-scrollbar {
+  width: 8px;
+}
+
+#commentsList::-webkit-scrollbar-track {
+  background: #08256D;
+  border-radius: 4px;
+}
+
+#commentsList::-webkit-scrollbar-thumb {
+  background: #4F7EF3;
+  border-radius: 4px;
+}
+
+#commentsList::-webkit-scrollbar-thumb:hover {
+  background: rgb(126.7446808511, 160.9946808511, 246.2553191489);
+}
+
+.comment-date {
+  color: #4F7EF3 !important;
+}
+
+.comment-item {
+  background-color: rgba(79, 126, 243, 0.05);
+  border-color: rgba(79, 126, 243, 0.2) !important;
+}
+
+.comment-author-deleted {
+  color: #F3C74F !important;
+  font-style: italic;
+}
+
+.comments-loading {
+  text-align: center;
+  padding: 20px;
+  color: #4F7EF3;
+  font-size: 0.9rem;
+}
+
+.comments-loading .spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-color: #4F7EF3;
+  border-right-color: transparent;
 }/*# sourceMappingURL=main.css.map */
