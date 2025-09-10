@@ -96,12 +96,20 @@ function initRechercheProfils() {
     }
 
     function showMessage(message, type = 'info') {
+        if (!infoMessage) {
+            console.warn('Element infoMessage not found');
+            return;
+        }
         infoMessage.className = `alert alert-${type} text-center`;
         infoMessage.textContent = message;
         infoMessage.classList.remove('d-none');
     }
 
     function hideMessage() {
+        if (!infoMessage) {
+            console.warn('Element infoMessage not found');
+            return;
+        }
         infoMessage.classList.add('d-none');
     }
 

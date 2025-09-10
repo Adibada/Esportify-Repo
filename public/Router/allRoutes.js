@@ -12,7 +12,7 @@ export const allRoutes = [
     new Route("/profil", "Profil utilisateur", "/Pages/profil.html", [], "/js/profil.js"),
     new Route("/connexion", "Connexion", "/Pages/connexion.html", [], "/js/auth/connexion.js"),
     new Route("/inscription", "Inscription", "/Pages/inscription.html", [], "/js/auth/inscription.js"),
-    new Route("/modifierProfil", "Modifier Profil", "/Pages/modifierProfil.html", []),
+    new Route("/modifierProfil", "Modifier Profil", "/Pages/modifierProfil.html", [], "/js/auth/modifierProfil.js"),
 
     //Routes Evènements
     new Route("/rechercheEvenements","Recherche d'évènements", "/Pages/rechercheEvenements.html", [], "/js/rechercheEvenements.js"),
