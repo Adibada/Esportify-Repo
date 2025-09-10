@@ -36,8 +36,9 @@ async function loadUserProfile(userId) {
 
         // La méthode show retourne déjà toutes les données nécessaires
         displayProfile(data);
-        displayOrganizedEvents(data.evenements || []);
-        displayParticipations(data.participations || []);
+        
+        // Charger les participations séparément pour une meilleure gestion
+        loadUserParticipations(userId);
 
     } catch (error) {
         console.error('Erreur lors du chargement du profil:', error);
@@ -47,10 +48,62 @@ async function loadUserProfile(userId) {
     }
 }
 
+// Charger les participations de l'utilisateur spécifique
+async function loadUserParticipations(userId) {
+    try {
+        // Récupérer les participations depuis l'API
+        const response = await fetch(`/api/users/${userId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Erreur lors du chargement des participations');
+        }
+
+        // Afficher les participations
+        displayAllParticipations(data.participations || []);
+
+    } catch (error) {
+        console.error('Erreur lors du chargement des participations:', error);
+        
+        // Afficher un message d'erreur dans le conteneur
+        const container = document.getElementById('participations');
+        
+        const errorMessage = `
+            <div class="text-center py-3 text-danger">
+                <div>Erreur lors du chargement des participations</div>
+                <div class="mt-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadUserParticipations(${userId})">
+                        Réessayer
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        if (container) container.innerHTML = errorMessage;
+    }
+}
+
+// Rendre la fonction accessible globalement pour le bouton "Réessayer"
+window.loadUserParticipations = loadUserParticipations;
+
 function displayProfile(user) {
-    // Nom d'utilisateur dans le titre
-    document.getElementById('username').textContent = user.username || 'Utilisateur inconnu';
-    document.getElementById('profileUsername').textContent = user.username || 'Non spécifié';
+    // Nom d'utilisateur dans le titre - élément optionnel
+    const usernameElement = document.getElementById('username');
+    if (usernameElement) {
+        usernameElement.textContent = user.username || 'Utilisateur inconnu';
+    }
+    
+    // Nom d'utilisateur dans le profil
+    const profileUsernameElement = document.getElementById('profileUsername');
+    if (profileUsernameElement) {
+        profileUsernameElement.textContent = user.username || 'Non spécifié';
+    }
     
     // Masquer la section "Membre depuis" car nous n'avons pas cette info
     const memberSinceElement = document.getElementById('memberSince');
@@ -60,49 +113,19 @@ function displayProfile(user) {
     
     // Statut utilisateur
     const userStatus = user.roles && user.roles.includes('ROLE_ORGANISATEUR') ? 'Organisateur' : 'Participant';
-    document.getElementById('userStatus').textContent = userStatus;
+    const userStatusElement = document.getElementById('userStatus');
+    if (userStatusElement) {
+        userStatusElement.textContent = userStatus;
+    }
     
     // Afficher le contenu du profil
-    document.getElementById('profileContent').classList.remove('d-none');
-}
-
-function displayOrganizedEvents(events) {
-    const container = document.getElementById('organizedEvents');
-    
-    if (events.length === 0) {
-        container.innerHTML = '<p class="text-muted">Aucun événement organisé.</p>';
-        return;
+    const profileContentElement = document.getElementById('profileContent');
+    if (profileContentElement) {
+        profileContentElement.classList.remove('d-none');
     }
-
-    const eventsHtml = events.map(event => `
-        <div class="event-item mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h6 class="card-title">${escapeHtml(event.title)}</h6>
-                            <p class="card-text text-muted mb-1">
-                                <i class="fas fa-calendar"></i> ${formatDateTime(event.dateDebut)}
-                            </p>
-                            <p class="card-text text-muted mb-0">
-                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.lieu)}
-                            </p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <a href="/evenement?id=${event.id}" class="btn btn-sm btn-outline-primary">
-                                Voir l'événement
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-
-    container.innerHTML = eventsHtml;
 }
 
-function displayParticipations(participations) {
+function displayAllParticipations(participations) {
     const container = document.getElementById('participations');
     
     if (participations.length === 0) {
@@ -110,30 +133,54 @@ function displayParticipations(participations) {
         return;
     }
 
-    const participationsHtml = participations.map(participation => `
-        <div class="participation-item mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h6 class="card-title">${escapeHtml(participation.event.title)}</h6>
-                            <p class="card-text text-muted mb-1">
-                                <i class="fas fa-calendar"></i> ${formatDateTime(participation.event.dateDebut)}
-                            </p>
-                            <p class="card-text text-muted mb-0">
-                                <i class="fas fa-map-marker-alt"></i> ${escapeHtml(participation.event.lieu)}
-                            </p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <a href="/evenement?id=${participation.event.id}" class="btn btn-sm btn-outline-primary">
-                                Voir l'événement
-                            </a>
+    // Trier les participations par date (plus récentes en premier)
+    const sortedParticipations = participations.sort((a, b) => {
+        const dateA = new Date(a.dateDebut);
+        const dateB = new Date(b.dateDebut);
+        return dateB - dateA;
+    });
+
+    const currentDate = new Date();
+
+    const participationsHtml = sortedParticipations.map(participation => {
+        const eventStartDate = new Date(participation.dateDebut);
+        const eventEndDate = new Date(participation.dateFin || participation.dateDebut);
+        
+        // Déterminer le statut de l'événement
+        let statusBadge;
+        if (eventEndDate < currentDate) {
+            statusBadge = '<span class="badge bg-secondary">Terminé</span>';
+        } else if (eventStartDate > currentDate) {
+            statusBadge = '<span class="badge bg-success">À venir</span>';
+        } else {
+            statusBadge = '<span class="badge bg-primary">En cours</span>';
+        }
+
+        return `
+            <div class="participation-item mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="card-title">${escapeHtml(participation.titre)}</h6>
+                                <p class="card-text text-muted mb-1">
+                                    <i class="fas fa-calendar"></i> ${formatDateTime(participation.dateDebut)}
+                                </p>
+                                <p class="card-text text-muted mb-0">
+                                    ${statusBadge}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="/evenement?id=${participation.id}" onclick="route(event)" class="btn btn-sm btn-outline-primary">
+                                    Voir l'événement
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     container.innerHTML = participationsHtml;
 }
@@ -143,10 +190,10 @@ function showLoading(show) {
     const profileContent = document.getElementById('profileContent');
     
     if (show) {
-        loadingIndicator.classList.remove('d-none');
-        profileContent.classList.add('d-none');
+        if (loadingIndicator) loadingIndicator.classList.remove('d-none');
+        if (profileContent) profileContent.classList.add('d-none');
     } else {
-        loadingIndicator.classList.add('d-none');
+        if (loadingIndicator) loadingIndicator.classList.add('d-none');
     }
 }
 
@@ -155,9 +202,9 @@ function showError(message) {
     const errorText = document.getElementById('errorText');
     const loadingIndicator = document.getElementById('loadingIndicator');
     
-    loadingIndicator.classList.add('d-none');
-    errorText.textContent = message;
-    errorMessage.classList.remove('d-none');
+    if (loadingIndicator) loadingIndicator.classList.add('d-none');
+    if (errorText) errorText.textContent = message;
+    if (errorMessage) errorMessage.classList.remove('d-none');
 }
 
 function escapeHtml(text) {

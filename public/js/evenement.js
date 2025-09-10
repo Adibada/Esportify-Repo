@@ -145,7 +145,7 @@ const checkParticipationStatus = async (eventId) => {
     if (!token) return { isParticipant: false, isOrganizer: false };
 
     try {
-        const res = await fetch(`/api/evenements/${eventId}/participation-status`, {
+        const res = await fetch(`/api/evenements/${eventId}/statut-participation`, {
             headers: { 'X-AUTH-TOKEN': token }
         });
         return res.ok ? await res.json() : { isParticipant: false, isOrganizer: false };
