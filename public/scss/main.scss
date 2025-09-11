@@ -269,7 +269,30 @@ body {
 }
 
 .results-container {
+  color: $primary;
   margin-top: 1.5rem;
+}
+
+.results-list {
+  .list-group-item {
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      border-left-color: $primary;
+      background-color: rgba($primary, 0.05);
+    }
+  }
+  
+  .user-link {
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      color: $secondary !important;
+      text-decoration: underline !important;
+    }
+  }
 }
 
 // Responsive pour les profils
@@ -289,5 +312,48 @@ body {
   .event-item .col-md-4,
   .participation-item .col-md-4 {
     margin-top: 1rem;
+  }
+}
+
+// Styles pour la section d'administration des rôles
+.admin-role-section {
+  .card {
+    border-width: 2px;
+    
+    .card-header {
+      font-weight: 600;
+      
+      i {
+        color: #856404;
+      }
+    }
+  }
+  
+  #currentRole {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem !important;
+  }
+  
+  #roleSelect {
+    border-color: #ffc107;
+    
+    &:focus {
+      border-color: #ffb300;
+      box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+  }
+  
+  #updateRoleBtn {
+    border-color: #ffc107;
+    
+    &:hover:not(:disabled) {
+      background-color: #e0a800;
+      border-color: #d39e00;
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   }
 }
