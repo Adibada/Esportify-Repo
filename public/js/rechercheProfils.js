@@ -64,24 +64,33 @@ function initRechercheProfils() {
             return;
         }
 
-        const resultsHtml = users.map(user => `
-            <div class="user-card mb-3">
+        // Affichage en liste avec usernames cliquables
+        const resultsHtml = `
+            <div class="results-list">
                 <div class="card">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h5 class="card-title mb-1">${escapeHtml(user.username)}</h5>
-                            </div>
-                            <div class="col-md-4 text-end">
-                                <a href="/profil?id=${user.id}" onclick="route(event)" class="btn btn-primary">
-                                    Voir le profil
-                                </a>
-                            </div>
+                    <div class="card-header">
+                        <h5 class="mb-0">Résultats de recherche</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            ${users.map(user => `
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <a href="/profil?id=${user.id}" onclick="route(event)" class="text-decoration-none fw-bold text-primary user-link">
+                                            ${escapeHtml(user.username)}
+                                        </a>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>
+                                        ${formatUserRole(user.roles)}
+                                    </small>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
 
         searchResults.innerHTML = resultsHtml;
         showMessage(`${users.length} utilisateur(s) trouvé(s).`, 'success');
@@ -117,6 +126,25 @@ function initRechercheProfils() {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    function formatUserRole(roles) {
+        // Priorité des rôles (du plus important au moins important)
+        const rolePriority = {
+            'ROLE_ADMIN': 'Administrateur',
+            'ROLE_ORGANISATEUR': 'Organisateur', 
+            'ROLE_USER': 'Utilisateur'
+        };
+
+        // Trouver le rôle le plus élevé
+        for (const roleKey in rolePriority) {
+            if (roles.includes(roleKey)) {
+                return rolePriority[roleKey];
+            }
+        }
+
+        // Fallback si aucun rôle reconnu
+        return 'Utilisateur';
     }
 }
 
