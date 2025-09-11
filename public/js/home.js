@@ -119,7 +119,32 @@ function loadUpcomingEvents() {
         });
 }
 
+// Fonction pour initialiser les carrousels avec défilement automatique
+function initCarousels() {
+    // Initialiser le carrousel d'accueil
+    const carouselExample = document.getElementById('carouselExample');
+    if (carouselExample) {
+        const carousel = new bootstrap.Carousel(carouselExample, {
+            interval: 4000,
+            ride: 'carousel'
+        });
+    }
+    
+    // Initialiser le carrousel d'événements après un court délai
+    setTimeout(() => {
+        const eventCarousel = document.getElementById('eventCarousel');
+        if (eventCarousel) {
+            const carousel = new bootstrap.Carousel(eventCarousel, {
+                interval: 5000,
+                ride: 'carousel'
+            });
+        }
+    }, 500); // Délai pour s'assurer que le contenu dynamique est chargé
+}
+
 // Exécution immédiate après injection
 fillEventCarousel();
 // Exécuter le chargement des événements à venir
 loadUpcomingEvents();
+// Initialiser les carrousels
+initCarousels();
