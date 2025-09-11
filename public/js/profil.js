@@ -3,7 +3,6 @@ function initProfil() {
     // Récupérer l'ID depuis les paramètres d'URL (SPA)
     const params = new URLSearchParams(window.location.search);
     const userId = params.get('id');
-    console.log('UserId récupéré:', userId);
     
     if (!userId) {
         showError('ID utilisateur manquant dans l\'URL.');
@@ -35,7 +34,7 @@ async function loadUserProfile(userId) {
         }
 
         // La méthode show retourne déjà toutes les données nécessaires
-        displayProfile(data);
+        await displayProfile(data);
         
         // Charger les participations séparément pour une meilleure gestion
         loadUserParticipations(userId);
@@ -92,7 +91,7 @@ async function loadUserParticipations(userId) {
 // Rendre la fonction accessible globalement pour le bouton "Réessayer"
 window.loadUserParticipations = loadUserParticipations;
 
-function displayProfile(user) {
+async function displayProfile(user) {
     // Nom d'utilisateur dans le titre - élément optionnel
     const usernameElement = document.getElementById('username');
     if (usernameElement) {
@@ -117,6 +116,9 @@ function displayProfile(user) {
     if (userStatusElement) {
         userStatusElement.textContent = userStatus;
     }
+    
+    // Initialiser la section de gestion des rôles (async)
+    await initializeRoleSelect(user);
     
     // Afficher le contenu du profil
     const profileContentElement = document.getElementById('profileContent');
@@ -225,6 +227,171 @@ function formatDateTime(dateString) {
         minute: '2-digit'
     });
 }
+
+// Fonctions pour la gestion des rôles
+async function initializeRoleSelect(user) {
+    const roleManagementSection = document.querySelector('.role-management');
+    
+    // Vérifier si l'utilisateur connecté est admin
+    const isAdmin = await checkIfCurrentUserIsAdmin();
+    
+    if (!isAdmin) {
+        // Masquer complètement la section si l'utilisateur n'est pas admin
+        if (roleManagementSection) {
+            roleManagementSection.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Afficher la section pour les admins
+    if (roleManagementSection) {
+        roleManagementSection.style.display = 'block';
+    }
+    
+    const currentRoleElement = document.getElementById('currentRole');
+    const roleSelectElement = document.getElementById('roleSelect');
+    
+    if (currentRoleElement && user.roles) {
+        // Afficher le rôle actuel
+        const roleDisplayName = getRoleDisplayName(user.roles);
+        currentRoleElement.textContent = roleDisplayName;
+    }
+    
+    if (roleSelectElement && user.roles) {
+        // Sélectionner le rôle actuel dans le select
+        const currentRole = getCurrentRole(user.roles);
+        roleSelectElement.value = currentRole;
+    }
+}
+
+// Vérifier si l'utilisateur connecté est administrateur
+async function checkIfCurrentUserIsAdmin() {
+    const token = getToken();
+    if (!token) {
+        return false; // Pas connecté
+    }
+    
+    try {
+        const response = await fetch('/api/me', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            }
+        });
+        
+        if (!response.ok) {
+            return false; // Erreur ou non authentifié
+        }
+        
+        const userData = await response.json();
+        return userData.roles && userData.roles.includes('ROLE_ADMIN');
+        
+    } catch (error) {
+        console.error('Erreur lors de la vérification des droits admin:', error);
+        return false;
+    }
+}
+
+function getCurrentRole(roles) {
+    if (roles.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
+    if (roles.includes('ROLE_ORGANISATEUR')) return 'ROLE_ORGANISATEUR';
+    return 'ROLE_USER';
+}
+
+function getRoleDisplayName(roles) {
+    if (roles.includes('ROLE_ADMIN')) return 'Administrateur';
+    if (roles.includes('ROLE_ORGANISATEUR')) return 'Organisateur';
+    return 'Utilisateur';
+}
+
+async function updateUserRole() {
+    const roleSelectElement = document.getElementById('roleSelect');
+    const updateBtn = document.getElementById('updateRoleBtn');
+    
+    if (!roleSelectElement) return;
+    
+    // Vérifier que l'utilisateur connecté est admin avant de procéder
+    const isAdmin = await checkIfCurrentUserIsAdmin();
+    if (!isAdmin) {
+        showRoleUpdateMessage('Erreur: Seuls les administrateurs peuvent modifier les rôles', 'danger');
+        return;
+    }
+    
+    const newRole = roleSelectElement.value;
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('id');
+    
+    if (!userId) {
+        showRoleUpdateMessage('Erreur: ID utilisateur non trouvé', 'danger');
+        return;
+    }
+    
+    // Récupérer le token depuis les cookies (fonction du main.js)
+    const token = getToken();
+    if (!token) {
+        showRoleUpdateMessage('Erreur: Vous devez être connecté pour effectuer cette action', 'danger');
+        return;
+    }
+    
+    try {
+        // Désactiver le bouton pendant la requête
+        updateBtn.disabled = true;
+        updateBtn.textContent = 'Mise à jour...';
+        
+        const response = await fetch(`/api/users/${userId}/role`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            },
+            body: JSON.stringify({
+                role: newRole
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Erreur lors de la mise à jour du rôle');
+        }
+        
+        // Mettre à jour l'affichage du rôle actuel
+        const currentRoleElement = document.getElementById('currentRole');
+        if (currentRoleElement) {
+            currentRoleElement.textContent = getRoleDisplayName([newRole]);
+        }
+        
+        showRoleUpdateMessage('Rôle mis à jour avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du rôle:', error);
+        showRoleUpdateMessage('Erreur lors de la mise à jour du rôle: ' + error.message, 'danger');
+    } finally {
+        // Réactiver le bouton
+        updateBtn.disabled = false;
+        updateBtn.textContent = 'Mettre à jour le rôle';
+    }
+}
+
+function showRoleUpdateMessage(message, type) {
+    const messageElement = document.getElementById('roleUpdateMessage');
+    const messageTextElement = document.getElementById('roleUpdateText');
+    
+    if (messageElement && messageTextElement) {
+        messageTextElement.textContent = message;
+        messageElement.className = `alert alert-${type}`;
+        messageElement.classList.remove('d-none');
+        
+        // Masquer le message après 5 secondes
+        setTimeout(() => {
+            messageElement.classList.add('d-none');
+        }, 5000);
+    }
+}
+
+// Rendre la fonction accessible globalement pour le bouton
+window.updateUserRole = updateUserRole;
 
 // Export par défaut pour le router
 export default initProfil;

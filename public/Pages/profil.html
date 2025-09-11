@@ -42,7 +42,7 @@
                     </div>
 
                     <!-- Participations -->
-                    <div class="participations">
+                    <div class="participations mb-4">
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="mb-0">Participations aux événements</h3>
@@ -50,6 +50,41 @@
                             <div class="card-body">
                                 <div id="participations">
                                     <!-- Les participations seront affichées ici -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gestion du rôle (visible uniquement pour les admins) -->
+                    <div class="role-management" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="mb-0">Gestion du rôle</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Rôle actuel</h5>
+                                        <p id="currentRole" class="text-muted"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Modifier le rôle</h5>
+                                        <div class="mb-3">
+                                            <select id="roleSelect" class="form-select">
+                                                <option value="ROLE_USER">Utilisateur</option>
+                                                <option value="ROLE_ORGANISATEUR">Organisateur</option>
+                                                <option value="ROLE_ADMIN">Administrateur</option>
+                                            </select>
+                                        </div>
+                                        <button id="updateRoleBtn" class="btn btn-warning" onclick="updateUserRole()">
+                                            Mettre à jour le rôle
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Message de confirmation -->
+                                <div id="roleUpdateMessage" class="alert d-none mt-3">
+                                    <span id="roleUpdateText"></span>
                                 </div>
                             </div>
                         </div>
