@@ -24,13 +24,10 @@ final class Version20250915142720 extends AbstractMigration
         $this->addSql('ALTER TABLE participations ADD CONSTRAINT FK_FDC6C6E8A76ED395 FOREIGN KEY (user_id) REFERENCES user (id)');
         $this->addSql('ALTER TABLE participations ADD CONSTRAINT FK_FDC6C6E863C02CD4 FOREIGN KEY (evenements_id) REFERENCES evenements (id)');
         
-        // Copier les données de l'ancienne table vers la nouvelle
-        $this->addSql('INSERT INTO participations (user_id, evenements_id, statut) SELECT user_id, evenements_id, statut FROM evenements_user');
-        
-        // Supprimer l'ancienne table
-        $this->addSql('ALTER TABLE evenements_user DROP FOREIGN KEY FK_3372CFE763C02CD4');
-        $this->addSql('ALTER TABLE evenements_user DROP FOREIGN KEY FK_3372CFE7A76ED395');
-        $this->addSql('DROP TABLE evenements_user');
+        // Supprimer l'ancienne table (si elle existe)
+        $this->addSql('SET FOREIGN_KEY_CHECKS = 0');
+        $this->addSql('DROP TABLE IF EXISTS evenements_user');
+        $this->addSql('SET FOREIGN_KEY_CHECKS = 1');
     }
 
     public function down(Schema $schema): void

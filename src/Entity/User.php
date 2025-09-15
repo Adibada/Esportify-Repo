@@ -12,8 +12,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
-    normalizationContext: ['groups' => [self::GROUP_PUBLIC]],
-    denormalizationContext: ['groups' => [self::GROUP_WRITE]]
+    normalizationContext: ['groups' => ['user:public']],
+    denormalizationContext: ['groups' => ['user:write']]
 )]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -46,7 +46,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: "string", length: 255, unique: true, nullable: true)]
     private ?string $apiToken = null;
 
-    #[Groups([self::GROUP_PUBLIC])]
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Participation::class)]
     private Collection $participations;
 
@@ -59,10 +58,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
+        $this->apiToken = bin2hex(random_bytes(20));
         $this->participations = new ArrayCollection();
         $this->evenements = new ArrayCollection();
         $this->commentaires = new ArrayCollection();
-        $this->roles = ['ROLE_USER'];
     }   
 
     public function getId(): ?int
@@ -131,6 +130,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         //Exemple : $this->plainPassword = null;
     }
 
+    /**
+     * @return Collection<int, Participation>
+     */
     public function getParticipations(): Collection
     {
         return $this->participations;
