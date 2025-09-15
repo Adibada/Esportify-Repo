@@ -31,6 +31,9 @@
                 <span id="numOfCompetitors">
                     <p><strong>Participants :</strong> Chargement...</p>
                 </span>
+                
+                <div id="participantsList"></div>
+                
                 <span id="eventStatus">
                     <p><strong>Statut de validation :</strong> Chargement...</p>
                 </span>
@@ -41,9 +44,16 @@
         <div class="mt-auto d-flex justify-content-center gap-4" data-show="connected">
             <button class="btn btn-outline-light mt-2 p-4" id="participateBtn">Participer</button>
         </div>
+
+        <!--Boutons Organisateur/Admin - masqués par défaut-->
+        <div class="mt-3 d-flex justify-content-center gap-3" id="organizerButtons" style="display: none !important;">
+            <a href="/modifierEvenement" onclick="window.route(event)" class="btn btn-warning px-4 py-2" id="editEventBtn">
+                <i class="fas fa-edit me-2"></i>Modifier l'événement
+            </a>
+        </div>
         
         <!--Boutons Admin (validation) - masqués par défaut-->
-        <div class="mt-3 d-flex justify-content-center gap-3" id="adminValidationButtons" style="display: none !important;" data-show="admin">
+        <div class="mt-3 d-flex justify-content-center gap-3" id="adminValidationButtons" style="display: none !important;">
             <button class="btn btn-success px-4 py-2" id="validateBtn">
                 <i class="fas fa-check me-2"></i>Valider l'événement
             </button>

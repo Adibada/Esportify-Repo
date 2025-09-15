@@ -1,0 +1,168 @@
+<!--Section Modification d'Évènement-->
+<div class="bloc" aria-labelledby="modify-event-title">
+
+    <!--Titre du bloc-->
+    <h2 id="modify-event-title" class="text-center fs-1 mb-4">Modifier l'événement</h2>
+
+    <!--Formulaire de modification-->
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                
+                <!-- Message d'erreur/succès -->
+                <div id="messageContainer" class="alert d-none" role="alert"></div>
+
+                <form id="modifyEventForm" class="needs-validation" novalidate>
+                    
+                    <!-- Titre de l'événement -->
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">
+                            <i class="fas fa-trophy me-2"></i>Titre de l'événement *
+                        </label>
+                        <input type="text" class="form-control" id="eventTitle" name="titre" required 
+                               placeholder="Entrez le titre de votre événement">
+                        <div class="invalid-feedback">
+                            Le titre est obligatoire.
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">
+                            <i class="fas fa-align-left me-2"></i>Description *
+                        </label>
+                        <textarea class="form-control" id="eventDescription" name="description" rows="4" required
+                                  placeholder="Décrivez votre événement en détail..."></textarea>
+                        <div class="invalid-feedback">
+                            La description est obligatoire.
+                        </div>
+                    </div>
+
+                    <!-- Image de l'événement -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-image me-2"></i>Image de l'événement
+                        </label>
+                        
+                        <!-- Choix du type d'image -->
+                        <div class="mb-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeFile" value="file" checked onchange="toggleImageInput()">
+                                <label class="form-check-label" for="imageTypeFile">
+                                    <i class="fas fa-upload me-1"></i>Fichier local
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="imageType" id="imageTypeUrl" value="url" onchange="toggleImageInput()">
+                                <label class="form-check-label" for="imageTypeUrl">
+                                    <i class="fas fa-link me-1"></i>URL
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Input fichier -->
+                        <div id="fileImageInput">
+                            <input type="file" class="form-control" id="eventImageFile" name="imageFile" 
+                                   accept="image/*">
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Formats acceptés : JPG, PNG, GIF. Taille maximale : 5MB.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Input URL -->
+                        <div id="urlImageInput" style="display: none;">
+                            <input type="url" class="form-control" id="eventImageUrl" name="imageUrl" 
+                                   placeholder="https://exemple.com/mon-image.jpg">
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Entrez l'URL complète d'une image (JPG, PNG, GIF).
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date et heure de début -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="eventStartDate" class="form-label">
+                                <i class="fas fa-calendar-alt me-2"></i>Date de début *
+                            </label>
+                            <input type="date" class="form-control" id="eventStartDate" name="startDate" required>
+                            <div class="invalid-feedback">
+                                La date de début est obligatoire.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="eventStartTime" class="form-label">
+                                <i class="fas fa-clock me-2"></i>Heure de début *
+                            </label>
+                            <input type="time" class="form-control" id="eventStartTime" name="startTime" required>
+                            <div class="invalid-feedback">
+                                L'heure de début est obligatoire.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date et heure de fin -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="eventEndDate" class="form-label">
+                                <i class="fas fa-calendar-alt me-2"></i>Date de fin *
+                            </label>
+                            <input type="date" class="form-control" id="eventEndDate" name="endDate" required>
+                            <div class="invalid-feedback">
+                                La date de fin est obligatoire.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="eventEndTime" class="form-label">
+                                <i class="fas fa-clock me-2"></i>Heure de fin *
+                            </label>
+                            <input type="time" class="form-control" id="eventEndTime" name="endTime" required>
+                            <div class="invalid-feedback">
+                                L'heure de fin est obligatoire.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="button" class="btn btn-secondary me-2" onclick="window.history.back()">
+                                <i class="fas fa-arrow-left me-2"></i>Annuler
+                            </button>
+                            <a href="#" id="returnToEventBtn" class="btn btn-outline-info">
+                                <i class="fas fa-eye me-2"></i>Voir l'événement
+                            </a>
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="btn btn-primary px-4" id="saveEventBtn">
+                                <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons administrateur (suppression) -->
+                    <div class="mt-4 pt-4 border-top" id="adminActions" style="display: none;">
+                        <h5 class="text-danger mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Actions administrateur
+                        </h5>
+                        <div class="alert alert-warning">
+                            <small><i class="fas fa-info-circle me-1"></i>
+                            Ces actions sont réservées aux administrateurs et sont irréversibles.</small>
+                        </div>
+                        <button type="button" class="btn btn-danger" id="deleteEventBtn">
+                            <i class="fas fa-trash me-2"></i>Supprimer l'événement
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

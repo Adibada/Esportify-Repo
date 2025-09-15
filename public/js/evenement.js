@@ -1,47 +1,28 @@
-// evenement.js - Version optimisée
-
-// Utilitaires pour les cookies et tokens
+// === UTILITAIRES ===
 const tokenCookieName = "accesstoken";
-
-function getCookie(name) {
+const getCookie = (name) => {
     const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for(let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
+    return document.cookie.split(';')
+        .map(c => c.trim())
+        .find(c => c.indexOf(nameEQ) === 0)
+        ?.substring(nameEQ.length) || null;
+};
 
-function getToken() {
-    return getCookie(tokenCookieName);
-}
+const getToken = () => getCookie(tokenCookieName);
+const isConnected = () => getToken() !== null;
+const getUserId = () => getCookie('userId') ? parseInt(getCookie('userId')) : null;
+const getRole = () => getCookie('role');
 
-function isConnected() {
-    return getToken() !== null;
-}
-
-function getUserId() {
-    const userId = getCookie('userId');
-    return userId ? parseInt(userId) : null;
-}
-
-function getRole() {
-    return getCookie('role');
-}
-
-// Récupération de l'ID depuis l'URL
-const eventId = new URLSearchParams(window.location.search).get('id');
-
-// Variables pour l'infinite scroll des commentaires
+// === VARIABLES GLOBALES ===
+const eventIdParam = new URLSearchParams(window.location.search).get('id');
+const eventId = eventIdParam !== null ? parseInt(eventIdParam) : null;
 let commentsPage = 1;
-let commentsPerPage = 10;
+const commentsPerPage = 10;
 let allComments = [];
 let isLoadingComments = false;
 let hasMoreComments = true;
 
-// États d'affichage
+// === GESTION DES ÉTATS ===
 const setState = (type, content) => {
     const elem = document.getElementById("eventName");
     if (!elem) return;
@@ -59,65 +40,55 @@ const setState = (type, content) => {
     }
 };
 
-// Mise à jour complète du DOM
+// === MISE À JOUR DU DOM ===
 const updateEvent = (event) => {
     // Image
-    const img = document.querySelector('img[alt*="joueuse"], img[alt*="événement"], .bloc img');
+    const img = document.querySelector('.bloc img');
     if (img && event.image) {
         img.src = event.image;
         img.alt = `Image de l'événement : ${event.titre}`;
     }
 
-    // Mise à jour des éléments
+    // Éléments à mettre à jour
     const updates = [
         { id: "eventName", content: event.titre },
         { id: "eventDescription", content: event.description },
-        { id: "eventOrganizer", content: event.organisateur?.username || `Utilisateur ID: ${event.organisateur?.id || 'Non défini'}` },
-        { id: "numOfCompetitors", content: event.numberCompetitors || 0 },
+        { id: "eventOrganizer", content: event.organisateur?.username || 'Non défini', format: (c) => `<p><strong>Organisateur :</strong> ${c}</p>` },
+        { id: "numOfCompetitors", content: event.numberCompetitors || 0, format: (c) => `<p><strong>Participants :</strong> ${c}</p>` },
         { id: "eventStart", content: new Date(event.start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventEnd", content: new Date(event.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-        { id: "eventStatus", content: event.statut }
+        { id: "eventStatus", content: event.statut, format: (c) => `<p><strong>Statut :</strong> ${c}</p>` }
     ];
 
-    updates.forEach(({ id, content }) => {
+    updates.forEach(({ id, content, format }) => {
         const elem = document.getElementById(id);
         if (elem) {
-            if (elem.tagName === 'INPUT' || elem.tagName === 'TEXTAREA') {
-                elem.value = content || '';
+            if (format) {
+                elem.innerHTML = format(content || 'Non défini');
             } else {
-                // Cas spéciaux pour préserver le formatage HTML
-                if (id === 'eventOrganizer') {
-                    elem.innerHTML = `<p><strong>Organisateur :</strong> ${content || 'Non défini'}</p>`;
-                } else if (id === 'numOfCompetitors') {
-                    elem.innerHTML = `<p><strong>Participants :</strong> ${content || 0}</p>`;
-                } else if (id === 'eventStatus') {
-                    elem.innerHTML = `<p><strong>Statut de validation :</strong> ${content || 'Non défini'}</p>`;
-                } else {
-                    elem.textContent = content || '';
-                }
+                elem.textContent = content || '';
             }
         }
     });
 
-    // Gérer les boutons admin et de participation
+    // Gestion des boutons selon l'état de connexion
     if (isConnected()) {
         updateAdminButtons(event);
-        // Passer le statut de l'événement à la fonction de mise à jour du bouton
         checkParticipationStatus(eventId).then(status => {
             updateParticipationButton(status, event.statut);
+            updateEditButton(status);
+        }).catch(error => {
+            console.error('Error checking participation status:', error);
         });
     } else {
-        // Masquer le bouton de participation pour les utilisateurs non connectés
         hideParticipationButton();
+        document.getElementById('organizerButtons')?.style.setProperty('display', 'none');
     }
 };
 
-// Chargement de l'événement
+// === CHARGEMENT DES DONNÉES ===
 const loadEvent = async () => {
-    if (!eventId) {
-        setState('error', "L'ID de l'événement est manquant dans l'URL.");
-        return;
-    }
+    if (!eventId && eventId !== 0) return setState('error', "L'ID de l'événement est manquant dans l'URL.");
 
     setState('loading');
     
@@ -127,143 +98,407 @@ const loadEvent = async () => {
             headers: token ? { 'X-AUTH-TOKEN': token } : {}
         });
         
-        if (!res.ok) {
-            throw new Error(`Erreur ${res.status}: ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Erreur ${res.status}: ${res.statusText}`);
         
         const event = await res.json();
         updateEvent(event);
+        
+        // Charger la liste des participants après la mise à jour de l'événement
+        if (event.numberCompetitors > 0) {
+            loadParticipantsList();
+        }
         
     } catch (err) {
         setState('error', err.message);
     }
 };
 
-// Vérification du statut de participation
+// === GESTION DE LA LISTE DES PARTICIPANTS ===
+const loadParticipantsList = async () => {
+    try {
+        const token = getToken();
+        const res = await fetch(`/api/evenements/${eventId}/participants`, {
+            headers: token ? { 'X-AUTH-TOKEN': token } : {}
+        });
+
+        if (res.ok) {
+            const participations = await res.json();
+            // Les participants sont déjà filtrés côté serveur (statut validee uniquement)
+            displayParticipantsList(participations);
+        }
+    } catch (err) {
+        // En cas d'erreur, ne pas afficher la section des participants
+    }
+};
+
+const displayParticipantsList = (participants) => {
+    // Chercher le conteneur des participants après le nombre de participants
+    let participantsListContainer = document.getElementById('participantsList');
+    
+    if (!participantsListContainer) {
+        // Créer le conteneur s'il n'existe pas
+        participantsListContainer = document.createElement('div');
+        participantsListContainer.id = 'participantsList';
+        participantsListContainer.className = 'mt-3';
+        
+        // L'insérer après l'élément numOfCompetitors
+        const numOfCompetitorsElement = document.getElementById('numOfCompetitors');
+        if (numOfCompetitorsElement && numOfCompetitorsElement.parentNode) {
+            numOfCompetitorsElement.parentNode.insertBefore(participantsListContainer, numOfCompetitorsElement.nextSibling);
+            console.log('Conteneur participantsList créé et inséré');
+        } else {
+            console.error('Élément numOfCompetitors non trouvé');
+        }
+    }
+
+    if (participants.length === 0) {
+        console.log('Aucun participant, vidage du conteneur');
+        participantsListContainer.innerHTML = '';
+        return;
+    }
+
+    // Créer la liste scrollable des participants
+    participantsListContainer.innerHTML = `
+        <div class="participants-scroll-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem; background-color: #f8f9fa;">
+            <h6 class="mb-3 text-center text-muted">Liste des participants</h6>
+            <div class="participants-table">
+                <div class="row mb-2 fw-bold text-muted" style="font-size: 0.85rem;">
+                    <div class="col-7 col-md-8">
+                        <i class="fas fa-user me-1"></i>Utilisateur
+                    </div>
+                    <div class="col-5 col-md-4 text-end">
+                        <i class="fas fa-info-circle me-1"></i>Statut
+                    </div>
+                </div>
+                ${participants.map(participant => {
+                    const statusColor = participant.statut === 'validee' ? 'success' : 
+                                      participant.statut === 'en_attente' ? 'warning' : 'danger';
+                    const statusIcon = participant.statut === 'validee' ? 'check-circle' : 
+                                     participant.statut === 'en_attente' ? 'clock' : 'times-circle';
+                    const statusText = participant.statut === 'validee' ? 'Validé' : 
+                                     participant.statut === 'en_attente' ? 'En attente' : 'Refusé';
+                    
+                    return `
+                        <div class="row participant-row py-2 border-bottom" style="transition: background-color 0.2s ease;" 
+                             onmouseover="this.style.backgroundColor='#e9ecef'" 
+                             onmouseout="this.style.backgroundColor='transparent'">
+                            <div class="col-7 col-md-8">
+                                <a href="/profil?id=${participant.user.id}" class="text-decoration-none text-primary fw-medium participant-link" 
+                                   style="font-size: 0.95rem;"
+                                   onmouseover="this.style.color='#0056b3'"
+                                   onmouseout="this.style.color='#0d6efd'">
+                                    <i class="fas fa-user-circle me-2"></i>${participant.user.username}
+                                </a>
+                            </div>
+                            <div class="col-5 col-md-4 text-end">
+                                <span class="badge bg-${statusColor}" style="font-size: 0.75rem;">
+                                    <i class="fas fa-${statusIcon} me-1"></i>${statusText}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            ${participants.length > 10 ? '<small class="text-muted d-block text-center mt-2">Faites défiler pour voir plus de participants</small>' : ''}
+        </div>
+    `;
+
+    // Ajouter les styles CSS si ce n'est pas déjà fait
+    if (!document.getElementById('participantsListStyles')) {
+        const style = document.createElement('style');
+        style.id = 'participantsListStyles';
+        style.textContent = `
+            .participants-scroll-container::-webkit-scrollbar {
+                width: 8px;
+            }
+            .participants-scroll-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 4px;
+            }
+            .participants-scroll-container::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 4px;
+            }
+            .participants-scroll-container::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
+            .participant-item:hover {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+};
+
 const checkParticipationStatus = async (eventId) => {
     const token = getToken();
-    if (!token) return { isParticipant: false, isOrganizer: false };
+    if (!token) {
+        return { isParticipant: false, isOrganizer: false };
+    }
 
     try {
         const res = await fetch(`/api/evenements/${eventId}/statut-participation`, {
             headers: { 'X-AUTH-TOKEN': token }
         });
-        return res.ok ? await res.json() : { isParticipant: false, isOrganizer: false };
-    } catch (err) {
+        
+        if (res.ok) {
+            const data = await res.json();
+            return data;
+        } else {
+            return { isParticipant: false, isOrganizer: false };
+        }
+    } catch (error) {
         return { isParticipant: false, isOrganizer: false };
     }
 };
 
-// Mise à jour du bouton de participation
+// === GESTION DES BOUTONS ===
 const updateParticipationButton = (status, eventStatus) => {
     const btn = document.querySelector("#participateBtn, .btn-participate, [data-participate]");
     if (!btn) return;
 
-    if (status.isOrganizer) {
-        btn.textContent = "Organisateur";
-        btn.className = "btn btn-secondary";
-        btn.disabled = true;
-    } else if (eventStatus !== 'valide') {
-        // Désactiver le bouton si l'événement n'est pas validé
-        btn.textContent = "Participation impossible";
-        btn.className = "btn btn-secondary";
-        btn.disabled = true;
-    } else if (status.isParticipant) {
-        btn.textContent = "Annuler ma participation";
-        btn.className = "btn btn-warning";
-        btn.disabled = false;
-        btn.onclick = () => cancelParticipation(eventId);
+    // Configuration standard pour tous les utilisateurs (y compris les administrateurs)
+    // Ce bouton ne sert qu'à demander/annuler sa participation, pas à la valider
+    const configs = {
+        invalid: { text: "Participation impossible", class: "btn btn-secondary", disabled: true },
+        en_attente: { text: "Participation en attente", class: "btn btn-warning", onclick: () => cancelParticipation(eventId) },
+        validee: { text: "Annuler ma participation", class: "btn btn-danger", onclick: () => cancelParticipation(eventId) },
+        refusee: { text: "Participation refusée", class: "btn btn-secondary", disabled: true },
+        default: { text: "Participer", class: "btn btn-success", onclick: () => participer(eventId) }
+    };
+
+    // Logique normale pour les autres utilisateurs
+    let config;
+    if (eventStatus !== 'valide') {
+        config = configs.invalid;
+    } else if (status.participationStatut) {
+        config = configs[status.participationStatut];
     } else {
-        btn.textContent = "Participer";
-        btn.className = "btn btn-success";
-        btn.disabled = false;
-        btn.onclick = () => participer(eventId);
+        config = configs.default;
+    }
+
+    btn.textContent = config.text;
+    btn.className = config.class;
+    btn.disabled = config.disabled || false;
+    btn.onclick = config.onclick || null;
+};
+
+const updateEditButton = (status) => {
+    const editBtn = document.getElementById('editEventBtn');
+    const organizerButtons = document.getElementById('organizerButtons');
+    
+    if (!editBtn || !organizerButtons) {
+        return;
+    }
+    
+    const isAdmin = getRole() === 'ROLE_ADMIN';
+    
+    if (status.isOrganizer || isAdmin) {
+        organizerButtons.style.removeProperty('display');
+        organizerButtons.style.display = 'flex';
+        organizerButtons.style.visibility = 'visible';
+        editBtn.href = `/modifierEvenement?id=${eventId}`;
+        
+        // Les organisateurs ET les administrateurs peuvent gérer les participations
+        if (status.isOrganizer || getRole() === 'ROLE_ADMIN') {
+            loadPendingParticipations();
+        }
+    } else {
+        organizerButtons.style.display = 'none';
+        organizerButtons.style.visibility = 'hidden';
+        organizerButtons.style.setProperty('display', 'none', 'important');
     }
 };
 
-// Masquer le bouton de participation
 const hideParticipationButton = () => {
     const btn = document.querySelector("#participateBtn, .btn-participate, [data-participate]");
-    if (btn) {
-        btn.style.display = 'none';
-    }
-    // Masquer aussi le conteneur parent s'il a l'attribut data-show="connected"
+    if (btn) btn.style.display = 'none';
+    
     const container = document.querySelector('[data-show="connected"]');
-    if (container) {
-        container.style.display = 'none';
+    if (container) container.style.display = 'none';
+};
+
+// Charger les demandes de participation en attente
+const loadPendingParticipations = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+        const res = await fetch(`/api/evenements/${eventId}/participations`, {
+            headers: { 'X-AUTH-TOKEN': token }
+        });
+
+        if (res.ok) {
+            const participations = await res.json();
+            displayPendingParticipations(participations);
+        }
+    } catch (err) {
+        console.error('Erreur lors du chargement des participations:', err);
     }
 };
 
-// Participation à l'événement
-const participer = async (eventId) => {
-    const token = getToken();
-    if (!token) {
-        alert('Vous devez être connecté pour participer.');
+// Afficher les demandes de participation
+const displayPendingParticipations = (participations) => {
+    // Chercher s'il existe déjà une section pour les participations
+    let participationsSection = document.getElementById('participationsManagement');
+    
+    if (!participationsSection) {
+        // Créer la section si elle n'existe pas
+        participationsSection = document.createElement('div');
+        participationsSection.id = 'participationsManagement';
+        participationsSection.className = 'bloc mt-4';
+        
+        // L'insérer avant la section commentaires
+        const commentsSection = document.querySelector('[aria-labelledby="comment-title"]');
+        if (commentsSection) {
+            commentsSection.parentNode.insertBefore(participationsSection, commentsSection);
+        }
+    }
+
+    const pendingParticipations = participations.filter(p => p.statut === 'en_attente');
+    
+    if (pendingParticipations.length === 0) {
+        participationsSection.innerHTML = `
+            <h3 class="text-center fs-2 mb-3">Gestion des participations</h3>
+            <p class="text-center text-muted">Aucune demande de participation en attente.</p>
+        `;
         return;
     }
 
+    participationsSection.innerHTML = `
+        <h3 class="text-center fs-2 mb-4">Demandes de participation (${pendingParticipations.length})</h3>
+        <div class="row">
+            ${pendingParticipations.map(participation => `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${participation.user.username}</h5>
+                            <p class="card-text">
+                                <small class="text-muted">Demande le ${new Date(participation.createdAt).toLocaleDateString('fr-FR')}</small>
+                            </p>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success btn-sm" onclick="validateParticipation(${participation.user.id})">
+                                    <i class="fas fa-check me-1"></i>Accepter
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectParticipation(${participation.user.id})">
+                                    <i class="fas fa-times me-1"></i>Refuser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+};
+
+// Valider une participation
+const validateParticipation = async (userId) => {
+    const token = getToken();
+    if (!token) return;
+
     try {
-        const res = await fetch(`/api/evenements/${eventId}/participer`, {
+        const res = await fetch(`/api/evenements/${eventId}/participations/${userId}/valider`, {
             method: 'POST',
             headers: { 'X-AUTH-TOKEN': token }
         });
 
         if (res.ok) {
-            await refreshEventData();
-            alert('Participation confirmée !');
+            alert('Participation validée !');
+            loadPendingParticipations(); // Recharger la liste
+            await refreshEventData(); // Mettre à jour le nombre de participants
         } else {
             const error = await res.text();
             alert(`Erreur : ${error}`);
         }
     } catch (err) {
-        alert('Erreur lors de la participation.');
+        alert('Erreur lors de la validation de la participation.');
     }
 };
 
-// Annulation de participation
-const cancelParticipation = async (eventId) => {
+// Refuser une participation
+const rejectParticipation = async (userId) => {
     const token = getToken();
     if (!token) return;
 
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre participation ?')) return;
+    try {
+        const res = await fetch(`/api/evenements/${eventId}/participations/${userId}/refuser`, {
+            method: 'POST',
+            headers: { 'X-AUTH-TOKEN': token }
+        });
+
+        if (res.ok) {
+            alert('Participation refusée.');
+            loadPendingParticipations(); // Recharger la liste
+        } else {
+            const error = await res.text();
+            alert(`Erreur : ${error}`);
+        }
+    } catch (err) {
+        alert('Erreur lors du refus de la participation.');
+    }
+};
+
+// Rendre les fonctions accessibles globalement
+window.validateParticipation = validateParticipation;
+window.rejectParticipation = rejectParticipation;
+
+// === ACTIONS UTILISATEUR ===
+const handleApiRequest = async (url, method, successMsg, errorPrefix = 'Erreur') => {
+    const token = getToken();
+    if (!token) return alert('Vous devez être connecté.');
 
     try {
-        const res = await fetch(`/api/evenements/${eventId}/annuler-participation`, {
-            method: 'DELETE',
+        const res = await fetch(url, {
+            method,
             headers: { 'X-AUTH-TOKEN': token }
         });
 
         if (res.ok) {
             await refreshEventData();
-            alert('Participation annulée.');
+            if (successMsg) alert(successMsg);
         } else {
             const error = await res.text();
-            alert(`Erreur : ${error}`);
+            alert(`${errorPrefix} : ${error}`);
         }
-    } catch (err) {
-        alert('Erreur lors de l\'annulation.');
+    } catch {
+        alert(`${errorPrefix} lors de l'opération.`);
     }
 };
 
-// Mise à jour du compteur de participants
-const updateParticipantCount = (count) => {
-    const numElem = document.getElementById("numOfCompetitors");
-    if (numElem) {
-        const p = numElem.querySelector("p") || numElem;
-        p.textContent = `Participants : ${count || 0}`;
-    }
+const participer = (eventId) => handleApiRequest(
+    `/api/evenements/${eventId}/participer`, 
+    'POST', 
+    'Demande de participation envoyée ! En attente de validation par l\'organisateur.',
+    'Erreur'
+);
+
+const cancelParticipation = (eventId) => {
+    if (!confirm('Êtes-vous sûr de vouloir annuler votre participation ?')) return;
+    handleApiRequest(`/api/evenements/${eventId}/annuler-participation`, 'DELETE', 'Participation annulée.');
 };
 
-// Mise à jour rapide après participation/annulation
 const refreshEventData = async () => {
     try {
+        const token = getToken();
         const res = await fetch(`/api/evenements/${eventId}`, {
-            headers: getToken() ? { 'X-AUTH-TOKEN': getToken() } : {}
+            headers: token ? { 'X-AUTH-TOKEN': token } : {}
         });
         
         if (res.ok) {
             const event = await res.json();
-            updateParticipantCount(event.numberCompetitors);
+            document.getElementById("numOfCompetitors").innerHTML = `<p><strong>Participants :</strong> ${event.numberCompetitors || 0}</p>`;
+            
+            // Recharger la liste des participants après une modification
+            if (event.numberCompetitors > 0) {
+                loadParticipantsList();
+            } else {
+                // Si plus de participants, vider la liste
+                const participantsListContainer = document.getElementById('participantsList');
+                if (participantsListContainer) {
+                    participantsListContainer.innerHTML = '';
+                }
+            }
             
             if (isConnected()) {
                 const status = await checkParticipationStatus(eventId);
@@ -272,88 +507,101 @@ const refreshEventData = async () => {
                 hideParticipationButton();
             }
         }
-    } catch (err) {
+    } catch {
         setTimeout(() => location.reload(), 1000);
     }
 };
 
-// Validation d'événement (Admin)
-const validateEvent = async (eventId) => {
-    const token = getToken();
-    if (!token) return;
-
+// === FONCTIONS ADMINISTRATIVES ===
+function validateEvent(eventId) {
+    // Vérification du rôle administrateur
+    if (getRole() !== 'ROLE_ADMIN') {
+        alert('Accès non autorisé. Seuls les administrateurs peuvent valider les événements.');
+        return;
+    }
+    
     if (!confirm('Valider cet événement ?')) return;
+    handleApiRequest(`/api/evenements/${eventId}/valider`, 'PUT', 'Événement validé avec succès !', 'Erreur')
+        .then(() => location.reload());
+}
 
-    try {
-        const res = await fetch(`/api/evenements/${eventId}/valider`, {
-            method: 'PUT',
-            headers: { 'X-AUTH-TOKEN': token }
-        });
-
-        if (res.ok) {
-            alert('Événement validé avec succès !');
-            location.reload();
-        } else {
-            const error = await res.text();
-            alert(`Erreur : ${error}`);
-        }
-    } catch (err) {
-        alert('Erreur lors de la validation.');
+function rejectEvent(eventId) {
+    // Vérification du rôle administrateur
+    if (getRole() !== 'ROLE_ADMIN') {
+        alert('Accès non autorisé. Seuls les administrateurs peuvent rejeter les événements.');
+        return;
     }
-};
-
-// Rejet d'événement (Admin)
-const rejectEvent = async (eventId) => {
-    const token = getToken();
-    if (!token) return;
-
+    
     if (!confirm('Rejeter cet événement ? Cette action est irréversible.')) return;
+    handleApiRequest(`/api/evenements/${eventId}/rejeter`, 'PUT', 'Événement rejeté.', 'Erreur')
+        .then(() => window.location.href = '/');
+}
 
+// Rendre les fonctions accessibles globalement
+window.validateEvent = validateEvent;
+window.rejectEvent = rejectEvent;
+
+// Fonction pour qu'un administrateur valide sa propre participation
+const validateOwnParticipation = async (eventId) => {
+    const userId = getUserId();
+    if (!userId) {
+        console.error('Impossible de récupérer l\'ID utilisateur');
+        return;
+    }
+    
     try {
-        const res = await fetch(`/api/evenements/${eventId}/rejeter`, {
-            method: 'PUT',
+        const token = getToken();
+        const res = await fetch(`/api/evenements/${eventId}/participations/${userId}/valider`, {
+            method: 'POST',
             headers: { 'X-AUTH-TOKEN': token }
         });
 
         if (res.ok) {
-            alert('Événement rejeté.');
-            window.navigate('/');
+            // Recharger le statut de participation
+            const newStatus = await checkParticipationStatus(eventId);
+            updateParticipationButton(newStatus, currentEvent?.statut);
+            loadPendingParticipations(); // Recharger la liste des participations
+            showMessage('Votre participation a été validée !', 'success');
         } else {
             const error = await res.text();
-            alert(`Erreur : ${error}`);
+            showMessage(`Erreur : ${error}`, 'error');
         }
     } catch (err) {
-        alert('Erreur lors du rejet.');
+        showMessage('Erreur lors de la validation de votre participation.', 'error');
     }
 };
 
-// Vérification des droits admin
-const checkAdminRights = () => {
-    const role = getCookie('role');
-    return role === 'ROLE_ADMIN' || role === 'ROLE_ORGANISATEUR';
-};
+// Rendre la fonction accessible globalement
+window.validateOwnParticipation = validateOwnParticipation;
 
-// Mise à jour des boutons admin
 const updateAdminButtons = (event) => {
-    if (!checkAdminRights()) return;
-
-    const adminContainer = document.getElementById('adminValidationButtons') || document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
+    const role = getRole();
+    
+    // Les boutons de validation des événements ne sont disponibles que pour ROLE_ADMIN
+    const adminContainer = document.getElementById('adminValidationButtons') || 
+                          document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
+    
     if (!adminContainer) return;
 
-    adminContainer.style.display = 'block';
-
-    if (event.statut === 'en attente') {
+    // Seuls les admins peuvent voir et utiliser les boutons de validation d'événement
+    // Accepter les deux formats : "en_attente" et "en attente"
+    if (role === 'ROLE_ADMIN' && (event.statut === 'en_attente' || event.statut === 'en attente')) {
+        // Forcer l'affichage en supprimant le !important
+        adminContainer.removeAttribute('style');
+        adminContainer.style.cssText = 'display: flex !important; justify-content: center; gap: 1rem; margin-top: 1rem;';
         adminContainer.innerHTML = `
-            <div class="mt-3 d-flex justify-content-center gap-3">
-                <button class="btn btn-success px-4 py-2" onclick="validateEvent('${eventId}')">
-                    <i class="fas fa-check me-2"></i>Valider l'événement
-                </button>
-                <button class="btn btn-danger px-4 py-2" onclick="rejectEvent('${eventId}')">
-                    <i class="fas fa-times me-2"></i>Refuser l'événement
-                </button>
-            </div>`;
+            <button class="btn btn-success px-4 py-2" onclick="validateEvent('${eventId}')">
+                <i class="fas fa-check me-2"></i>Valider l'événement
+            </button>
+            <button class="btn btn-danger px-4 py-2" onclick="rejectEvent('${eventId}')">
+                <i class="fas fa-times me-2"></i>Refuser l'événement
+            </button>`;
     } else {
+        // Masquer complètement les boutons si l'utilisateur n'est pas admin ou si l'événement n'est pas en attente
         adminContainer.style.display = 'none';
+        adminContainer.style.visibility = 'hidden';
+        adminContainer.style.setProperty('display', 'none', 'important');
+        adminContainer.innerHTML = '';
     }
 };
 
@@ -608,15 +856,30 @@ const deleteComment = async (commentId) => {
 
 // Initialisation principale
 const init = () => {
-    if (!eventId) {
-        setState('error', 'ID d\'événement manquant');
+    if (eventId === null || isNaN(eventId)) {
+        setState('error', 'ID d\'événement manquant ou invalide');
         return;
     }
     
-    // Masquer les boutons admin par défaut
+    // Masquer les boutons admin et organisateur par défaut
     const adminContainer = document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
     if (adminContainer) {
         adminContainer.style.display = 'none';
+    }
+    
+    // Masquer spécifiquement les boutons de validation admin
+    const adminValidationButtons = document.getElementById('adminValidationButtons');
+    if (adminValidationButtons) {
+        adminValidationButtons.style.display = 'none';
+        adminValidationButtons.style.setProperty('display', 'none', 'important');
+    }
+    
+    // Masquer les boutons organisateur par défaut
+    const organizerButtons = document.getElementById('organizerButtons');
+    if (organizerButtons) {
+        organizerButtons.style.display = 'none';
+        organizerButtons.style.visibility = 'hidden';
+        organizerButtons.style.setProperty('display', 'none', 'important');
     }
     
     // Charger l'événement et les commentaires
