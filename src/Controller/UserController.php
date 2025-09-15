@@ -3,24 +3,20 @@
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Entity\Participation;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
 
 #[Route('api/users', name: 'app_api_users_')]
 class UserController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $manager,
-        private UserRepository $repository,
-        private SerializerInterface $serializer
+        private UserRepository $repository
     ) {}
 
     #[Route('/search', name: 'search', methods: ['GET'])]
@@ -59,6 +55,60 @@ class UserController extends AbstractController
         }, $users);
 
         return $this->json($result);
+    }
+
+    #[Route('/me', name: 'profile_me', methods: ['GET'])]
+    #[OA\Get(
+        summary: 'Récupérer le profil de l\'utilisateur connecté',
+        security: [['X-AUTH-TOKEN' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Profil de l\'utilisateur'),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+        ]
+    )]
+    public function getMyProfile(): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return $this->json(['error' => 'Non authentifié'], 401);
+        }
+
+        $userData = [
+            'id' => $user->getId(),
+            'username' => $user->getUserIdentifier(),
+            'mail' => $user->getMail(),
+            'roles' => $user->getRoles(),
+            'evenements' => [],
+            'participations' => []
+        ];
+
+        // Ajouter les événements organisés par l'utilisateur
+        foreach ($user->getEvenements() as $event) {
+            $userData['evenements'][] = [
+                'id' => $event->getId(),
+                'titre' => $event->getTitre(),
+                'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
+                'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
+                'statut' => $event->getStatut(),
+                'description' => $event->getDescription()
+            ];
+        }
+
+        // Ajouter les participations (événements où l'utilisateur participe)
+        foreach ($user->getParticipations() as $participation) {
+            $event = $participation->getEvenement();
+            $userData['participations'][] = [
+                'id' => $event->getId(),
+                'titre' => $event->getTitre(),
+                'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
+                'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
+                'statut' => $event->getStatut(),
+                'description' => $event->getDescription()
+            ];
+        }
+
+        return $this->json($userData);
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
@@ -102,19 +152,15 @@ class UserController extends AbstractController
         }
 
         // Ajouter les participations (événements où l'utilisateur participe)
-        $participationRepository = $this->manager->getRepository(Participation::class);
-        $participations = $participationRepository->findBy(['user' => $user]);
-        
-        foreach ($participations as $participation) {
+        foreach ($user->getParticipations() as $participation) {
             $event = $participation->getEvenement();
             $userData['participations'][] = [
                 'id' => $event->getId(),
                 'titre' => $event->getTitre(),
                 'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
                 'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
-                'statut' => $event->getStatut(), // Statut de l'événement
-                'description' => $event->getDescription(),
-                'statutParticipation' => $participation->getStatut() // Statut de la participation
+                'statut' => $event->getStatut(),
+                'description' => $event->getDescription()
             ];
         }
 
@@ -300,170 +346,5 @@ class UserController extends AbstractController
         } catch (\Exception $e) {
             return $this->json(['error' => 'Erreur lors de la sauvegarde'], 500);
         }
-    }
-
-    #[Route('/me', name: 'me', methods: ['GET'])]
-    #[OA\Get(
-        path: '/api/users/me',
-        summary: 'Récupère les infos du user connecté via le token',
-        tags: ['Users'],
-        parameters: [
-            new OA\Parameter(
-                name: 'X-AUTH-TOKEN',
-                in: 'header',
-                required: true,
-                description: 'Token d\'authentification',
-                schema: new OA\Schema(type: 'string')
-            )
-        ],
-        responses: [
-            new OA\Response(response: 200, description: 'Infos du user'),
-            new OA\Response(response: 401, description: 'Token invalide'),
-            new OA\Response(response: 404, description: 'User non trouvé'),
-        ]
-    )]
-    public function me(Request $request): JsonResponse
-    {
-        $token = $request->headers->get('X-AUTH-TOKEN');
-        if (!$token) {
-            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
-        }
-        
-        $user = $this->repository->findOneBy(['apiToken' => $token]);
-        if (!$user) {
-            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        // Récupérer les participations avec leur statut
-        $participationRepository = $this->manager->getRepository(Participation::class);
-        $participations = $participationRepository->findBy(['user' => $user]);
-
-        // Récupérer les événements organisés par l'utilisateur
-        $organizedEvents = $user->getEvenements();
-        $organizedEventsArray = [];
-        
-        foreach ($organizedEvents as $event) {
-            $organizedEventsArray[] = [
-                'id' => $event->getId(),
-                'titre' => $event->getTitre(),
-                'description' => $event->getDescription(),
-                'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
-                'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
-                'statut' => $event->getStatut(),
-                'nombreParticipants' => $event->getNumberCompetitors()
-            ];
-        }
-
-        $data = [
-            'id' => $user->getId(),
-            'username' => $user->getUsername(),
-            'mail' => $user->getMail(),
-            'roles' => $user->getRoles(),
-            'participations' => array_map(function($participation) {
-                $event = $participation->getEvenement();
-                return [
-                    'id' => $event->getId(),
-                    'titre' => $event->getTitre(),
-                    'description' => $event->getDescription(),
-                    'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
-                    'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
-                    'statut' => $participation->getStatut(),
-                    'organisateur' => [
-                        'id' => $event->getOrganisateur()->getId(),
-                        'username' => $event->getOrganisateur()->getUsername()
-                    ]
-                ];
-            }, $participations),
-            'evenementsOrganises' => $organizedEventsArray
-        ];
-
-        return new JsonResponse($data);
-    }
-
-    #[Route('/me/participations', name: 'me_participations', methods: ['GET'])]
-    #[OA\Get(
-        path: '/api/users/me/participations',
-        summary: 'Récupère les participations du user connecté',
-        tags: ['Users'],
-        parameters: [
-            new OA\Parameter(
-                name: 'X-AUTH-TOKEN',
-                in: 'header',
-                required: true,
-                description: 'Token d\'authentification',
-                schema: new OA\Schema(type: 'string')
-            )
-        ],
-        responses: [
-            new OA\Response(response: 200, description: 'Liste des participations'),
-            new OA\Response(response: 401, description: 'Token invalide'),
-        ]
-    )]
-    public function meParticipations(Request $request): JsonResponse
-    {
-        $token = $request->headers->get('X-AUTH-TOKEN');
-        if (!$token) {
-            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $user = $this->repository->findOneBy(['apiToken' => $token]);
-        if (!$user) {
-            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        // Récupérer les participations de l'utilisateur
-        $participations = $user->getParticipations();
-
-        $data = $this->serializer->serialize(
-            $participations,
-            'json',
-            ['groups' => [Participation::GROUP_READ, User::GROUP_PUBLIC]]
-        );
-
-        return new JsonResponse(json_decode($data, true));
-    }
-
-    #[Route('/me', name: 'delete_me', methods: ['DELETE'])]
-    #[OA\Delete(
-        path: '/api/users/me',
-        summary: 'Supprimer le compte de l\'utilisateur connecté',
-        tags: ['Users'],
-        parameters: [
-            new OA\Parameter(
-                name: 'X-AUTH-TOKEN',
-                in: 'header',
-                required: true,
-                description: 'Token d\'authentification',
-                schema: new OA\Schema(type: 'string')
-            )
-        ],
-        responses: [
-            new OA\Response(response: 204, description: 'Compte supprimé avec succès'),
-            new OA\Response(response: 401, description: 'Token invalide'),
-            new OA\Response(response: 404, description: 'Utilisateur introuvable')
-        ]
-    )]
-    public function deleteMe(Request $request): JsonResponse
-    {
-        $token = $request->headers->get('X-AUTH-TOKEN');
-        if (!$token) {
-            return new JsonResponse(['message' => 'Missing X-AUTH-TOKEN header'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $user = $this->repository->findOneBy(['apiToken' => $token]);
-        if (!$user) {
-            return new JsonResponse(['message' => 'User not found'], Response::HTTP_NOT_FOUND);
-        }
-
-        // Anonymiser les commentaires de l'utilisateur avant suppression
-        foreach ($user->getCommentaires() as $commentaire) {
-            $commentaire->setAuteur(null); // Détache le commentaire de l'utilisateur
-        }
-
-        // Supprimer l'utilisateur (les commentaires restent mais anonymes)
-        $this->manager->remove($user);
-        $this->manager->flush();
-
-        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 }

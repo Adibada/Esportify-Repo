@@ -31,7 +31,8 @@ class ApiTokenAuthenticator extends AbstractAuthenticator
         $token = $request->headers->get('X-AUTH-TOKEN');
 
         return new SelfValidatingPassport(new UserBadge($token, function ($apiToken) {
-            return $this->userRepository->findOneBy(['apiToken' => $apiToken]);
+            $user = $this->userRepository->findOneBy(['apiToken' => $apiToken]);
+            return $user;
         }));
     }
     
