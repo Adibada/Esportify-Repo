@@ -4,6 +4,7 @@ namespace App\Tests\Entity;
 
 use App\Entity\User;
 use App\Entity\Evenements;
+use App\Entity\Participation;
 use PHPUnit\Framework\TestCase;
 use Doctrine\Common\Collections\Collection;
 
@@ -72,25 +73,25 @@ class UserTest extends TestCase
     public function testAddParticipation()
     {
         $user = new User();
-        $event = $this->createMock(Evenements::class);
-        $event->expects($this->once())->method('addCompetitor')->with($user);
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setStatut(Participation::STATUT_EN_ATTENTE);
 
-        $user->addParticipation($event);
+        $user->addParticipation($participation);
 
         $this->assertCount(1, $user->getParticipations());
-        $this->assertTrue($user->getParticipations()->contains($event));
+        $this->assertTrue($user->getParticipations()->contains($participation));
     }
 
     public function testRemoveParticipation()
     {
         $user = new User();
-        $event = $this->createMock(Evenements::class);
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setStatut(Participation::STATUT_EN_ATTENTE);
 
-        $event->expects($this->once())->method('addCompetitor')->with($user);
-        $event->expects($this->once())->method('removeCompetitor')->with($user);
-
-        $user->addParticipation($event);
-        $user->removeParticipation($event);
+        $user->addParticipation($participation);
+        $user->removeParticipation($participation);
 
         $this->assertCount(0, $user->getParticipations());
     }

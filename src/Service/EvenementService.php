@@ -13,7 +13,7 @@ class EvenementService
     public function countActiveParticipants(Evenements $evenement): int
     {
         return $evenement->getParticipations()->filter(
-            fn(Participation $participation) => $participation->getStatut() !== Evenements::STATUT_REFUSE
+            fn(Participation $participation) => $participation->getStatut() !== Participation::STATUT_REFUSE
         )->count();
     }
 
@@ -36,8 +36,30 @@ class EvenementService
     {
         return [
             Participation::STATUT_EN_ATTENTE,
-            'validee',
-            Evenements::STATUT_REFUSE
+            Participation::STATUT_VALIDE,
+            Participation::STATUT_REFUSE
         ];
+    }
+
+    /**
+     * Valide les données d'un événement
+     */
+    public function validateEvenement(Evenements $evenement): array
+    {
+        $errors = [];
+
+        if (!$evenement->isValidDates()) {
+            $errors[] = 'La date de fin doit être postérieure à la date de début';
+        }
+
+        if (!$evenement->getTitre()) {
+            $errors[] = 'Le titre est requis';
+        }
+
+        if (!$evenement->getDescription()) {
+            $errors[] = 'La description est requise';
+        }
+
+        return $errors;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Tests\Entity;
 
 use App\Entity\Evenements;
 use App\Entity\User;
+use App\Entity\Participation;
 use PHPUnit\Framework\TestCase;
 
 class EvenementsTest extends TestCase
@@ -61,34 +62,43 @@ class EvenementsTest extends TestCase
         $this->assertSame(0, $event->getNumberCompetitors());
     }
 
-    public function testAddCompetitorIncrementsCounter()
+    public function testAddParticipationIncrementsCounter()
     {
         $event = new Evenements();
         $user = new User();
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setStatut(Participation::STATUT_VALIDE);
 
-        $event->addCompetitor($user);
+        $event->addParticipation($participation);
 
         $this->assertSame(1, $event->getNumberCompetitors());
     }
 
-    public function testAddSameCompetitorDoesNotDuplicate()
+    public function testAddSameParticipationDoesNotDuplicate()
     {
         $event = new Evenements();
         $user = new User();
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setStatut(Participation::STATUT_VALIDE);
 
-        $event->addCompetitor($user);
-        $event->addCompetitor($user);
+        $event->addParticipation($participation);
+        $event->addParticipation($participation);
 
         $this->assertSame(1, $event->getNumberCompetitors());
     }
 
-    public function testRemoveCompetitorDecrementsCounter()
+    public function testRemoveParticipationDecrementsCounter()
     {
         $event = new Evenements();
         $user = new User();
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setStatut(Participation::STATUT_VALIDE);
 
-        $event->addCompetitor($user);
-        $event->removeCompetitor($user);
+        $event->addParticipation($participation);
+        $event->removeParticipation($participation);
 
         $this->assertSame(0, $event->getNumberCompetitors());
     }
