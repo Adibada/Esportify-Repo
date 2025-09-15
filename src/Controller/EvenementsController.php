@@ -75,12 +75,28 @@ class EvenementsController extends AbstractController
         if (empty($name) || empty($detail) || empty($dateStart) || empty($dateEnd)) {
             return $this->json(['error' => 'Tous les champs sont requis'], Response::HTTP_BAD_REQUEST);
         }
+
+        // Validation des dates
+        try {
+            $startDate = new \DateTimeImmutable($dateStart);
+            $endDate = new \DateTimeImmutable($dateEnd);
+            
+            if ($endDate <= $startDate) {
+                return $this->json(['error' => 'La date de fin doit être postérieure à la date de début'], Response::HTTP_BAD_REQUEST);
+            }
+            
+            if ($startDate < new \DateTimeImmutable()) {
+                return $this->json(['error' => 'La date de début ne peut pas être dans le passé'], Response::HTTP_BAD_REQUEST);
+            }
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Format de date invalide'], Response::HTTP_BAD_REQUEST);
+        }
         
         // Définir les propriétés de base
         $evenement->setTitre($name);
         $evenement->setDescription($detail);
-        $evenement->setStart(new \DateTimeImmutable($dateStart));
-        $evenement->setEnd(new \DateTimeImmutable($dateEnd));
+        $evenement->setStart($startDate);
+        $evenement->setEnd($endDate);
         $evenement->setOrganisateur($user);
         
         // Gestion de l'image
@@ -88,10 +104,21 @@ class EvenementsController extends AbstractController
         $imageUrl = $request->request->get('imageUrl');
         
         if ($imageFile) {
+            // Validation du type de fichier
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!in_array($imageFile->getMimeType(), $allowedTypes)) {
+                return $this->json(['error' => 'Type de fichier non autorisé. Seuls les formats JPEG, PNG, GIF et WebP sont acceptés.'], Response::HTTP_BAD_REQUEST);
+            }
+            
+            // Validation de la taille (5MB max)
+            if ($imageFile->getSize() > 5 * 1024 * 1024) {
+                return $this->json(['error' => 'Le fichier est trop volumineux. Taille maximum: 5MB.'], Response::HTTP_BAD_REQUEST);
+            }
+            
             // Upload de fichier
             $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
             if (!is_dir($uploadsDirectory)) {
-                mkdir($uploadsDirectory, 0777, true);
+                mkdir($uploadsDirectory, 0755, true);
             }
             
             $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
@@ -146,7 +173,7 @@ class EvenementsController extends AbstractController
         $user = $this->getUser();
         
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== 'valide') {
+        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
             if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -389,7 +416,7 @@ class EvenementsController extends AbstractController
 
     public function valider(Evenements $evenement, EntityManagerInterface $em): JsonResponse
     {
-        $evenement->setStatut('valide');
+        $evenement->setStatut(Evenements::STATUT_VALIDE);
         $em->flush();
 
         return new JsonResponse([
@@ -422,24 +449,6 @@ class EvenementsController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/participer', name: 'participer_evenement', methods: ['POST'])]
-    public function participer(int $id, EvenementsRepository $repoEvenements): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user) return $this->json(['error' => 'Non authentifié'], 401);
-
-        $event = $repoEvenements->find($id);
-        if (!$event) return $this->json(['error' => 'Événement introuvable'], 404);
-
-        $user->addParticipation($event);
-        $this->manager->flush();
-
-        return $this->json([
-            'message' => "Participation enregistrée",
-            'numberCompetitors' => $event->getNumberCompetitors()
-        ]);
-    }
-
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
@@ -449,7 +458,7 @@ class EvenementsController extends AbstractController
         // Si l'utilisateur n'est pas ADMIN ou ORGANISATEUR, ne montrer que les événements validés
         if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
             $qb->where('e.statut = :statut')
-               ->setParameter('statut', 'valide');
+               ->setParameter('statut', Evenements::STATUT_VALIDE);
         }
         
         $evenements = $qb->getQuery()->getResult();
@@ -539,7 +548,7 @@ class EvenementsController extends AbstractController
         // Si l'utilisateur n'est pas ADMIN ou ORGANISATEUR, ne montrer que les événements validés
         if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
             $qb->where('e.statut = :statut')
-               ->setParameter('statut', 'valide');
+               ->setParameter('statut', Evenements::STATUT_VALIDE);
         }
         
         $paramCounter = 1;
@@ -646,7 +655,7 @@ class EvenementsController extends AbstractController
            ->andWhere('e.end >= :now')
            ->andWhere('e.statut = :statut')
            ->setParameter('now', $now)
-           ->setParameter('statut', 'valide')
+           ->setParameter('statut', Evenements::STATUT_VALIDE)
            ->setMaxResults(3); // Limite à 3 évènements
         $events = $qb->getQuery()->getResult();
         if (!$events || count($events) === 0) {
@@ -687,7 +696,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== 'valide') {
+        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -700,15 +709,15 @@ class EvenementsController extends AbstractController
             
             // Si le statut est null, le mettre à jour vers 'en_attente'
             if ($status === null || $status === '') {
-                $existingParticipation->setStatut('en_attente');
+                $existingParticipation->setStatut(Participation::STATUT_EN_ATTENTE);
                 $this->manager->flush();
-                $status = 'en_attente';
+                $status = Participation::STATUT_EN_ATTENTE;
             }
             
             $message = match($status) {
-                'en_attente' => 'Votre demande de participation est en attente de validation',
-                'validee' => 'Vous participez déjà à cet événement',
-                'refusee' => 'Votre participation a été refusée',
+                Participation::STATUT_EN_ATTENTE => 'Votre demande de participation est en attente de validation',
+                Participation::STATUT_VALIDE => 'Vous participez déjà à cet événement',
+                Participation::STATUT_REFUSE => 'Votre participation a été refusée',
                 default => 'Statut de participation inconnu'
             };
             return $this->json(['error' => $message, 'statut' => $status], Response::HTTP_BAD_REQUEST);
@@ -718,14 +727,14 @@ class EvenementsController extends AbstractController
         $participation = new Participation();
         $participation->setUser($user);
         $participation->setEvenement($evenement);
-        $participation->setStatut('en_attente');
+        $participation->setStatut(Participation::STATUT_EN_ATTENTE);
 
         $this->manager->persist($participation);
         $this->manager->flush();
 
         return $this->json([
             'message' => 'Demande de participation soumise. En attente de validation par l\'organisateur.',
-            'statut' => 'en_attente'
+            'statut' => Participation::STATUT_EN_ATTENTE
         ]);
     }
 
@@ -756,7 +765,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== 'valide') {
+        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -804,7 +813,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== 'valide') {
+        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -886,7 +895,7 @@ class EvenementsController extends AbstractController
 
         // Vérifier les permissions pour les événements en attente
         $user = $this->getUser();
-        if ($evenement->getStatut() !== 'valide') {
+        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
             if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -946,11 +955,11 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Participation non trouvée'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($participation->getStatut() === 'validee') {
+        if ($participation->getStatut() === Participation::STATUT_VALIDE) {
             return $this->json(['error' => 'Participation déjà validée'], Response::HTTP_BAD_REQUEST);
         }
 
-        $participation->setStatut('validee');
+        $participation->setStatut(Participation::STATUT_VALIDE);
         $this->manager->flush();
 
         return $this->json(['message' => 'Participation validée avec succès']);
@@ -998,11 +1007,11 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Participation non trouvée'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($participation->getStatut() === 'refusee') {
+        if ($participation->getStatut() === Participation::STATUT_REFUSE) {
             return $this->json(['error' => 'Participation déjà refusée'], Response::HTTP_BAD_REQUEST);
         }
 
-        $participation->setStatut('refusee');
+        $participation->setStatut(Participation::STATUT_REFUSE);
         $this->manager->flush();
 
         return $this->json(['message' => 'Participation refusée']);
