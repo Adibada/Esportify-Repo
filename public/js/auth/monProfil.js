@@ -1,3 +1,22 @@
+// Fonction utilitaire pour déterminer le badge de statut
+function getStatusBadge(statut) {
+    // Normaliser le statut en minuscules pour la comparaison
+    const statusLower = (statut || '').toLowerCase().trim();
+    
+    // Statuts validés/acceptés
+    if (['valide', 'validé', 'validee', 'validée', 'accepté', 'accepte'].includes(statusLower)) {
+        return { class: 'bg-success', text: 'Validé' };
+    }
+    
+    // Statuts refusés
+    if (['refuse', 'refusé', 'refusee', 'refusée', 'rejeté', 'rejete'].includes(statusLower)) {
+        return { class: 'bg-danger', text: 'Refusé' };
+    }
+    
+    // Statuts en attente (par défaut)
+    return { class: 'bg-warning', text: 'En attente' };
+}
+
 // Récupération du profil et affichage du nom + participations
 function loadUserProfile() {
     const token = getToken();   
@@ -170,24 +189,8 @@ function loadOrganizedEvents(token, userRoles) {
         eventsList.innerHTML = "";
         
         organizedEvents.forEach(event => {
-            // Déterminer le badge selon le statut de l'événement
-            let statusBadge;
-            let badgeClass;
-            switch (event.statut) {
-                case 'valide':
-                    badgeClass = 'bg-success';
-                    statusBadge = 'Validé';
-                    break;
-                case 'refuse':
-                    badgeClass = 'bg-danger';
-                    statusBadge = 'Refusé';
-                    break;
-                case 'en attente':
-                default:
-                    badgeClass = 'bg-warning';
-                    statusBadge = 'En attente';
-                    break;
-            }
+            // Utiliser la fonction utilitaire pour déterminer le badge
+            const badge = getStatusBadge(event.statut);
 
             const li = document.createElement("li");
             li.classList.add("event-in-list");
@@ -199,7 +202,7 @@ function loadOrganizedEvents(token, userRoles) {
                     <span>/</span>
                     <span>${event.nombreParticipants || 0} Participant${(event.nombreParticipants || 0) !== 1 ? 's' : ''}</span>
                     <span>/</span>
-                    <span class="badge ${badgeClass}">${statusBadge}</span>
+                    <span class="badge ${badge.class}">${badge.text}</span>
                 </a>
             `;
             eventsList.appendChild(li);
