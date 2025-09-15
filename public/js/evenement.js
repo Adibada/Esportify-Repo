@@ -123,7 +123,7 @@ const loadParticipantsList = async () => {
 
         if (res.ok) {
             const participations = await res.json();
-            // Les participants sont déjà filtrés côté serveur (statut validee uniquement)
+            // Les participants sont déjà filtrés côté serveur (statut valide uniquement)
             displayParticipantsList(participations);
         }
     } catch (err) {
@@ -145,14 +145,10 @@ const displayParticipantsList = (participants) => {
         const numOfCompetitorsElement = document.getElementById('numOfCompetitors');
         if (numOfCompetitorsElement && numOfCompetitorsElement.parentNode) {
             numOfCompetitorsElement.parentNode.insertBefore(participantsListContainer, numOfCompetitorsElement.nextSibling);
-            console.log('Conteneur participantsList créé et inséré');
-        } else {
-            console.error('Élément numOfCompetitors non trouvé');
         }
     }
 
     if (participants.length === 0) {
-        console.log('Aucun participant, vidage du conteneur');
         participantsListContainer.innerHTML = '';
         return;
     }
@@ -171,11 +167,11 @@ const displayParticipantsList = (participants) => {
                     </div>
                 </div>
                 ${participants.map(participant => {
-                    const statusColor = participant.statut === 'validee' ? 'success' : 
+                    const statusColor = participant.statut === 'valide' ? 'success' : 
                                       participant.statut === 'en_attente' ? 'warning' : 'danger';
-                    const statusIcon = participant.statut === 'validee' ? 'check-circle' : 
+                    const statusIcon = participant.statut === 'valide' ? 'check-circle' : 
                                      participant.statut === 'en_attente' ? 'clock' : 'times-circle';
-                    const statusText = participant.statut === 'validee' ? 'Validé' : 
+                    const statusText = participant.statut === 'valide' ? 'Validé' : 
                                      participant.statut === 'en_attente' ? 'En attente' : 'Refusé';
                     
                     return `
@@ -262,7 +258,7 @@ const updateParticipationButton = (status, eventStatus) => {
     const configs = {
         invalid: { text: "Participation impossible", class: "btn btn-secondary", disabled: true },
         en_attente: { text: "Participation en attente", class: "btn btn-warning", onclick: () => cancelParticipation(eventId) },
-        validee: { text: "Annuler ma participation", class: "btn btn-danger", onclick: () => cancelParticipation(eventId) },
+        valide: { text: "Annuler ma participation", class: "btn btn-danger", onclick: () => cancelParticipation(eventId) },
         refusee: { text: "Participation refusée", class: "btn btn-secondary", disabled: true },
         default: { text: "Participer", class: "btn btn-success", onclick: () => participer(eventId) }
     };

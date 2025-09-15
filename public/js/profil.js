@@ -151,10 +151,10 @@ function displayAllParticipations(participations) {
         // Déterminer le badge selon le statut de participation
         let statusBadge;
         switch (participation.statutParticipation) {
-            case 'validee':
+            case 'valide':
                 statusBadge = '<span class="badge bg-success">Validée</span>';
                 break;
-            case 'refusee':
+            case 'refuse':
                 statusBadge = '<span class="badge bg-danger">Refusée</span>';
                 break;
             case 'en_attente':

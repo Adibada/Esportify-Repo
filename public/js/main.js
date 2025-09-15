@@ -115,3 +115,45 @@ if (document.readyState === 'loading') {
   // DOM déjà chargé, appeler immédiatement
   editByRoles();
 }
+
+// Fonction de déconnexion globale améliorée
+async function handleLogout(event) {
+    if (event) event.preventDefault();
+    
+    const token = getToken();
+    if (!token) {
+        // Pas de token, redirection directe
+        navigate("/connexion");
+        return;
+    }
+
+    try {
+        // Appeler l'endpoint de déconnexion côté serveur pour invalider le token
+        await fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'X-AUTH-TOKEN': token,
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (error) {
+        console.warn('Erreur lors de la déconnexion côté serveur:', error);
+        // Continuer la déconnexion côté client même en cas d'erreur serveur
+    }
+
+    // Supprimer tous les cookies de session
+    eraseCookie(tokenCookieName);
+    eraseCookie(roleCookieName);
+    eraseCookie("userId");
+    
+    // Mettre à jour l'affichage des éléments de navigation
+    if (typeof window.editByRoles === 'function') {
+        window.editByRoles();
+    }
+    
+    // Rediriger vers la page de connexion
+    navigate("/connexion");
+}
+
+// Rendre la fonction disponible globalement
+window.handleLogout = handleLogout;
