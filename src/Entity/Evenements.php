@@ -21,8 +21,9 @@ class Evenements
 {
     public const GROUP_READ = 'evenement:read';
     public const GROUP_WRITE = 'evenement:write';
-    public const STATUT_EN_ATTENTE = 'en attente';
-    public const STATUT_REFUSE = 'refusee';
+    public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_VALIDE = 'valide';
+    public const STATUT_REFUSE = 'refuse';
 
     #[Groups([self::GROUP_READ])]
     #[ORM\Id]
@@ -80,7 +81,7 @@ class Evenements
     {
         $this->commentaires = new ArrayCollection();
         $this->participations = new ArrayCollection();
-        $this->statut = 'en attente';
+        $this->statut = self::STATUT_EN_ATTENTE;
     }
 
     public function getId(): ?int
@@ -130,6 +131,17 @@ class Evenements
     {
         $this->end = $end;
         return $this;
+    }
+
+    /**
+     * Validation des dates : la fin doit être après le début
+     */
+    public function isValidDates(): bool
+    {
+        if ($this->start && $this->end) {
+            return $this->end > $this->start;
+        }
+        return true;
     }
 
     public function getStatut(): ?string

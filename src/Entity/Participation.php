@@ -12,6 +12,8 @@ class Participation
 {
     public const GROUP_READ = 'participation:read';
     public const STATUT_EN_ATTENTE = 'en_attente';
+    public const STATUT_VALIDE = 'valide';
+    public const STATUT_REFUSE = 'refuse';
 
     public function __construct()
     {
@@ -24,7 +26,6 @@ class Participation
     #[ORM\JoinColumn(name: 'user_id', nullable: false)]
     private ?User $user = null;
 
-    #[Groups([self::GROUP_READ])]
     #[ORM\Id]
     #[ORM\ManyToOne(inversedBy: 'participations')]
     #[ORM\JoinColumn(name: 'evenements_id', nullable: false)]
