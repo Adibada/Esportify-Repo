@@ -148,14 +148,19 @@ function displayAllParticipations(participations) {
         const eventStartDate = new Date(participation.dateDebut);
         const eventEndDate = new Date(participation.dateFin || participation.dateDebut);
         
-        // Déterminer le statut de l'événement
+        // Déterminer le badge selon le statut de participation
         let statusBadge;
-        if (eventEndDate < currentDate) {
-            statusBadge = '<span class="badge bg-secondary">Terminé</span>';
-        } else if (eventStartDate > currentDate) {
-            statusBadge = '<span class="badge bg-success">À venir</span>';
-        } else {
-            statusBadge = '<span class="badge bg-primary">En cours</span>';
+        switch (participation.statutParticipation) {
+            case 'validee':
+                statusBadge = '<span class="badge bg-success">Validée</span>';
+                break;
+            case 'refusee':
+                statusBadge = '<span class="badge bg-danger">Refusée</span>';
+                break;
+            case 'en_attente':
+            default:
+                statusBadge = '<span class="badge bg-warning">En attente</span>';
+                break;
         }
 
         return `
@@ -272,7 +277,7 @@ async function checkIfCurrentUserIsAdmin() {
     }
     
     try {
-        const response = await fetch('/api/me', {
+        const response = await fetch('/api/users/me', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

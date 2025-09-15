@@ -89,6 +89,9 @@ function editByRoles() {
     })
 }
 
+// Rendre la fonction disponible globalement
+window.editByRoles = editByRoles;
+
 //Refermement de la navbar mobile
 document.querySelectorAll('.navbar-collapse .nav-link').forEach(link => {
   link.addEventListener('click', () => {
@@ -99,3 +102,16 @@ document.querySelectorAll('.navbar-collapse .nav-link').forEach(link => {
     }
   });
 });
+
+// Appeler editByRoles au chargement initial
+document.addEventListener('DOMContentLoaded', () => {
+  editByRoles();
+});
+
+// Appeler aussi immédiatement si le DOM est déjà chargé
+if (document.readyState === 'loading') {
+  // DOM pas encore chargé, attendre l'événement
+} else {
+  // DOM déjà chargé, appeler immédiatement
+  editByRoles();
+}

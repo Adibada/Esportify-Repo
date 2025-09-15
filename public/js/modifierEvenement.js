@@ -154,10 +154,10 @@ const checkPermissions = async (event) => {
         return;
     }
     
-    // Récupérer l'utilisateur connecté via l'API /me
+    // Récupérer l'utilisateur connecté via l'API /users/me
     try {
         const token = getToken();
-        const userRes = await fetch('/api/me', {
+        const userRes = await fetch('/api/users/me', {
             headers: { 'X-AUTH-TOKEN': token }
         });
         

@@ -373,18 +373,6 @@ function performCombinedSearch() {
     searchEvents(filters, 1);
 }
 
-// Fonction pour réinitialiser tous les formulaires
-function resetAllForms() {
-    document.querySelectorAll('form').forEach(form => {
-        form.reset();
-    });
-    currentFilters = {};
-    currentPage = 1;
-    
-    // Charger tous les événements
-    searchEvents();
-}
-
 // Fonction pour charger tous les événements au démarrage
 function loadAllEvents() {
     searchEvents({}, 1);

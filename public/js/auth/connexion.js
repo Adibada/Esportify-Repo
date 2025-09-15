@@ -33,6 +33,12 @@ function checkCredential() {
             setCookie("role", result.roles && result.roles[0] ? result.roles[0] : "user", 7);
             setCookie("userId", result.id, 7);
             alert("Connexion réussie !");
+            
+            // Mettre à jour l'affichage des éléments de navigation
+            if (typeof window.editByRoles === 'function') {
+                window.editByRoles();
+            }
+            
             window.location.replace("/");
         })
         .catch((error) => {

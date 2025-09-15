@@ -12,42 +12,45 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
-    normalizationContext: ['groups' => ['user:public']],
-    denormalizationContext: ['groups' => ['user:write']]
+    normalizationContext: ['groups' => [self::GROUP_PUBLIC]],
+    denormalizationContext: ['groups' => [self::GROUP_WRITE]]
 )]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[Groups(['user:public'])]
+    public const GROUP_PUBLIC = 'user:public';
+    public const GROUP_WRITE = 'user:write';
+
+    #[Groups([self::GROUP_PUBLIC])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Groups(['user:public', 'user:write'])]
+    #[Groups([self::GROUP_PUBLIC, self::GROUP_WRITE])]
     #[ORM\Column(length: 180, unique: true)]
     private ?string $username = null;
 
-    #[Groups(['user:public', 'user:write'])]
+    #[Groups([self::GROUP_PUBLIC, self::GROUP_WRITE])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $mail = null;
 
     #[ORM\Column]
     private array $roles = [];
 
-    #[Groups(['user:write'])]
+    #[Groups([self::GROUP_WRITE])]
     #[ORM\Column]
     private ?string $password = null;
 
-    #[Groups(['user:write'])]
+    #[Groups([self::GROUP_WRITE])]
     #[ORM\Column(type: "string", length: 255, unique: true, nullable: true)]
     private ?string $apiToken = null;
 
-    #[Groups(['user:public'])]
-    #[ORM\ManyToMany(targetEntity: Evenements::class, mappedBy: 'competitors')]
+    #[Groups([self::GROUP_PUBLIC])]
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Participation::class)]
     private Collection $participations;
 
-    #[Groups(['user:public'])]
+    #[Groups([self::GROUP_PUBLIC])]
     #[ORM\OneToMany(mappedBy: 'organisateur', targetEntity: Evenements::class)]
     private Collection $evenements;
 
@@ -56,10 +59,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
-        $this->apiToken = bin2hex(random_bytes(20));
         $this->participations = new ArrayCollection();
         $this->evenements = new ArrayCollection();
         $this->commentaires = new ArrayCollection();
+        $this->roles = ['ROLE_USER'];
     }   
 
     public function getId(): ?int
@@ -133,20 +136,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->participations;
     }
 
-    public function addParticipation(Evenements $participation): static
+    public function addParticipation(Participation $participation): static
     {
         if (!$this->participations->contains($participation)) {
             $this->participations->add($participation);
-            $participation->addCompetitor($this);
+            $participation->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeParticipation(Evenements $participation): static
+    public function removeParticipation(Participation $participation): static
     {
         if ($this->participations->removeElement($participation)) {
-            $participation->removeCompetitor($this);
+            if ($participation->getUser() === $this) {
+                $participation->setUser(null);
+            }
         }
 
         return $this;

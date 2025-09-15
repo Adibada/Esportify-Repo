@@ -9,33 +9,36 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
-    normalizationContext: ['groups' => ['commentaire:read']],
-    denormalizationContext: ['groups' => ['commentaire:write']]
+    normalizationContext: ['groups' => [self::GROUP_READ]],
+    denormalizationContext: ['groups' => [self::GROUP_WRITE]]
 )]
 #[ORM\Entity(repositoryClass: CommentairesRepository::class)]
 #[ORM\Table(name: 'commentaires')]
 class Commentaires
 {
-    #[Groups(['commentaire:read'])]
+    public const GROUP_READ = 'commentaire:read';
+    public const GROUP_WRITE = 'commentaire:write';
+
+    #[Groups([self::GROUP_READ])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Groups(['commentaire:read', 'commentaire:write'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE])]
     #[ORM\Column(type: Types::TEXT)]
     private ?string $contenu = null;
 
-    #[Groups(['commentaire:read'])]
+    #[Groups([self::GROUP_READ])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['commentaire:read'])]
+    #[Groups([self::GROUP_READ])]
     #[ORM\ManyToOne(inversedBy: 'commentaires')]
     #[ORM\JoinColumn(name: 'user_id', nullable: true)]
     private ?User $auteur = null;
 
-    #[Groups(['commentaire:read'])]
+    #[Groups([self::GROUP_READ])]
     #[ORM\ManyToOne(inversedBy: 'commentaires')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Evenements $evenement = null;

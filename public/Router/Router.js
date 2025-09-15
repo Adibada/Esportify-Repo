@@ -7,6 +7,18 @@ const route404 = new Route("/404", "Page introuvable", "/Pages/404.html", []);
 // Base URL dynamique pour éviter les problèmes de port
 const BASE_URL = window.location.origin;
 
+// Utilitaires pour les cookies et permissions
+const getCookie = (name) => {
+    const nameEQ = name + "=";
+    return document.cookie.split(';')
+        .map(c => c.trim())
+        .find(c => c.indexOf(nameEQ) === 0)
+        ?.substring(nameEQ.length) || null;
+};
+
+const isConnected = () => getCookie("accesstoken") !== null;
+const getRole = () => getCookie("role");
+
 // Récupérer la route correspondant à l'URL
 const getRouteByUrl = (url) => allRoutes.find(r => r.url === url) || route404;
 
@@ -23,8 +35,15 @@ const LoadContentPage = async () => {
 
     // Vérification des droits
     const roles = actualRoute.authorize;
-    if (roles.length && !isConnected()) return window.location.replace("/connexion");
-    if (roles.length && !roles.includes(getRole())) return window.location.replace("/404");
+    const currentRole = getRole();
+    const connected = isConnected();
+    
+    if (roles.length && !connected) {
+        return window.location.replace("/connexion");
+    }
+    if (roles.length && !roles.includes(currentRole)) {
+        return window.location.replace("/404");
+    }
 
     try {
         // Chargement du HTML
@@ -62,7 +81,11 @@ const LoadContentPage = async () => {
 
     // Mise à jour du titre
     document.title = `${actualRoute.title} - ${websiteName}`;
-    editByRoles();
+    
+    // Mettre à jour l'affichage des éléments selon l'état de connexion
+    if (typeof window.editByRoles === 'function') {
+        window.editByRoles();
+    }
 };
 
 

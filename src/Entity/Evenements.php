@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Core\Annotation\ApiResource;
 use ApiPlatform\Core\Annotation\ApiProperty;
 use App\Repository\EvenementsRepository;
+use App\Entity\Participation;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -12,68 +13,73 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
-    normalizationContext: ['groups' => ['evenement:read']],
-    denormalizationContext: ['groups' => ['evenement:write']]
+    normalizationContext: ['groups' => [self::GROUP_READ]],
+    denormalizationContext: ['groups' => [self::GROUP_WRITE]]
 )]
 #[ORM\Entity(repositoryClass: EvenementsRepository::class)]
 class Evenements
 {
+    public const GROUP_READ = 'evenement:read';
+    public const GROUP_WRITE = 'evenement:write';
+    public const STATUT_EN_ATTENTE = 'en attente';
+    public const STATUT_REFUSE = 'refusee';
 
-    #[Groups(['evenement:read'])]
+    #[Groups([self::GROUP_READ])]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
     #[ORM\Column(length: 255)]
     private ?string $titre = null;
 
-    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
     #[ORM\Column(type: Types::TEXT)]
     private ?string $description = null;
 
-    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $start = null;
 
-    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $end = null;
 
-    #[Groups(['evenement:read', 'user:public'])]
+    #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
     #[ApiProperty(readable: true, writable: false)]
-    #[ORM\Column(length: 255, options: ['default' => 'en attente'])]
-    private ?string $statut = 'en attente';
+    #[ORM\Column(length: 255, options: ['default' => self::STATUT_EN_ATTENTE])]
+    private ?string $statut = self::STATUT_EN_ATTENTE;
 
-    #[Groups(['evenement:read', 'evenement:write', 'user:public'])]
+    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
-    #[Groups(['evenement:read', 'user:public'])]
+    #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
     #[ApiProperty(readable: true, writable: false)]
     public function getNumberCompetitors(): int
     {
-        return $this->competitors->count();
+        return $this->participations->filter(
+            fn(Participation $participation) => $participation->getStatut() !== self::STATUT_REFUSE
+        )->count();
     }
 
-    #[Groups(['evenement:read'])]
-    #[ORM\ManyToMany(targetEntity: User::class)]
-    private Collection $competitors;
-
-    #[Groups(['evenement:read', 'user:public'])]
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'evenements')]
     #[ORM\JoinColumn(nullable: false)]
-    #[ApiProperty(normalizationContext: ['groups' => ['user:public']])]
+    #[ApiProperty(normalizationContext: ['groups' => [User::GROUP_PUBLIC]])]
     private ?User $organisateur = null;
 
     #[ORM\OneToMany(mappedBy: 'evenement', targetEntity: Commentaires::class, orphanRemoval: true)]
     private Collection $commentaires;
 
+    #[ORM\OneToMany(mappedBy: 'evenement', targetEntity: Participation::class, orphanRemoval: true)]
+    private Collection $participations;
+
     public function __construct()
     {
-        $this->competitors = new ArrayCollection();
         $this->commentaires = new ArrayCollection();
+        $this->participations = new ArrayCollection();
         $this->statut = 'en attente';
     }
 
@@ -148,25 +154,6 @@ class Evenements
         return $this;
     }
 
-    public function getCompetitors(): Collection
-    {
-        return $this->competitors;
-    }
-
-    public function addCompetitor(User $competitor): static
-    {
-        if (!$this->competitors->contains($competitor)) {
-            $this->competitors->add($competitor);
-        }
-        return $this;
-    }
-
-    public function removeCompetitor(User $competitor): static
-    {
-        $this->competitors->removeElement($competitor);
-        return $this;
-    }
-
     public function getOrganisateur(): ?User
     {
         return $this->organisateur;
@@ -198,10 +185,32 @@ class Evenements
 
     public function removeCommentaire(Commentaires $commentaire): static
     {
-        if ($this->commentaires->removeElement($commentaire)) {
-            if ($commentaire->getEvenement() === $this) {
-                $commentaire->setEvenement(null);
-            }
+        if ($this->commentaires->removeElement($commentaire) && $commentaire->getEvenement() === $this) {
+            $commentaire->setEvenement(null);
+        }
+
+        return $this;
+    }
+
+    public function getParticipations(): Collection
+    {
+        return $this->participations;
+    }
+
+    public function addParticipation(Participation $participation): static
+    {
+        if (!$this->participations->contains($participation)) {
+            $this->participations->add($participation);
+            $participation->setEvenement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeParticipation(Participation $participation): static
+    {
+        if ($this->participations->removeElement($participation) && $participation->getEvenement() === $this) {
+            $participation->setEvenement(null);
         }
 
         return $this;

@@ -3,7 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Evenements;
+use App\Entity\Participation;
 use App\Repository\EvenementsRepository;
+use App\Repository\ParticipationRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,7 +17,6 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 
 #[Route('api/evenements', name: 'app_api_evenements_')]
 class EvenementsController extends AbstractController
@@ -23,7 +25,9 @@ class EvenementsController extends AbstractController
         private EntityManagerInterface $manager,
         private EvenementsRepository $repository,
         private SerializerInterface $serializer,
-        private UrlGeneratorInterface $urlGenerator
+        private UrlGeneratorInterface $urlGenerator,
+        private ParticipationRepository $participationRepository,
+        private UserRepository $userRepository
     ) {}
 
     #[IsGranted('ROLE_ORGANISATEUR')]
@@ -171,13 +175,17 @@ class EvenementsController extends AbstractController
             content: new OA\JsonContent(
                 type: 'object',
                 properties: [
-                    new OA\Property(property: 'titre', type: 'string')
+                    new OA\Property(property: 'titre', type: 'string'),
+                    new OA\Property(property: 'description', type: 'string'),
+                    new OA\Property(property: 'start', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'end', type: 'string', format: 'date-time'),
+                    new OA\Property(property: 'image', type: 'string', nullable: true)
                 ]
             )
         ),
         responses: [
             new OA\Response(response: 200, description: 'Événement modifié'),
-            new OA\Response(response: 400, description: 'Titre manquant'),
+            new OA\Response(response: 400, description: 'Données invalides'),
             new OA\Response(response: 404, description: 'Événement non trouvé'),
         ]
     )]
@@ -189,18 +197,149 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
         }
 
-        $data = json_decode($request->getContent(), true);
-        $nouveauTitre = $data['titre'] ?? null;
-
-        if (!$nouveauTitre) {
-            return $this->json(['error' => "Titre manquant"], Response::HTTP_BAD_REQUEST);
+        // Vérifier que l'utilisateur peut modifier cet événement
+        $user = $this->getUser();
+        if (!$this->isGranted('ROLE_ADMIN') && $evenement->getOrganisateur() !== $user) {
+            return $this->json(['error' => 'Vous n\'avez pas les droits pour modifier cet événement'], Response::HTTP_FORBIDDEN);
         }
 
-        $evenement->setTitre($nouveauTitre);
+        $data = json_decode($request->getContent(), true);
+
+        if (!$data) {
+            return $this->json(['error' => "Données invalides"], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Mise à jour des champs
+        if (isset($data['titre'])) {
+            if (empty(trim($data['titre']))) {
+                return $this->json(['error' => "Le titre ne peut pas être vide"], Response::HTTP_BAD_REQUEST);
+            }
+            $evenement->setTitre($data['titre']);
+        }
+
+        if (isset($data['description'])) {
+            if (empty(trim($data['description']))) {
+                return $this->json(['error' => "La description ne peut pas être vide"], Response::HTTP_BAD_REQUEST);
+            }
+            $evenement->setDescription($data['description']);
+        }
+
+        if (isset($data['start'])) {
+            try {
+                $startDate = new \DateTimeImmutable($data['start']);
+                $evenement->setStart($startDate);
+            } catch (\Exception $e) {
+                return $this->json(['error' => "Format de date de début invalide"], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        if (isset($data['end'])) {
+            try {
+                $endDate = new \DateTimeImmutable($data['end']);
+                $evenement->setEnd($endDate);
+            } catch (\Exception $e) {
+                return $this->json(['error' => "Format de date de fin invalide"], Response::HTTP_BAD_REQUEST);
+            }
+        }
+
+        // Validation des dates
+        if ($evenement->getStart() && $evenement->getEnd() && $evenement->getStart() >= $evenement->getEnd()) {
+            return $this->json(['error' => "La date de fin doit être postérieure à la date de début"], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Gestion de l'image
+        if (array_key_exists('image', $data)) {
+            if ($data['image'] === null) {
+                // Supprimer l'image
+                $evenement->setImage(null);
+            } elseif (!empty($data['image'])) {
+                // Définir une nouvelle image
+                $evenement->setImage($data['image']);
+            }
+        }
+
         $this->manager->flush();
 
-        $data = $this->serializer->serialize($evenement, 'json');
-        return new JsonResponse($data, Response::HTTP_OK, [], true);
+        $evenementData = $this->serializer->serialize($evenement, 'json', ['groups' => ['evenement_details']]);
+        return new JsonResponse($evenementData, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/{id}/image', name: 'upload_image', methods: ['POST'])]
+    #[OA\Post(
+        summary: 'Upload image pour un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'image', type: 'string', format: 'binary')
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Image uploadée avec succès'),
+            new OA\Response(response: 404, description: 'Événement non trouvé'),
+            new OA\Response(response: 400, description: 'Erreur lors de l\'upload')
+        ]
+    )]
+    public function uploadImage(Request $request, int $id): Response
+    {
+        $evenement = $this->repository->find($id);
+
+        if (!$evenement) {
+            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier que l'utilisateur peut modifier cet événement
+        $user = $this->getUser();
+        if (!$this->isGranted('ROLE_ADMIN') && $evenement->getOrganisateur() !== $user) {
+            return $this->json(['error' => 'Vous n\'avez pas les droits pour modifier cet événement'], Response::HTTP_FORBIDDEN);
+        }
+
+        $imageFile = $request->files->get('image');
+        
+        if (!$imageFile) {
+            return $this->json(['error' => 'Aucun fichier image fourni'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Validation du fichier
+        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!in_array($imageFile->getMimeType(), $allowedMimes)) {
+            return $this->json(['error' => 'Format d\'image non supporté. Utilisez JPG, PNG ou GIF.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($imageFile->getSize() > 5 * 1024 * 1024) { // 5MB max
+            return $this->json(['error' => 'Image trop volumineuse (max 5MB)'], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Upload de l'image
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
+        if (!is_dir($uploadsDirectory)) {
+            mkdir($uploadsDirectory, 0777, true);
+        }
+
+        $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
+        $fileName = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
+
+        try {
+            $imageFile->move($uploadsDirectory, $fileName);
+            $imagePath = '/Images/images event/' . $fileName;
+            
+            return $this->json([
+                'message' => 'Image uploadée avec succès',
+                'imagePath' => $imagePath
+            ], Response::HTTP_OK);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Erreur lors du téléchargement de l\'image'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     #[IsGranted('ROLE_ADMIN')]
@@ -555,22 +694,38 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier si l'utilisateur participe déjà
-        if ($evenement->getCompetitors()->contains($user)) {
-            return $this->json(['error' => 'Vous participez déjà à cet événement'], Response::HTTP_BAD_REQUEST);
+        $existingParticipation = $this->participationRepository->findByUserAndEvent($user, $evenement);
+        if ($existingParticipation) {
+            $status = $existingParticipation->getStatut();
+            
+            // Si le statut est null, le mettre à jour vers 'en_attente'
+            if ($status === null || $status === '') {
+                $existingParticipation->setStatut('en_attente');
+                $this->manager->flush();
+                $status = 'en_attente';
+            }
+            
+            $message = match($status) {
+                'en_attente' => 'Votre demande de participation est en attente de validation',
+                'validee' => 'Vous participez déjà à cet événement',
+                'refusee' => 'Votre participation a été refusée',
+                default => 'Statut de participation inconnu'
+            };
+            return $this->json(['error' => $message, 'statut' => $status], Response::HTTP_BAD_REQUEST);
         }
 
-        // Vérifier si l'utilisateur n'est pas l'organisateur
-        if ($evenement->getOrganisateur() === $user) {
-            return $this->json(['error' => 'L\'organisateur ne peut pas participer à son propre événement'], Response::HTTP_BAD_REQUEST);
-        }
+        // Créer une nouvelle participation
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setEvenement($evenement);
+        $participation->setStatut('en_attente');
 
-        // Ajouter la participation
-        $evenement->addCompetitor($user);
+        $this->manager->persist($participation);
         $this->manager->flush();
 
         return $this->json([
-            'message' => 'Participation ajoutée avec succès',
-            'participants' => $evenement->getNumberCompetitors()
+            'message' => 'Demande de participation soumise. En attente de validation par l\'organisateur.',
+            'statut' => 'en_attente'
         ]);
     }
 
@@ -608,12 +763,13 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier si l'utilisateur participe
-        if (!$evenement->getCompetitors()->contains($user)) {
+        $participation = $this->participationRepository->findByUserAndEvent($user, $evenement);
+        if (!$participation) {
             return $this->json(['error' => 'Vous ne participez pas à cet événement'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Retirer la participation
-        $evenement->removeCompetitor($user);
+        // Supprimer la participation
+        $this->manager->remove($participation);
         $this->manager->flush();
 
         return $this->json([
@@ -654,15 +810,201 @@ class EvenementsController extends AbstractController
             }
         }
 
-        $isParticipant = $evenement->getCompetitors()->contains($user);
+        $participation = $this->participationRepository->findByUserAndEvent($user, $evenement);
         $isOrganizer = $evenement->getOrganisateur() === $user;
 
+        // Compter les participations validées
+        $validatedCount = $this->participationRepository->countValidatedByEvent($evenement);
+
         return $this->json([
-            'isParticipant' => $isParticipant,
+            'isParticipant' => $participation && $participation->getStatut() === 'validee',
+            'participationStatut' => $participation ? $participation->getStatut() : null,
             'isOrganizer' => $isOrganizer,
-            'participants' => $evenement->getNumberCompetitors()
+            'participants' => $validatedCount
         ]);
     }
+
+    #[Route('/{id}/participations', name: 'event_participations', methods: ['GET'], requirements: ['id' => '\d+'])]
+    #[OA\Get(
+        summary: 'Obtenir toutes les participations à un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des participations'),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès non autorisé'),
+            new OA\Response(response: 404, description: 'Événement non trouvé'),
+        ]
+    )]
+    public function getEventParticipations(int $id): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $evenement = $this->repository->find($id);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Seul l'organisateur ou un admin peut voir toutes les participations
+        if ($evenement->getOrganisateur() !== $user && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $participations = $this->participationRepository->findByEvent($evenement);
+        
+        $data = $this->serializer->serialize(
+            $participations,
+            'json',
+            ['groups' => ['participation:read', 'user:public']]
+        );
+
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/{id}/participants', name: 'event_participants_public', methods: ['GET'], requirements: ['id' => '\d+'])]
+    #[OA\Get(
+        summary: 'Obtenir la liste publique des participants validés d\'un événement',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste de tous les participants'),
+            new OA\Response(response: 404, description: 'Événement non trouvé'),
+        ]
+    )]
+    public function getEventParticipantsPublic(int $id): JsonResponse
+    {
+        $evenement = $this->repository->find($id);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier les permissions pour les événements en attente
+        $user = $this->getUser();
+        if ($evenement->getStatut() !== 'valide') {
+            if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
+                return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
+        // Récupérer les participations non refusées (validées + en attente)
+        $participations = $this->participationRepository->findNonRejectedByEvent($evenement);
+        
+        $data = $this->serializer->serialize(
+            $participations,
+            'json',
+            ['groups' => ['participation:read', 'user:public']]
+        );
+
+        return new JsonResponse($data, Response::HTTP_OK, [], true);
+    }
+
+    #[Route('/{eventId}/participations/{userId}/valider', name: 'validate_participation', methods: ['POST'], requirements: ['eventId' => '\d+', 'userId' => '\d+'])]
+    #[OA\Post(
+        summary: 'Valider une participation à un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'userId', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Participation validée'),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès non autorisé'),
+            new OA\Response(response: 404, description: 'Participation non trouvée'),
+        ]
+    )]
+    public function validateParticipation(int $eventId, int $userId): JsonResponse
+    {
+        $currentUser = $this->getUser();
+        if (!$currentUser) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $evenement = $this->repository->find($eventId);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Seul l'organisateur ou un admin peut valider une participation
+        if ($evenement->getOrganisateur() !== $currentUser && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->userRepository->find($userId);
+        if (!$user) {
+            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+        
+        $participation = $this->participationRepository->findByUserAndEvent($user, $evenement);
+        if (!$participation) {
+            return $this->json(['error' => 'Participation non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($participation->getStatut() === 'validee') {
+            return $this->json(['error' => 'Participation déjà validée'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $participation->setStatut('validee');
+        $this->manager->flush();
+
+        return $this->json(['message' => 'Participation validée avec succès']);
+    }
+
+    #[Route('/{eventId}/participations/{userId}/refuser', name: 'reject_participation', methods: ['POST'], requirements: ['eventId' => '\d+', 'userId' => '\d+'])]
+    #[OA\Post(
+        summary: 'Refuser une participation à un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'userId', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Participation refusée'),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès non autorisé'),
+            new OA\Response(response: 404, description: 'Participation non trouvée'),
+        ]
+    )]
+    public function rejectParticipation(int $eventId, int $userId): JsonResponse
+    {
+        $currentUser = $this->getUser();
+        if (!$currentUser) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $evenement = $this->repository->find($eventId);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Seul l'organisateur ou un admin peut refuser une participation
+        if ($evenement->getOrganisateur() !== $currentUser && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->userRepository->find($userId);
+        if (!$user) {
+            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+        
+        $participation = $this->participationRepository->findByUserAndEvent($user, $evenement);
+        if (!$participation) {
+            return $this->json(['error' => 'Participation non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($participation->getStatut() === 'refusee') {
+            return $this->json(['error' => 'Participation déjà refusée'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $participation->setStatut('refusee');
+        $this->manager->flush();
+
+        return $this->json(['message' => 'Participation refusée']);
+    }
 }
-
-
