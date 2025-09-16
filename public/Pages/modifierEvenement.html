@@ -63,7 +63,7 @@
                         <!-- Input fichier -->
                         <div id="fileImageInput">
                             <input type="file" class="form-control" id="eventImageFile" name="imageFile" 
-                                   accept="image/*">
+                                   accept="image/*" multiple>
                             <div class="form-text">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
@@ -81,6 +81,18 @@
                                     <i class="fas fa-info-circle me-1"></i>
                                     Entrez l'URL complète d'une image (JPG, PNG, GIF).
                                 </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Description de l'image (alt text) -->
+                        <div class="mt-2">
+                            <label for="eventImageDescription" class="form-label">
+                                <small>Description de l'image (optionnel) :</small>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="eventImageDescription" name="imageDescription" 
+                                   placeholder="ex: Équipe de football lors d'un match">
+                            <div class="form-text">
+                                <small class="text-muted">Cette description améliore l'accessibilité et le référencement de votre événement.</small>
                             </div>
                         </div>
                     </div>

@@ -205,17 +205,22 @@ const populateForm = (event) => {
     // Lien de retour vers l'événement
     document.getElementById('returnToEventBtn').href = `/evenement?id=${eventId}`;
     
-    // Gestion de l'image actuelle
-    if (event.image && event.image !== '/Images/images event/joueuses.jpg') {
-        // Si l'image existe et commence par http, c'est une URL
-        if (event.image.startsWith('http')) {
+    // Gestion des images actuelles
+    if (event.mainImageUrl && event.mainImageUrl !== '/Images/images event/joueuses.jpg') {
+        // Si l'image principale existe et commence par http, c'est une URL
+        if (event.mainImageUrl.startsWith('http')) {
             document.getElementById('imageTypeUrl').checked = true;
-            document.getElementById('eventImageUrl').value = event.image;
+            document.getElementById('eventImageUrl').value = event.mainImageUrl;
             toggleImageInput();
         } else {
             // Sinon c'est un fichier local, on garde le mode fichier par défaut
             document.getElementById('imageTypeFile').checked = true;
         }
+    }
+    
+    // Affichage d'info sur les images existantes si il y en a plusieurs
+    if (event.images && event.images.length > 1) {
+        console.log(`Événement a ${event.images.length} images. La première est utilisée comme image principale.`);
     }
 };
 
@@ -254,10 +259,14 @@ const handleFormSubmit = async (event) => {
         end: formatDateTimeForAPI(endDate, endTime)
     };
     
-    // Gérer l'image
+    // Gérer les images (support multi-images)
     const imageType = document.querySelector('input[name="imageType"]:checked').value;
-    const imageFile = imageType === 'file' ? document.getElementById('eventImageFile').files[0] : null;
+    const imageFiles = imageType === 'file' ? document.getElementById('eventImageFile').files : [];
     const imageUrl = imageType === 'url' ? document.getElementById('eventImageUrl').value : null;
+    
+    console.log('Type d\'image sélectionné:', imageType);
+    console.log('Images à traiter:', imageFiles ? imageFiles.length : 0, 'fichiers');
+    console.log('URL d\'image:', imageUrl);
     
     try {
         const token = getToken();
@@ -267,26 +276,64 @@ const handleFormSubmit = async (event) => {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sauvegarde...';
         
-        // Si une nouvelle image fichier est sélectionnée, l'uploader d'abord
-        if (imageFile && imageFile.size > 0) {
+        // Si de nouvelles images fichiers sont sélectionnées, les uploader
+        if (imageFiles && imageFiles.length > 0) {
             const imageFormData = new FormData();
-            imageFormData.append('image', imageFile);
             
-            const imageRes = await fetch(`/api/evenements/${eventId}/image`, {
+            Array.from(imageFiles).forEach((file, index) => {
+                console.log(`Ajout image ${index}:`, file.name);
+                imageFormData.append('images[]', file);
+            });
+            
+            // Ajouter la description de l'image si fournie
+            const imageDescription = document.getElementById('eventImageDescription').value.trim();
+            if (imageDescription) {
+                imageFormData.append('imageDescription', imageDescription);
+            }
+            
+            console.log('Upload vers /api/evenements/' + eventId + '/images');
+            const imageRes = await fetch(`/api/evenements/${eventId}/images`, {
                 method: 'POST',
                 headers: { 'X-AUTH-TOKEN': token },
                 body: imageFormData
             });
             
-            if (imageRes.ok) {
-                const imageData = await imageRes.json();
-                eventData.image = imageData.imagePath;
+            console.log('Réponse upload images:', imageRes.status);
+            if (!imageRes.ok) {
+                const errorText = await imageRes.text();
+                console.error('Erreur upload images:', errorText);
+                throw new Error('Erreur lors de l\'upload des images');
             } else {
-                throw new Error('Erreur lors de l\'upload de l\'image');
+                const imageData = await imageRes.json();
+                console.log('Images uploadées avec succès:', imageData);
             }
         } else if (imageUrl && imageUrl.trim() !== '') {
-            // Si une URL d'image est fournie
-            eventData.image = imageUrl.trim();
+            // Si une URL d'image est fournie, l'ajouter via l'API images
+            console.log('Ajout d\'image par URL:', imageUrl);
+            const imageFormData = new FormData();
+            imageFormData.append('imageUrl', imageUrl.trim());
+            
+            // Ajouter la description de l'image si fournie
+            const imageDescription = document.getElementById('eventImageDescription').value.trim();
+            if (imageDescription) {
+                imageFormData.append('imageDescription', imageDescription);
+            }
+            
+            const imageRes = await fetch(`/api/evenements/${eventId}/images`, {
+                method: 'POST',
+                headers: { 'X-AUTH-TOKEN': token },
+                body: imageFormData
+            });
+            
+            console.log('Réponse ajout image URL:', imageRes.status);
+            if (!imageRes.ok) {
+                const errorText = await imageRes.text();
+                console.error('Erreur ajout image URL:', errorText);
+                throw new Error('Erreur lors de l\'ajout de l\'image par URL');
+            } else {
+                const imageData = await imageRes.json();
+                console.log('Image URL ajoutée avec succès:', imageData);
+            }
         }
         
         const res = await fetch(`/api/evenements/${eventId}`, {
