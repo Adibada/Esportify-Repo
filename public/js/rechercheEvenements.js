@@ -20,6 +20,11 @@ let currentFilters = {};
 let currentPage = 1;
 const itemsPerPage = 10;
 
+// Variables pour l'infinite scroll
+let isLoadingEvents = false;
+let hasMoreEvents = true;
+let allLoadedEvents = [];
+
 // Fonction pour construire l'URL de recherche avec les paramètres
 function buildSearchUrl(filters = {}, page = 1) {
     const params = new URLSearchParams();
@@ -38,12 +43,26 @@ function buildSearchUrl(filters = {}, page = 1) {
     return `/api/evenements/search?${params.toString()}`;
 }
 
-// Fonction pour effectuer la recherche
-async function searchEvents(filters = {}, page = 1) {
+// Fonction pour effectuer la recherche avec infinite scroll
+async function searchEvents(filters = {}, reset = true) {
+    if (isLoadingEvents || (!hasMoreEvents && !reset)) return;
+    
+    if (reset) {
+        currentPage = 1;
+        allLoadedEvents = [];
+        hasMoreEvents = true;
+    }
+    
+    isLoadingEvents = true;
+    
     try {
-        showLoadingState();
+        if (currentPage === 1 && reset) {
+            showLoadingState();
+        } else {
+            addEventsLoadingIndicator();
+        }
         
-        const url = buildSearchUrl(filters, page);
+        const url = buildSearchUrl(filters, currentPage);
         const token = getToken();
         
         const response = await fetch(url, {
@@ -56,19 +75,36 @@ async function searchEvents(filters = {}, page = 1) {
         
         const data = await response.json();
         
-        // Sauvegarder les filtres et la page courante
+        // Sauvegarder les filtres
         currentFilters = { ...filters };
-        currentPage = page;
         
-        // Utiliser la nouvelle structure de réponse de l'API
-        displayResults(data.events || [], data.totalCount || 0, data.page || page, data.totalPages || 1);
+        // Mettre à jour les variables de pagination
+        const events = data.events || [];
+        hasMoreEvents = currentPage < (data.totalPages || 1);
+        
+        if (reset) {
+            allLoadedEvents = events;
+            displayResults(events, data.totalCount || 0, true);
+        } else {
+            allLoadedEvents = [...allLoadedEvents, ...events];
+            displayResults(events, data.totalCount || 0, false);
+        }
+        
+        currentPage++;
         
     } catch (error) {
-        showErrorState(error.message);
+        if (reset) {
+            showErrorState(error.message);
+        } else {
+            console.error('Erreur lors du chargement des événements supplémentaires:', error);
+        }
+    } finally {
+        isLoadingEvents = false;
+        removeEventsLoadingIndicator();
     }
 }
 
-// Fonction pour afficher l'état de chargement
+// Fonctions pour l'indicateur de chargement
 function showLoadingState() {
     const resultsContainer = document.querySelector('.event-list');
     if (resultsContainer) {
@@ -81,6 +117,81 @@ function showLoadingState() {
             </li>
         `;
     }
+}
+
+function addEventsLoadingIndicator() {
+    const resultsContainer = document.querySelector('.event-list');
+    const existingIndicator = resultsContainer.querySelector('.events-loading');
+    
+    if (!existingIndicator && resultsContainer) {
+        resultsContainer.insertAdjacentHTML('beforeend', `
+            <li class="events-loading text-center py-3">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+                <div class="mt-1">Chargement d'autres événements...</div>
+            </li>
+        `);
+    }
+}
+
+function removeEventsLoadingIndicator() {
+    const loadingIndicator = document.querySelector('.events-loading');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+}
+
+// Configuration de l'infinite scroll pour les événements
+function setupEventsInfiniteScroll() {
+    const resultsContainer = document.querySelector('.event-list');
+    if (!resultsContainer) return;
+
+    // Créer un conteneur scrollable si ce n'est pas déjà fait
+    const parentContainer = resultsContainer.parentElement;
+    if (parentContainer && !parentContainer.classList.contains('events-scroll-container')) {
+        parentContainer.classList.add('events-scroll-container');
+        parentContainer.style.cssText = `
+            max-height: 600px; 
+            overflow-y: auto; 
+            border-radius: 0.375rem; 
+            padding: 1rem;
+        `;
+        
+        // Ajouter les styles de scrollbar
+        const style = document.createElement('style');
+        style.textContent = `
+            .events-scroll-container::-webkit-scrollbar {
+                width: 8px;
+            }
+            .events-scroll-container::-webkit-scrollbar-track {
+                background: rgba(255,255,255,0.1);
+                border-radius: 4px;
+            }
+            .events-scroll-container::-webkit-scrollbar-thumb {
+                background: var(--bs-secondary);
+                border-radius: 4px;
+            }
+            .events-scroll-container::-webkit-scrollbar-thumb:hover {
+                background: color-mix(in srgb, var(--bs-secondary) 80%, black 20%);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Ajouter l'event listener pour l'infinite scroll
+    parentContainer.addEventListener('scroll', () => {
+        const scrollTop = parentContainer.scrollTop;
+        const scrollHeight = parentContainer.scrollHeight;
+        const clientHeight = parentContainer.clientHeight;
+        
+        // Déclencher le chargement quand on arrive à 80% du scroll
+        if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+            if (!isLoadingEvents && hasMoreEvents) {
+                searchEvents(currentFilters, false);
+            }
+        }
+    });
 }
 
 // Fonction pour afficher l'état d'erreur
@@ -100,19 +211,19 @@ function showErrorState(message) {
     }
 }
 
-// Fonction pour afficher les résultats
-function displayResults(events, total = 0, page = 1, totalPages = 1) {
+// Fonction pour afficher les résultats avec infinite scroll
+function displayResults(events, total = 0, reset = true) {
     const resultsContainer = document.querySelector('.event-list');
     const titleElement = document.getElementById('event-title');
     
     if (!resultsContainer) return;
     
     // Mise à jour du titre avec le nombre de résultats
-    if (titleElement) {
+    if (titleElement && reset) {
         titleElement.textContent = `Résultats de la recherche (${total} événement${total !== 1 ? 's' : ''} trouvé${total !== 1 ? 's' : ''})`;
     }
     
-    if (!events || events.length === 0) {
+    if (reset && (!events || events.length === 0)) {
         resultsContainer.innerHTML = `
             <li class="text-center py-4 text-muted">
                 <i class="fas fa-search mb-2"></i>
@@ -142,102 +253,11 @@ function displayResults(events, total = 0, page = 1, totalPages = 1) {
         </li>
     `).join('');
     
-    resultsContainer.innerHTML = eventsHTML;
-    
-    // Ajouter la pagination si nécessaire
-    if (totalPages > 1) {
-        addPagination(total, page, totalPages);
+    if (reset) {
+        resultsContainer.innerHTML = eventsHTML;
     } else {
-        removePagination();
-    }
-}
-
-// Fonction pour ajouter la pagination
-function addPagination(total, currentPage) {
-    const totalPages = Math.ceil(total / itemsPerPage);
-    
-    // Supprimer l'ancienne pagination
-    removePagination();
-    
-    if (totalPages <= 1) return;
-    
-    const paginationContainer = document.createElement('div');
-    paginationContainer.className = 'pagination-container mt-4 d-flex justify-content-center';
-    paginationContainer.id = 'pagination';
-    
-    let paginationHTML = '<nav aria-label="Navigation des résultats"><ul class="pagination">';
-    
-    // Bouton précédent
-    if (currentPage > 1) {
-        paginationHTML += `
-            <li class="page-item">
-                <button class="page-link" onclick="searchEvents(currentFilters, ${currentPage - 1})">
-                    Précédent
-                </button>
-            </li>
-        `;
-    }
-    
-    // Numéros de pages
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-    
-    if (startPage > 1) {
-        paginationHTML += `
-            <li class="page-item">
-                <button class="page-link" onclick="searchEvents(currentFilters, 1)">1</button>
-            </li>
-        `;
-        if (startPage > 2) {
-            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-        }
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-        paginationHTML += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <button class="page-link" onclick="searchEvents(currentFilters, ${i})">${i}</button>
-            </li>
-        `;
-    }
-    
-    if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-        }
-        paginationHTML += `
-            <li class="page-item">
-                <button class="page-link" onclick="searchEvents(currentFilters, ${totalPages})">${totalPages}</button>
-            </li>
-        `;
-    }
-    
-    // Bouton suivant
-    if (currentPage < totalPages) {
-        paginationHTML += `
-            <li class="page-item">
-                <button class="page-link" onclick="searchEvents(currentFilters, ${currentPage + 1})">
-                    Suivant
-                </button>
-            </li>
-        `;
-    }
-    
-    paginationHTML += '</ul></nav>';
-    paginationContainer.innerHTML = paginationHTML;
-    
-    // Insérer après la liste des événements
-    const eventList = document.querySelector('.event-list');
-    if (eventList && eventList.parentNode) {
-        eventList.parentNode.insertBefore(paginationContainer, eventList.nextSibling);
-    }
-}
-
-// Fonction pour supprimer la pagination
-function removePagination() {
-    const existingPagination = document.getElementById('pagination');
-    if (existingPagination) {
-        existingPagination.remove();
+        // Ajouter les nouveaux événements à la liste existante
+        resultsContainer.insertAdjacentHTML('beforeend', eventsHTML);
     }
 }
 
@@ -248,6 +268,8 @@ function resetAllForms() {
     });
     currentFilters = {};
     currentPage = 1;
+    allLoadedEvents = [];
+    hasMoreEvents = true;
     
     // Charger tous les événements
     searchEvents();
@@ -262,7 +284,7 @@ function initializeSearchHandlers() {
             e.preventDefault();
             const eventName = document.getElementById('eventName')?.value.trim();
             if (eventName) {
-                searchEvents({ titre: eventName }, 1);
+                searchEvents({ titre: eventName }, true);
             }
         });
     }
@@ -274,7 +296,7 @@ function initializeSearchHandlers() {
             e.preventDefault();
             const organizerName = document.getElementById('organizerName')?.value.trim();
             if (organizerName) {
-                searchEvents({ organisateur: organizerName }, 1);
+                searchEvents({ organisateur: organizerName }, true);
             }
         });
     }
@@ -292,7 +314,7 @@ function initializeSearchHandlers() {
             if (maxParticipants) filters.maxParticipants = parseInt(maxParticipants);
             
             if (Object.keys(filters).length > 0) {
-                searchEvents(filters, 1);
+                searchEvents(filters, true);
             }
         });
     }
@@ -304,7 +326,7 @@ function initializeSearchHandlers() {
             e.preventDefault();
             const searchDateStart = document.getElementById('searchDateStart')?.value;
             if (searchDateStart) {
-                searchEvents({ dateStart: searchDateStart }, 1);
+                searchEvents({ dateStart: searchDateStart }, true);
             }
         });
     }
@@ -316,7 +338,7 @@ function initializeSearchHandlers() {
             e.preventDefault();
             const searchDateEnd = document.getElementById('searchDateEnd')?.value;
             if (searchDateEnd) {
-                searchEvents({ dateEnd: searchDateEnd }, 1);
+                searchEvents({ dateEnd: searchDateEnd }, true);
             }
         });
     }
@@ -370,12 +392,12 @@ function performCombinedSearch() {
         return;
     }
     
-    searchEvents(filters, 1);
+    searchEvents(filters, true);
 }
 
 // Fonction pour charger tous les événements au démarrage
 function loadAllEvents() {
-    searchEvents({}, 1);
+    searchEvents({}, true);
 }
 
 // Initialisation de la page
@@ -387,6 +409,7 @@ function initializeSearchPage() {
     }
     
     initializeSearchHandlers();
+    setupEventsInfiniteScroll();
     loadAllEvents();
     
     return true;

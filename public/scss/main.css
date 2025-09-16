@@ -11976,6 +11976,70 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
+.events-scroll-container {
+  background-color: #08256D !important;
+  border-color: rgb(11.4871794872, 53.1282051282, 156.5128205128) !important;
+}
+.events-scroll-container .event-in-list {
+  background-color: transparent;
+}
+.events-scroll-container .event-in-list a {
+  color: #4F7EF3 !important;
+  text-decoration: none;
+}
+.events-scroll-container .event-in-list a:hover {
+  color: #F3C74F !important;
+}
+.events-scroll-container .event-in-list .separator {
+  color: rgb(78.9230769231, 125.7692307692, 242.0769230769);
+}
+.events-scroll-container .text-muted {
+  color: rgb(174.4893617021, 195.9893617021, 249.5106382979) !important;
+}
+.events-scroll-container .events-loading {
+  color: #4F7EF3 !important;
+}
+.events-scroll-container .events-loading .spinner-border {
+  color: #F3C74F !important;
+}
+
+.profiles-scroll-container {
+  background-color: #08256D !important;
+}
+.profiles-scroll-container .list-group-item {
+  background-color: transparent !important;
+  border-color: rgb(11.4871794872, 53.1282051282, 156.5128205128) !important;
+}
+.profiles-scroll-container .list-group-item:hover {
+  background-color: rgb(9.7435897436, 45.0641025641, 132.7564102564) !important;
+}
+.profiles-scroll-container .list-group-item .user-link {
+  color: #4F7EF3 !important;
+}
+.profiles-scroll-container .list-group-item .user-link:hover {
+  color: #F3C74F !important;
+}
+.profiles-scroll-container .list-group-item .text-muted {
+  color: rgb(174.4893617021, 195.9893617021, 249.5106382979) !important;
+}
+
+.profiles-loading {
+  color: #4F7EF3 !important;
+}
+.profiles-loading .spinner-border {
+  color: #F3C74F !important;
+}
+
+.results-list .card {
+  background-color: #08256D;
+  border-color: rgb(11.4871794872, 53.1282051282, 156.5128205128);
+}
+.results-list .card .card-header {
+  background-color: rgb(9.7435897436, 45.0641025641, 132.7564102564);
+  border-color: rgb(11.4871794872, 53.1282051282, 156.5128205128);
+  color: #4F7EF3;
+}
+
 header {
   position: fixed;
   top: 0;

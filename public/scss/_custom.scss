@@ -17,3 +17,83 @@ $navbar-dark-brand-color: $secondary;
 $navbar-dark-icon-color: $secondary;
 
 @import "../node_modules/bootstrap/scss/bootstrap";
+
+// Styles pour les conteneurs de recherche avec infinite scroll
+.events-scroll-container {
+    background-color: $dark !important;
+    border-color: lighten($dark, 10%) !important;
+    
+    .event-in-list {
+        background-color: transparent;
+        
+        a {
+            color: $primary !important;
+            text-decoration: none;
+            
+            &:hover {
+                color: $secondary !important;
+            }
+        }
+        
+        .separator {
+            color: lighten($dark, 40%);
+        }
+    }
+    
+    .text-muted {
+        color: lighten($primary, 20%) !important;
+    }
+    
+    .events-loading {
+        color: $primary !important;
+        
+        .spinner-border {
+            color: $secondary !important;
+        }
+    }
+}
+
+.profiles-scroll-container {
+    background-color: $dark !important;
+    
+    .list-group-item {
+        background-color: transparent !important;
+        border-color: lighten($dark, 10%) !important;
+        
+        &:hover {
+            background-color: lighten($dark, 5%) !important;
+        }
+        
+        .user-link {
+            color: $primary !important;
+            
+            &:hover {
+                color: $secondary !important;
+            }
+        }
+        
+        .text-muted {
+            color: lighten($primary, 20%) !important;
+        }
+    }
+}
+
+.profiles-loading {
+    color: $primary !important;
+    
+    .spinner-border {
+        color: $secondary !important;
+    }
+}
+
+// Styles pour les résultats de recherche de profils
+.results-list .card {
+    background-color: $dark;
+    border-color: lighten($dark, 10%);
+    
+    .card-header {
+        background-color: lighten($dark, 5%);
+        border-color: lighten($dark, 10%);
+        color: $primary;
+    }
+}
