@@ -12295,4 +12295,134 @@ body {
 .admin-role-section #updateRoleBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.image-gallery {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.image-gallery img {
+  width: 100%;
+  height: 500px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 8px;
+}
+.image-gallery .carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+.image-gallery .carousel .carousel-slider {
+  display: flex;
+  transition: transform 0.3s ease;
+}
+.image-gallery .carousel .carousel-slider > div {
+  min-width: 100%;
+  height: 500px;
+}
+.image-gallery .carousel .carousel-slider > div img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 0;
+}
+.image-gallery .carousel button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 50%;
+  z-index: 10;
+  font-size: 20px;
+}
+.image-gallery .carousel button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+.image-gallery .carousel button:first-of-type {
+  left: 10px;
+}
+.image-gallery .carousel button:last-of-type {
+  right: 10px;
+}
+.image-gallery .carousel .carousel-indicators {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+.image-gallery .carousel .carousel-indicators button {
+  position: static;
+  transform: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.5);
+}
+.image-gallery .carousel .carousel-indicators button.active {
+  background: white;
+}
+.image-gallery .carousel .carousel-indicators button:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 768px) {
+  .image-gallery img {
+    height: 250px;
+  }
+  .image-gallery .carousel .carousel-slider > div {
+    height: 250px;
+  }
+  .image-gallery .carousel button {
+    padding: 8px 12px;
+    font-size: 16px;
+  }
+  .image-gallery .carousel button:first-of-type {
+    left: 5px;
+  }
+  .image-gallery .carousel button:last-of-type {
+    right: 5px;
+  }
+  .image-gallery .carousel .carousel-indicators {
+    bottom: 8px;
+  }
+  .image-gallery .carousel .carousel-indicators button {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    font-size: inherit;
+  }
+}
+@media (max-width: 480px) {
+  .image-gallery img {
+    height: 200px;
+  }
+  .image-gallery .carousel .carousel-slider > div {
+    height: 200px;
+  }
+  .image-gallery .carousel button {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  .image-gallery .carousel button:first-of-type {
+    left: 3px;
+  }
+  .image-gallery .carousel button:last-of-type {
+    right: 3px;
+  }
+  .image-gallery .carousel .carousel-indicators {
+    bottom: 5px;
+    gap: 3px;
+  }
 }/*# sourceMappingURL=main.css.map */

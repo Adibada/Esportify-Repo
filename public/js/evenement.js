@@ -13,6 +13,168 @@ const isConnected = () => getToken() !== null;
 const getUserId = () => getCookie('userId') ? parseInt(getCookie('userId')) : null;
 const getRole = () => getCookie('role');
 
+// === GESTION GALERIE D'IMAGES ===
+// Fonctions d'accessibilité pour générer les labels dynamiques
+function generateImageAlt(image) {
+    if (image.originalName) {
+        // Si c'est une description personnalisée, l'utiliser directement
+        if (!image.originalName.match(/\.(jpg|jpeg|png|gif|webp)$/i) && !image.originalName.startsWith('URL:')) {
+            return image.originalName;
+        }
+        
+        // Sinon, nettoyer le nom de fichier pour créer un alt text descriptif
+        const cleanName = image.originalName
+            .replace(/^URL:\s*/, '') // Supprimer le préfixe "URL:" pour les URLs
+            .replace(/\.[^/.]+$/, '') // Supprimer l'extension
+            .replace(/[-_]/g, ' ')     // Remplacer tirets et underscores par espaces
+            .replace(/\b\w/g, l => l.toUpperCase()); // Mettre en forme de titre
+        return `Image: ${cleanName}`;
+    }
+    return 'Image de l\'événement';
+}
+
+function generateImageTitle(image) {
+    if (image.originalName) {
+        return `Image originale: ${image.originalName}`;
+    }
+    return 'Image de l\'événement';
+}
+
+const updateImageGallery = (images) => {
+    const imgContainer = document.querySelector('.bloc img')?.parentElement;
+    if (!imgContainer) return;
+
+    // Supprimer l'ancienne structure
+    imgContainer.innerHTML = '';
+
+    if (!images || images.length === 0) {
+        // Image par défaut si aucune image
+        imgContainer.innerHTML = '<img src="/Images/images accueil/multiécrans.jpg" alt="Événement">';
+        return;
+    }
+
+    // Créer la galerie
+    const gallery = document.createElement('div');
+    gallery.className = 'image-gallery';
+
+    if (images.length === 1) {
+        // Affichage simple pour une seule image
+        const img = document.createElement('img');
+        const image = images[0];
+        img.src = image.url || image;
+        img.alt = generateImageAlt(image);
+        img.title = generateImageTitle(image);
+        gallery.appendChild(img);
+    } else {
+        // Carrousel pour plusieurs images
+        const carousel = document.createElement('div');
+        carousel.className = 'carousel';
+
+        const slider = document.createElement('div');
+        slider.className = 'carousel-slider';
+
+        images.forEach((image, index) => {
+            const imgWrapper = document.createElement('div');
+
+            const img = document.createElement('img');
+            img.src = image.url || image;
+            img.alt = generateImageAlt(image);
+            img.title = generateImageTitle(image);
+
+            imgWrapper.appendChild(img);
+            slider.appendChild(imgWrapper);
+        });
+
+        // Navigation si plus d'une image
+        if (images.length > 1) {
+            let currentIndex = 0;
+            let autoPlayInterval;
+
+            const updateCarousel = () => {
+                slider.style.transform = `translateX(-${currentIndex * 100}%)`;
+                // Mettre à jour les indicateurs
+                if (indicators) {
+                    [...indicators.children].forEach((dot, i) => {
+                        dot.classList.toggle('active', i === currentIndex);
+                    });
+                }
+            };
+
+            const nextSlide = () => {
+                currentIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+                updateCarousel();
+            };
+
+            const startAutoPlay = () => {
+                autoPlayInterval = setInterval(nextSlide, 4000); // Change toutes les 4 secondes
+            };
+
+            const stopAutoPlay = () => {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+            };
+
+            const prevBtn = document.createElement('button');
+            prevBtn.innerHTML = '‹';
+            prevBtn.setAttribute('aria-label', 'Image précédente');
+
+            const nextBtn = document.createElement('button');
+            nextBtn.innerHTML = '›';
+            nextBtn.setAttribute('aria-label', 'Image suivante');
+
+            prevBtn.onclick = () => {
+                stopAutoPlay();
+                currentIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+                updateCarousel();
+                startAutoPlay(); // Redémarrer l'autoplay après interaction
+            };
+
+            nextBtn.onclick = () => {
+                stopAutoPlay();
+                currentIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+                updateCarousel();
+                startAutoPlay(); // Redémarrer l'autoplay après interaction
+            };
+
+            // Pause automatique au survol
+            carousel.addEventListener('mouseenter', stopAutoPlay);
+            carousel.addEventListener('mouseleave', startAutoPlay);
+
+            carousel.appendChild(prevBtn);
+            carousel.appendChild(nextBtn);
+
+            // Indicateurs
+            const indicators = document.createElement('div');
+            indicators.className = 'carousel-indicators';
+
+            images.forEach((_, index) => {
+                const dot = document.createElement('button');
+                dot.className = index === 0 ? 'active' : '';
+                dot.setAttribute('aria-label', `Aller à l'image ${index + 1}`);
+                dot.onclick = () => {
+                    stopAutoPlay();
+                    currentIndex = index;
+                    updateCarousel();
+                    startAutoPlay(); // Redémarrer l'autoplay après interaction
+                };
+                indicators.appendChild(dot);
+            });
+
+            carousel.appendChild(indicators);
+
+            // Démarrer l'autoplay
+            startAutoPlay();
+        }
+
+        carousel.appendChild(slider);
+        gallery.appendChild(carousel);
+    }
+
+    imgContainer.appendChild(gallery);
+};
+
 // === VARIABLES GLOBALES ===
 const eventIdParam = new URLSearchParams(window.location.search).get('id');
 const eventId = eventIdParam !== null ? parseInt(eventIdParam) : null;
@@ -42,12 +204,8 @@ const setState = (type, content) => {
 
 // === MISE À JOUR DU DOM ===
 const updateEvent = (event) => {
-    // Image
-    const img = document.querySelector('.bloc img');
-    if (img && event.image) {
-        img.src = event.image;
-        img.alt = `Image de l'événement : ${event.titre}`;
-    }
+    // Images - Galerie multiple
+    updateImageGallery(event.images || []);
 
     // Éléments à mettre à jour
     const updates = [

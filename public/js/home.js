@@ -1,9 +1,12 @@
 function createEventSlide(event, isActive = false) {
+    // Générer un attribut alt dynamique basé sur l'image principale
+    const altText = event.mainImage?.originalName || `Image de l'événement: ${event.titre || 'Sans titre'}`;
+    
     return `
     <div class="carousel-item event-carousel-item${isActive ? ' active' : ''}">
         <div class="row align-items-stretch p-2 h-100">
             <div class="col-md-6 mb-3 mb-md-0 d-flex justify-content-center align-items-center">
-                <img src="${event.image || '/Images/images event/joueur et coach.jpg'}" class="event-carousel-img rounded-4" style="width: 98%; max-width: 420px; height: auto; max-height: 420px; object-fit: cover; border-radius: 1rem; box-shadow: 0 0 16px #0004;" alt="Image évènement">
+                <img src="${event.mainImageUrl || '/Images/images event/joueur et coach.jpg'}" class="event-carousel-img rounded-4" style="width: 98%; max-width: 420px; height: auto; max-height: 420px; object-fit: cover; border-radius: 1rem; box-shadow: 0 0 16px #0004;" alt="${altText}">
             </div>
             <div class="col-md-6 d-flex flex-column bg-dark bg-opacity-75 event-carousel-text-col">
                 <div class="mb-4">
@@ -53,6 +56,16 @@ function fillEventCarousel() {
             // Ajoute la slide "recherche" (active si aucun évènement)
             slides.push(createSearchSlide(slides.length === 0));
             carouselInner.innerHTML = slides.join('');
+            
+            // Initialiser le carrousel Bootstrap pour qu'il soit automatique
+            const carouselElement = document.getElementById('eventCarousel');
+            if (carouselElement && window.bootstrap) {
+                new bootstrap.Carousel(carouselElement, {
+                    interval: 5000, // Change toutes les 5 secondes
+                    ride: true,     // Démarrage automatique
+                    pause: 'hover'  // Pause au survol
+                });
+            }
         })
         .catch(err => {
             // Silently handle errors - carousel will remain empty

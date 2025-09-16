@@ -357,3 +357,175 @@ body {
     }
   }
 }
+
+// === GALERIE D'IMAGES ÉVÉNEMENTS ===
+// Galerie d'images pour les pages d'événements individuels
+.image-gallery {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  
+  // Image unique
+  img {
+    width: 100%;
+    height: 500px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  // Carrousel multi-images
+  .carousel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    
+    .carousel-slider {
+      display: flex;
+      transition: transform 0.3s ease;
+    }
+    
+    .carousel-slider > div {
+      min-width: 100%;
+      height: 500px;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0; // Pas de border-radius sur les images du carrousel
+      }
+    }
+    
+    // Boutons de navigation
+    button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 50%;
+      z-index: 10;
+      font-size: 20px;
+      
+      &:hover {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      
+      &:first-of-type {
+        left: 10px;
+      }
+      
+      &:last-of-type {
+        right: 10px;
+      }
+    }
+    
+    // Indicateurs de pagination
+    .carousel-indicators {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      z-index: 10;
+      
+      button {
+        position: static;
+        transform: none;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.5);
+        
+        &.active {
+          background: white;
+        }
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.8);
+        }
+      }
+    }
+  }
+}
+
+// Version mobile pour la galerie
+@media (max-width: 768px) {
+  .image-gallery {
+    img {
+      height: 250px; // Plus compact sur mobile
+    }
+    
+    .carousel {
+      .carousel-slider > div {
+        height: 250px; // Même hauteur pour cohérence
+      }
+      
+      // Boutons de navigation plus petits sur mobile
+      button {
+        padding: 8px 12px;
+        font-size: 16px;
+        
+        &:first-of-type {
+          left: 5px; // Plus proche du bord
+        }
+        
+        &:last-of-type {
+          right: 5px; // Plus proche du bord
+        }
+      }
+      
+      // Indicateurs légèrement plus gros sur mobile pour toucher
+      .carousel-indicators {
+        bottom: 8px;
+        
+        button {
+          width: 10px;
+          height: 10px;
+          padding: 0;
+          font-size: inherit; // Reset la taille de police
+        }
+      }
+    }
+  }
+}
+
+// Version très petit écran (smartphones en portrait)
+@media (max-width: 480px) {
+  .image-gallery {
+    img {
+      height: 200px; // Encore plus compact
+    }
+    
+    .carousel {
+      .carousel-slider > div {
+        height: 200px;
+      }
+      
+      // Boutons encore plus petits
+      button {
+        padding: 6px 10px;
+        font-size: 14px;
+        
+        &:first-of-type {
+          left: 3px;
+        }
+        
+        &:last-of-type {
+          right: 3px;
+        }
+      }
+      
+      .carousel-indicators {
+        bottom: 5px;
+        gap: 3px; // Moins d'espace entre les indicateurs
+      }
+    }
+  }
+}
