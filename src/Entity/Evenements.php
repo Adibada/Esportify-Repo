@@ -6,6 +6,7 @@ use ApiPlatform\Core\Annotation\ApiResource;
 use ApiPlatform\Core\Annotation\ApiProperty;
 use App\Repository\EvenementsRepository;
 use App\Entity\Participation;
+use App\Entity\ImageEvenement;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -52,10 +53,6 @@ class Evenements
     #[ORM\Column(length: 255, options: ['default' => self::STATUT_EN_ATTENTE])]
     private ?string $statut = self::STATUT_EN_ATTENTE;
 
-    #[Groups([self::GROUP_READ, self::GROUP_WRITE, User::GROUP_PUBLIC])]
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $image = null;
-
     #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
     #[ApiProperty(readable: true, writable: false)]
     public function getNumberCompetitors(): int
@@ -77,10 +74,15 @@ class Evenements
     #[ORM\OneToMany(mappedBy: 'evenement', targetEntity: Participation::class, orphanRemoval: true)]
     private Collection $participations;
 
+    #[Groups([self::GROUP_READ])]
+    #[ORM\OneToMany(mappedBy: 'evenement', targetEntity: ImageEvenement::class, orphanRemoval: true)]
+    private Collection $images;
+
     public function __construct()
     {
         $this->commentaires = new ArrayCollection();
         $this->participations = new ArrayCollection();
+        $this->images = new ArrayCollection();
         $this->statut = self::STATUT_EN_ATTENTE;
     }
 
@@ -155,17 +157,6 @@ class Evenements
         return $this;
     }
 
-    public function getImage(): ?string
-    {
-        return $this->image;
-    }
-
-    public function setImage(?string $image): static
-    {
-        $this->image = $image;
-        return $this;
-    }
-
     public function getOrganisateur(): ?User
     {
         return $this->organisateur;
@@ -226,5 +217,52 @@ class Evenements
         }
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, ImageEvenement>
+     */
+    public function getImages(): Collection
+    {
+        return $this->images;
+    }
+
+    public function addImage(ImageEvenement $image): static
+    {
+        if (!$this->images->contains($image)) {
+            $this->images->add($image);
+            $image->setEvenement($this);
+        }
+
+        return $this;
+    }
+
+    public function removeImage(ImageEvenement $image): static
+    {
+        if ($this->images->removeElement($image) && $image->getEvenement() === $this) {
+            $image->setEvenement(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Retourne la première image de l'événement (considérée comme principale)
+     */
+    #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
+    public function getMainImage(): ?ImageEvenement
+    {
+        // Retourner la première image (la première est considérée comme principale)
+        return $this->images->first() ?: null;
+    }
+
+    /**
+     * Retourne l'URL de la première image pour compatibilité avec l'ancien système
+     */
+    #[Groups([self::GROUP_READ, User::GROUP_PUBLIC])]
+    public function getMainImageUrl(): ?string
+    {
+        $mainImage = $this->getMainImage();
+        return $mainImage ? $mainImage->getUrl() : null;
     }
 }

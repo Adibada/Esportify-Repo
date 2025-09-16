@@ -4,9 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Evenements;
 use App\Entity\Participation;
+use App\Entity\ImageEvenement;
 use App\Repository\EvenementsRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\UserRepository;
+use App\Repository\ImageEvenementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,7 +29,8 @@ class EvenementsController extends AbstractController
         private SerializerInterface $serializer,
         private UrlGeneratorInterface $urlGenerator,
         private ParticipationRepository $participationRepository,
-        private UserRepository $userRepository
+        private UserRepository $userRepository,
+        private ImageEvenementRepository $imageRepository
     ) {}
 
     #[IsGranted('ROLE_ORGANISATEUR')]
@@ -99,47 +102,63 @@ class EvenementsController extends AbstractController
         $evenement->setEnd($endDate);
         $evenement->setOrganisateur($user);
         
-        // Gestion de l'image
-        $imageFile = $request->files->get('image');
-        $imageUrl = $request->request->get('imageUrl');
-        
-        if ($imageFile) {
-            // Validation du type de fichier
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!in_array($imageFile->getMimeType(), $allowedTypes)) {
-                return $this->json(['error' => 'Type de fichier non autorisé. Seuls les formats JPEG, PNG, GIF et WebP sont acceptés.'], Response::HTTP_BAD_REQUEST);
-            }
-            
-            // Validation de la taille (5MB max)
-            if ($imageFile->getSize() > 5 * 1024 * 1024) {
-                return $this->json(['error' => 'Le fichier est trop volumineux. Taille maximum: 5MB.'], Response::HTTP_BAD_REQUEST);
-            }
-            
-            // Upload de fichier
-            $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
-            if (!is_dir($uploadsDirectory)) {
-                mkdir($uploadsDirectory, 0755, true);
-            }
-            
-            $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
-            $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
-            $fileName = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
-            
-            try {
-                $imageFile->move($uploadsDirectory, $fileName);
-                $evenement->setImage('Images/images event/' . $fileName);
-            } catch (\Exception $e) {
-                return $this->json(['error' => 'Erreur lors du téléchargement de l\'image'], Response::HTTP_INTERNAL_SERVER_ERROR);
-            }
-        } elseif (!empty($imageUrl)) {
-            // URL d'image
-            $evenement->setImage($imageUrl);
-        } else {
-            return $this->json(['error' => 'Une image est requise'], Response::HTTP_BAD_REQUEST);
-        }
-
+        // Persister d'abord l'événement pour avoir un ID
         $this->manager->persist($evenement);
         $this->manager->flush();
+
+        // Gestion des images
+        $images = $request->files->get('images', []);
+        $imageFile = $request->files->get('image'); // Support de l'ancienne API
+        $imageUrl = $request->request->get('imageUrl'); // Une seule URL (ancienne API)
+        $imageUrls = $request->request->get('imageUrls', []); // URLs multiples (nouvelle API)
+        $imageDescription = $request->request->get('imageDescription'); // Description unique (ancienne API)
+        $imageDescriptions = $request->request->get('imageDescriptions', []); // Descriptions multiples (nouvelle API)
+        
+        // Si on utilise l'ancienne API avec un seul fichier image
+        if ($imageFile && empty($images)) {
+            $images = [$imageFile];
+        }
+        
+        if (!empty($images)) {
+            try {
+                foreach ($images as $index => $imgFile) {
+                    // Utiliser la description correspondante ou retomber sur la description générale
+                    $description = isset($imageDescriptions[$index]) ? $imageDescriptions[$index] : $imageDescription;
+                    $this->handleImageUpload($imgFile, $evenement, $description);
+                }
+                $this->manager->flush();
+            } catch (\Exception $e) {
+                return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+            }
+        } elseif (!empty($imageUrls)) {
+            // Support des URLs multiples (nouvelle API)
+            try {
+                foreach ($imageUrls as $index => $url) {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $imageEntity = new ImageEvenement();
+                        $imageEntity->setFilename($url);
+                        // Utiliser la description correspondante ou retomber sur la description générale
+                        $description = isset($imageDescriptions[$index]) ? $imageDescriptions[$index] : $imageDescription;
+                        $imageEntity->setOriginalName($description ?: ('URL: ' . parse_url($url, PHP_URL_HOST)));
+                        $imageEntity->setEvenement($evenement);
+                        
+                        $this->manager->persist($imageEntity);
+                    }
+                }
+                $this->manager->flush();
+            } catch (\Exception $e) {
+                return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+            }
+        } elseif (!empty($imageUrl)) {
+            // Support de l'ancienne API avec URL d'image (une seule)
+            $imageEntity = new ImageEvenement();
+            $imageEntity->setFilename($imageUrl);
+            $imageEntity->setOriginalName($imageDescription ?: 'URL Image');
+            $imageEntity->setEvenement($evenement);
+            
+            $this->manager->persist($imageEntity);
+            $this->manager->flush();
+        }
 
         $responseData = $this->serializer->serialize($evenement, 'json');
         $location = $this->urlGenerator->generate(
@@ -218,23 +237,27 @@ class EvenementsController extends AbstractController
     )]
     public function edit(Request $request, int $id): Response
     {
-        $evenement = $this->repository->find($id);
+        try {
+            $evenement = $this->repository->find($id);
 
-        if (!$evenement) {
-            return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
-        }
+            if (!$evenement) {
+                return $this->json(['error' => "Aucun événement trouvé"], Response::HTTP_NOT_FOUND);
+            }
 
-        // Vérifier que l'utilisateur peut modifier cet événement
-        $user = $this->getUser();
-        if (!$this->isGranted('ROLE_ADMIN') && $evenement->getOrganisateur() !== $user) {
-            return $this->json(['error' => 'Vous n\'avez pas les droits pour modifier cet événement'], Response::HTTP_FORBIDDEN);
-        }
+            // Vérifier que l'utilisateur peut modifier cet événement
+            $user = $this->getUser();
+            if (!$this->isGranted('ROLE_ADMIN') && $evenement->getOrganisateur() !== $user) {
+                return $this->json(['error' => 'Vous n\'avez pas les droits pour modifier cet événement'], Response::HTTP_FORBIDDEN);
+            }
 
-        $data = json_decode($request->getContent(), true);
+            $data = json_decode($request->getContent(), true);
+            
+            if (!$data) {
+                return $this->json(['error' => "Données invalides"], Response::HTTP_BAD_REQUEST);
+            }
 
-        if (!$data) {
-            return $this->json(['error' => "Données invalides"], Response::HTTP_BAD_REQUEST);
-        }
+            // Log des données reçues pour debug
+            error_log("Données reçues pour modification événement $id: " . print_r($data, true));
 
         // Mise à jour des champs
         if (isset($data['titre'])) {
@@ -274,21 +297,16 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => "La date de fin doit être postérieure à la date de début"], Response::HTTP_BAD_REQUEST);
         }
 
-        // Gestion de l'image
-        if (array_key_exists('image', $data)) {
-            if ($data['image'] === null) {
-                // Supprimer l'image
-                $evenement->setImage(null);
-            } elseif (!empty($data['image'])) {
-                // Définir une nouvelle image
-                $evenement->setImage($data['image']);
-            }
-        }
-
         $this->manager->flush();
 
         $evenementData = $this->serializer->serialize($evenement, 'json', ['groups' => ['evenement_details']]);
         return new JsonResponse($evenementData, Response::HTTP_OK, [], true);
+        
+        } catch (\Exception $e) {
+            error_log("Erreur lors de la modification de l'événement $id: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return $this->json(['error' => 'Erreur interne du serveur: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     #[Route('/{id}/image', name: 'upload_image', methods: ['POST'])]
@@ -1015,5 +1033,155 @@ class EvenementsController extends AbstractController
         $this->manager->flush();
 
         return $this->json(['message' => 'Participation refusée']);
+    }
+
+    /**
+     * Méthode utilitaire pour uploader et créer une ImageEvenement
+     */
+    private function handleImageUpload(\Symfony\Component\HttpFoundation\File\UploadedFile $imageFile, Evenements $evenement, ?string $customDescription = null): ?ImageEvenement
+    {
+        // Validation du type de fichier
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($imageFile->getMimeType(), $allowedTypes)) {
+            throw new \InvalidArgumentException('Type de fichier non autorisé. Seuls les formats JPEG, PNG, GIF et WebP sont acceptés.');
+        }
+        
+        // Validation de la taille (5MB max)
+        if ($imageFile->getSize() > 5 * 1024 * 1024) {
+            throw new \InvalidArgumentException('Le fichier est trop volumineux. Taille maximum: 5MB.');
+        }
+        
+        // Upload de fichier
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
+        if (!is_dir($uploadsDirectory)) {
+            mkdir($uploadsDirectory, 0755, true);
+        }
+        
+        $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
+        $fileName = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
+        
+        try {
+            $imageFile->move($uploadsDirectory, $fileName);
+            
+            // Créer l'entité ImageEvenement
+            $imageEntity = new ImageEvenement();
+            $imageEntity->setFilename($fileName);
+            // Utiliser la description personnalisée si fournie, sinon le nom original du fichier
+            $imageEntity->setOriginalName($customDescription ?: $imageFile->getClientOriginalName());
+            $imageEntity->setEvenement($evenement);
+            
+            $this->manager->persist($imageEntity);
+            
+            return $imageEntity;
+        } catch (\Exception $e) {
+            throw new \RuntimeException('Erreur lors du téléchargement de l\'image');
+        }
+    }
+
+    #[Route('/{id}/images', name: 'upload_images', methods: ['POST'])]
+    #[OA\Post(
+        summary: 'Ajouter des images à un événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ]
+    )]
+    public function uploadImages(Request $request, int $id): Response
+    {
+        $evenement = $this->repository->find($id);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user = $this->getUser();
+        if (!$user || ($evenement->getOrganisateur() !== $user && !$this->isGranted('ROLE_ADMIN'))) {
+            return $this->json(['error' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $images = $request->files->get('images', []);
+        $imageUrl = $request->request->get('imageUrl');
+        $imageDescription = $request->request->get('imageDescription'); // Nouveau paramètre
+        
+        if (empty($images) && empty($imageUrl)) {
+            return $this->json(['error' => 'Aucune image ou URL fournie'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $uploadedImages = [];
+        
+        try {
+            // Traiter les fichiers images
+            foreach ($images as $imageFile) {
+                $imageEntity = $this->handleImageUpload($imageFile, $evenement, $imageDescription);
+                $uploadedImages[] = $imageEntity;
+            }
+            
+            // Traiter l'URL d'image
+            if ($imageUrl && filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+                $imageEntity = new ImageEvenement();
+                $imageEntity->setEvenement($evenement);
+                $imageEntity->setFilename($imageUrl); // Stocker l'URL dans filename
+                // Utiliser la description personnalisée si fournie, sinon le nom de domaine de l'URL
+                $imageEntity->setOriginalName($imageDescription ?: ('URL: ' . parse_url($imageUrl, PHP_URL_HOST)));
+                
+                $this->manager->persist($imageEntity);
+                $uploadedImages[] = $imageEntity;
+            } elseif ($imageUrl) {
+                throw new \Exception('URL d\'image invalide');
+            }
+            
+            $this->manager->flush();
+            
+            return $this->json([
+                'message' => 'Images ajoutées avec succès',
+                'images' => array_map(fn($img) => [
+                    'id' => $img->getId(),
+                    'url' => $img->getUrl(),
+                    'filename' => $img->getFilename()
+                ], $uploadedImages)
+            ]);
+            
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+    }
+
+    #[Route('/{eventId}/images/{imageId}', name: 'delete_image', methods: ['DELETE'])]
+    #[OA\Delete(
+        summary: 'Supprimer une image d\'événement',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'imageId', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ]
+    )]
+    public function deleteImage(int $eventId, int $imageId): Response
+    {
+        $evenement = $this->repository->find($eventId);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        $user = $this->getUser();
+        if (!$user || ($evenement->getOrganisateur() !== $user && !$this->isGranted('ROLE_ADMIN'))) {
+            return $this->json(['error' => 'Non autorisé'], Response::HTTP_FORBIDDEN);
+        }
+
+        $image = $this->imageRepository->find($imageId);
+        if (!$image || $image->getEvenement() !== $evenement) {
+            return $this->json(['error' => 'Image non trouvée'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Supprimer le fichier physique
+        $filePath = $image->getFullPath();
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
+        // Supprimer l'entité
+        $this->manager->remove($image);
+        $this->manager->flush();
+
+        return $this->json(['message' => 'Image supprimée avec succès']);
     }
 }
