@@ -550,6 +550,82 @@ class EvenementsController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/rejoindre', name: 'rejoindre', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/evenements/{id}/rejoindre',
+        summary: 'Rejoindre un événement démarré',
+        description: 'Permet à un participant validé de rejoindre un événement qui a été démarré'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        description: 'ID de l\'événement',
+        in: 'path',
+        required: true,
+        schema: new OA\Schema(type: 'integer')
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Participant rejoint avec succès',
+        content: new OA\JsonContent(
+            properties: [
+                new OA\Property(property: 'message', type: 'string'),
+                new OA\Property(property: 'redirectUrl', type: 'string', nullable: true),
+            ]
+        )
+    )]
+    #[OA\Response(
+        response: 400,
+        description: 'Événement non démarré ou participation non validée'
+    )]
+    #[OA\Response(
+        response: 403,
+        description: 'Utilisateur non autorisé'
+    )]
+    #[IsGranted('ROLE_USER')]
+    public function rejoindre(Evenements $evenement): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return $this->json(['error' => 'Utilisateur non connecté'], Response::HTTP_UNAUTHORIZED);
+        }
+        
+        // Vérifier que l'événement est démarré
+        if ($evenement->getStatut() !== Evenements::STATUT_DEMARRE) {
+            return $this->json([
+                'error' => 'Cet événement n\'est pas encore démarré. Attendez que l\'organisateur le démarre.'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        // Vérifier que l'utilisateur a une participation validée
+        $participation = $this->participationRepository->findOneBy([
+            'user' => $user,
+            'evenement' => $evenement
+        ]);
+        
+        if (!$participation || $participation->getStatut() !== 'valide') {
+            return $this->json([
+                'error' => 'Vous devez avoir une participation validée pour rejoindre cet événement.'
+            ], Response::HTTP_FORBIDDEN);
+        }
+        
+        // Ici, vous pouvez ajouter une logique spécifique pour "rejoindre" l'événement
+        // Par exemple :
+        // - Marquer la participation comme "en cours" ou "active"
+        // - Générer un lien vers une salle virtuelle
+        // - Envoyer des informations de connexion
+        // - Logger l'action
+        
+        // Pour le moment, on retourne simplement une confirmation
+        return new JsonResponse([
+            'message' => 'Vous avez rejoint l\'événement avec succès !',
+            'event_id' => $evenement->getId(),
+            'event_title' => $evenement->getTitre(),
+            'participant_id' => $user->getId(),
+            // 'redirectUrl' => '/evenement-live/' . $evenement->getId(), // URL optionnelle
+        ]);
+    }
+
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
