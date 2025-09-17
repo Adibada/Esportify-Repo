@@ -442,16 +442,32 @@ const updateParticipationButton = (status, eventStatus) => {
         en_attente: { text: "Participation en attente", class: "btn btn-warning mt-2 p-4", onclick: () => cancelParticipation(eventId) },
         valide: { text: "Annuler ma participation", class: "btn btn-danger mt-2 p-4", onclick: () => cancelParticipation(eventId) },
         refusee: { text: "Participation refusée", class: "btn btn-secondary mt-2 p-4", disabled: true },
-        default: { text: "Participer", class: "btn btn-success mt-2 p-4", onclick: () => participer(eventId) }
+        refuse: { text: "Participation refusée", class: "btn btn-secondary mt-2 p-4", disabled: true }, // Alias pour refuse
+        default: { text: "Participer", class: "btn btn-success mt-2 p-4", onclick: () => participer(eventId) },
+        demarre_no_participation: { text: "Événement démarré", class: "btn btn-secondary mt-2 p-4", disabled: true }
     };
 
     // Logique normale pour les autres utilisateurs
     let config;
     if (eventStatus !== 'valide' && eventStatus !== 'en_cours' && eventStatus !== 'demarre') {
         config = configs.invalid;
+    } else if (eventStatus === 'demarre' && !status.participationStatut) {
+        // Si l'événement est démarré et l'utilisateur n'a pas de participation, bloquer
+        config = configs.demarre_no_participation;
     } else if (status.participationStatut) {
         config = configs[status.participationStatut];
+        // Protection : si la configuration n'existe pas, utiliser default
+        if (!config) {
+            console.warn('Statut de participation non reconnu:', status.participationStatut);
+            config = configs.default;
+        }
     } else {
+        config = configs.default;
+    }
+
+    // Protection supplémentaire
+    if (!config) {
+        console.error('Aucune configuration trouvée pour:', { status, eventStatus });
         config = configs.default;
     }
 
@@ -459,6 +475,14 @@ const updateParticipationButton = (status, eventStatus) => {
     btn.className = config.class;
     btn.disabled = config.disabled || false;
     btn.onclick = config.onclick || null;
+
+    // Masquer le bouton de participation si :
+    // - L'événement est démarré ET l'utilisateur a une participation refusée
+    if (eventStatus === 'demarre' && (status.participationStatut === 'refuse' || status.participationStatut === 'refusee')) {
+        btn.style.display = 'none';
+    } else {
+        btn.style.display = 'inline-block';
+    }
 
     // Afficher le bouton "Rejoindre l'événement" si :
     // - L'événement est démarré
@@ -483,7 +507,14 @@ const updateEditButton = (status, event) => {
         organizerButtons.style.removeProperty('display');
         organizerButtons.style.display = 'flex';
         organizerButtons.style.visibility = 'visible';
-        editBtn.href = `/modifierEvenement?id=${eventId}`;
+        
+        // Masquer le bouton de modification si l'événement est démarré
+        if (event && event.statut === 'demarre') {
+            editBtn.style.display = 'none';
+        } else {
+            editBtn.style.display = 'inline-block';
+            editBtn.href = `/modifierEvenement?id=${eventId}`;
+        }
         
         // Afficher le bouton "Démarrer l'événement" seulement si l'événement est en cours
         if (startEventBtn) {
