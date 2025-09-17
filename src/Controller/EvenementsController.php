@@ -268,6 +268,11 @@ class EvenementsController extends AbstractController
                 return $this->json(['error' => 'Vous n\'avez pas les droits pour modifier cet événement'], Response::HTTP_FORBIDDEN);
             }
 
+            // Empêcher la modification d'un événement démarré (même pour les admins)
+            if ($evenement->getStatut() === Evenements::STATUT_DEMARRE) {
+                return $this->json(['error' => 'Impossible de modifier un événement déjà démarré'], Response::HTTP_BAD_REQUEST);
+            }
+
             $data = json_decode($request->getContent(), true);
             
             if (!$data) {
@@ -313,6 +318,15 @@ class EvenementsController extends AbstractController
         // Validation des dates
         if ($evenement->getStart() && $evenement->getEnd() && $evenement->getStart() >= $evenement->getEnd()) {
             return $this->json(['error' => "La date de fin doit être postérieure à la date de début"], Response::HTTP_BAD_REQUEST);
+        }
+
+        // IMPORTANTE: Toute modification remet l'événement en attente de validation
+        // Sauf si c'est un admin qui modifie (les admins peuvent modifier sans re-validation)
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $evenement->setStatut(Evenements::STATUT_EN_ATTENTE);
+            error_log("Événement $id remis en attente suite à modification par organisateur");
+        } else {
+            error_log("Événement $id modifié par admin - statut conservé");
         }
 
         $this->manager->flush();
