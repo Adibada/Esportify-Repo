@@ -208,16 +208,30 @@ function loadOrganizedEvents(token, userRoles) {
             const li = document.createElement("li");
             li.classList.add("event-in-list");
             
+            // Créer le bouton démarrer si l'événement est en cours
+            let startButton = '';
+            if (event.statut === 'en_cours') {
+                startButton = `
+                    <button class="btn btn-success btn-sm ms-2" onclick="startEventFromProfile(${event.id}, event)" 
+                            title="Démarrer l'événement">
+                        <i class="fas fa-play me-1"></i>Démarrer
+                    </button>
+                `;
+            }
+            
             li.innerHTML = `
-                <a href="/evenement?id=${event.id}" onclick="window.route(event)">
-                    <span>${event.titre || 'Sans titre'}</span>
-                    <span>/</span>
-                    <span><time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></span>
-                    <span>/</span>
-                    <span>${event.nombreParticipants || 0} Participant${(event.nombreParticipants || 0) !== 1 ? 's' : ''}</span>
-                    <span>/</span>
-                    <span class="badge ${badgeClass}">${statusBadge}</span>
-                </a>
+                <div class="d-flex align-items-center justify-content-between w-100 py-2">
+                    <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="flex-grow-1 text-decoration-none">
+                        <span>${event.titre || 'Sans titre'}</span>
+                        <span class="mx-2">/</span>
+                        <span><time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></span>
+                        <span class="mx-2">/</span>
+                        <span>${event.nombreParticipants || 0} Participant${(event.nombreParticipants || 0) !== 1 ? 's' : ''}</span>
+                        <span class="mx-2">/</span>
+                        <span class="badge ${badgeClass}">${statusBadge}</span>
+                    </a>
+                    ${startButton}
+                </div>
             `;
             eventsList.appendChild(li);
         });
@@ -263,3 +277,44 @@ function attachProfilePageEvents() {
 
 // Initialisation
 attachProfilePageEvents();
+
+// Fonction pour démarrer un événement depuis la page profil
+window.startEventFromProfile = async (eventId, clickEvent) => {
+    // Empêcher la propagation du clic pour éviter la navigation
+    if (clickEvent) {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+    }
+
+    const token = getToken();
+    if (!token) {
+        alert('Vous devez être connecté pour effectuer cette action');
+        return;
+    }
+
+    if (!confirm('Êtes-vous sûr de vouloir démarrer cet événement ? Cette action ne peut pas être annulée.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/demarrer`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            }
+        });
+
+        if (response.ok) {
+            alert('Événement démarré avec succès !');
+            // Recharger les événements organisés pour mettre à jour l'affichage
+            loadUserProfile();
+        } else {
+            const errorData = await response.json();
+            alert(errorData.message || errorData.error || 'Erreur lors du démarrage de l\'événement');
+        }
+    } catch (error) {
+        console.error('Erreur lors du démarrage de l\'événement:', error);
+        alert('Erreur de connexion');
+    }
+};
