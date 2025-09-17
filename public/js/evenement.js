@@ -215,7 +215,25 @@ const updateEvent = (event) => {
         { id: "numOfCompetitors", content: event.numberCompetitors || 0, format: (c) => `<p><strong>Participants :</strong> ${c}</p>` },
         { id: "eventStart", content: new Date(event.start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventEnd", content: new Date(event.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-        { id: "eventStatus", content: event.statut, format: (c) => `<p><strong>Statut :</strong> ${c}</p>` }
+        { id: "eventStatus", content: event.statut, format: (c) => {
+            const statusLabels = {
+                'en_attente': 'En attente de validation',
+                'valide': 'Validé',
+                'refuse': 'Refusé',
+                'en_cours': 'En cours',
+                'demarre': 'Démarré'
+            };
+            const statusColors = {
+                'en_attente': 'warning',
+                'valide': 'success', 
+                'refuse': 'danger',
+                'en_cours': 'primary',
+                'demarre': 'info'
+            };
+            const label = statusLabels[c] || c;
+            const color = statusColors[c] || 'secondary';
+            return `<p><strong>Statut :</strong> <span class="badge bg-${color}">${label}</span></p>`;
+        } }
     ];
 
     updates.forEach(({ id, content, format }) => {
@@ -231,14 +249,17 @@ const updateEvent = (event) => {
 
     // Gestion des boutons selon l'état de connexion
     if (isConnected()) {
+        console.log('User is connected, event data:', event);
         updateAdminButtons(event);
         checkParticipationStatus(eventId).then(status => {
+            console.log('Participation status:', status);
             updateParticipationButton(status, event.statut);
-            updateEditButton(status);
+            updateEditButton(status, event);
         }).catch(error => {
             console.error('Error checking participation status:', error);
         });
     } else {
+        console.log('User is not connected');
         hideParticipationButton();
         document.getElementById('organizerButtons')?.style.setProperty('display', 'none');
     }
@@ -423,7 +444,7 @@ const updateParticipationButton = (status, eventStatus) => {
 
     // Logique normale pour les autres utilisateurs
     let config;
-    if (eventStatus !== 'valide') {
+    if (eventStatus !== 'valide' && eventStatus !== 'en_cours' && eventStatus !== 'demarre') {
         config = configs.invalid;
     } else if (status.participationStatut) {
         config = configs[status.participationStatut];
@@ -437,30 +458,58 @@ const updateParticipationButton = (status, eventStatus) => {
     btn.onclick = config.onclick || null;
 };
 
-const updateEditButton = (status) => {
+const updateEditButton = (status, event) => {
+    console.log('updateEditButton called');
+    console.log('Status:', status);
+    console.log('Event:', event);
+    console.log('Current role:', getRole());
+    
     const editBtn = document.getElementById('editEventBtn');
     const organizerButtons = document.getElementById('organizerButtons');
     
     if (!editBtn || !organizerButtons) {
+        console.log('Elements not found - editBtn:', !!editBtn, 'organizerButtons:', !!organizerButtons);
         return;
     }
     
     const isAdmin = getRole() === 'ROLE_ADMIN';
+    const startEventBtn = document.getElementById('startEventBtn');
+    console.log('isAdmin:', isAdmin, 'isOrganizer:', status.isOrganizer);
+    console.log('startEventBtn found:', !!startEventBtn);
     
     if (status.isOrganizer || isAdmin) {
+        console.log('User has permissions - showing organizer buttons');
         organizerButtons.style.removeProperty('display');
         organizerButtons.style.display = 'flex';
         organizerButtons.style.visibility = 'visible';
         editBtn.href = `/modifierEvenement?id=${eventId}`;
+        
+        // Afficher le bouton "Démarrer l'événement" seulement si l'événement est en cours
+        if (startEventBtn) {
+            console.log('Event status:', event ? event.statut : 'no event');
+            if (event && event.statut === 'en_cours') {
+                startEventBtn.style.display = 'inline-block';
+                console.log('Showing start button');
+            } else {
+                startEventBtn.style.display = 'none';
+                console.log('Hiding start button - status is not en_cours');
+            }
+        }
         
         // Les organisateurs ET les administrateurs peuvent gérer les participations
         if (status.isOrganizer || getRole() === 'ROLE_ADMIN') {
             loadPendingParticipations();
         }
     } else {
+        console.log('User has no permissions - hiding organizer buttons');
         organizerButtons.style.display = 'none';
         organizerButtons.style.visibility = 'hidden';
         organizerButtons.style.setProperty('display', 'none', 'important');
+        
+        // Masquer aussi le bouton démarrer
+        if (startEventBtn) {
+            startEventBtn.style.display = 'none';
+        }
     }
 };
 
@@ -1064,9 +1113,79 @@ const start = () => {
                 init();
             }
         }, 100);
-        
-        // Timeout après 5 secondes
-        setTimeout(() => clearInterval(interval), 5000);
+    }
+}
+
+// Fonction simple pour afficher les notifications
+window.showNotification = (message, type = 'info') => {
+    // Créer un élément de notification simple
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 9999;
+        max-width: 300px;
+        word-wrap: break-word;
+        ${type === 'success' ? 'background-color: #28a745;' : ''}
+        ${type === 'error' ? 'background-color: #dc3545;' : ''}
+        ${type === 'info' ? 'background-color: #17a2b8;' : ''}
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Supprimer après 4 secondes
+    setTimeout(() => {
+        if (notification && notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 4000);
+};
+
+// Fonction pour démarrer un événement
+window.startEvent = async () => {
+    if (!eventId) {
+        showNotification('Erreur: ID de l\'événement non trouvé', 'error');
+        return;
+    }
+
+    const token = getToken();
+    if (!token) {
+        showNotification('Vous devez être connecté pour effectuer cette action', 'error');
+        return;
+    }
+
+    if (!confirm('Êtes-vous sûr de vouloir démarrer cet événement ? Cette action ne peut pas être annulée.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/demarrer`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            }
+        });
+
+        if (response.ok) {
+            showNotification('Événement démarré avec succès !', 'success');
+            // Recharger l'événement pour mettre à jour l'affichage
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            const errorData = await response.json();
+            showNotification(errorData.message || errorData.error || 'Erreur lors du démarrage de l\'événement', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur lors du démarrage de l\'événement:', error);
+        showNotification('Erreur de connexion', 'error');
     }
 };
 
