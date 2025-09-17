@@ -427,16 +427,22 @@ const checkParticipationStatus = async (eventId) => {
 // === GESTION DES BOUTONS ===
 const updateParticipationButton = (status, eventStatus) => {
     const btn = document.querySelector("#participateBtn, .btn-participate, [data-participate]");
+    const joinBtn = document.getElementById('joinEventBtn');
     if (!btn) return;
+
+    // Masquer le bouton rejoindre par défaut
+    if (joinBtn) {
+        joinBtn.style.display = 'none';
+    }
 
     // Configuration standard pour tous les utilisateurs (y compris les administrateurs)
     // Ce bouton ne sert qu'à demander/annuler sa participation, pas à la valider
     const configs = {
-        invalid: { text: "Participation impossible", class: "btn btn-secondary", disabled: true },
-        en_attente: { text: "Participation en attente", class: "btn btn-warning", onclick: () => cancelParticipation(eventId) },
-        valide: { text: "Annuler ma participation", class: "btn btn-danger", onclick: () => cancelParticipation(eventId) },
-        refusee: { text: "Participation refusée", class: "btn btn-secondary", disabled: true },
-        default: { text: "Participer", class: "btn btn-success", onclick: () => participer(eventId) }
+        invalid: { text: "Participation impossible", class: "btn btn-secondary mt-2 p-4", disabled: true },
+        en_attente: { text: "Participation en attente", class: "btn btn-warning mt-2 p-4", onclick: () => cancelParticipation(eventId) },
+        valide: { text: "Annuler ma participation", class: "btn btn-danger mt-2 p-4", onclick: () => cancelParticipation(eventId) },
+        refusee: { text: "Participation refusée", class: "btn btn-secondary mt-2 p-4", disabled: true },
+        default: { text: "Participer", class: "btn btn-success mt-2 p-4", onclick: () => participer(eventId) }
     };
 
     // Logique normale pour les autres utilisateurs
@@ -453,6 +459,13 @@ const updateParticipationButton = (status, eventStatus) => {
     btn.className = config.class;
     btn.disabled = config.disabled || false;
     btn.onclick = config.onclick || null;
+
+    // Afficher le bouton "Rejoindre l'événement" si :
+    // - L'événement est démarré
+    // - L'utilisateur a une participation validée
+    if (joinBtn && eventStatus === 'demarre' && status.participationStatut === 'valide') {
+        joinBtn.style.display = 'inline-block';
+    }
 };
 
 const updateEditButton = (status, event) => {
@@ -1169,6 +1182,48 @@ window.startEvent = async () => {
         }
     } catch (error) {
         console.error('Erreur lors du démarrage de l\'événement:', error);
+        showNotification('Erreur de connexion', 'error');
+    }
+};
+
+// Fonction pour rejoindre un événement démarré
+window.joinEvent = async () => {
+    if (eventId === null || eventId === undefined) {
+        showNotification('Erreur: ID de l\'événement non trouvé', 'error');
+        return;
+    }
+
+    const token = getToken();
+    if (!token) {
+        showNotification('Vous devez être connecté pour effectuer cette action', 'error');
+        return;
+    }
+
+    if (!confirm('Êtes-vous prêt à rejoindre cet événement démarré ?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/rejoindre`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            showNotification('Vous avez rejoint l\'événement avec succès !', 'success');
+            
+            // Optionnel : rediriger vers une page spécifique de l'événement
+            // window.location.href = data.redirectUrl || `/evenement-live?id=${eventId}`;
+        } else {
+            const errorData = await response.json();
+            showNotification(errorData.message || errorData.error || 'Erreur lors de la connexion à l\'événement', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur lors de la connexion à l\'événement:', error);
         showNotification('Erreur de connexion', 'error');
     }
 };
