@@ -2,7 +2,10 @@
 <div class="bloc" aria-labelledby="modify-event-title">
 
     <!--Titre du bloc-->
-    <h2 id="modify-event-title" class="text-center fs-1 mb-4">Modifier l'événement</h2>
+    <h2 id="modify-event-title" class="text-center fs-1 mb-4">
+        Modifier l'événement
+        <span id="eventStatusBadge" class="badge ms-2"></span>
+    </h2>
 
     <!--Formulaire de modification-->
     <div class="container">
@@ -39,17 +42,17 @@
                     </div>
 
                     <!-- Image de l'événement -->
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <label class="form-label">
-                            <i class="fas fa-image me-2"></i>Image de l'événement
+                            <i class="fas fa-image me-2"></i>Images de l'événement
                         </label>
                         
                         <!-- Choix du type d'image -->
-                        <div class="mb-2">
+                        <div class="mb-3">
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="imageType" id="imageTypeFile" value="file" checked onchange="toggleImageInput()">
                                 <label class="form-check-label" for="imageTypeFile">
-                                    <i class="fas fa-upload me-1"></i>Fichier local
+                                    <i class="fas fa-upload me-1"></i>Fichiers locaux
                                 </label>
                             </div>
                             <div class="form-check form-check-inline">
@@ -60,23 +63,28 @@
                             </div>
                         </div>
                         
-                        <!-- Input fichier -->
+                        <!-- Input fichiers -->
                         <div id="fileImageInput">
-                            <input type="file" class="form-control" id="eventImageFile" name="imageFile" 
-                                   accept="image/*" multiple>
-                            <div class="form-text">
+                            <input type="file" class="form-control mb-2" id="eventImageFile" name="imageFile" 
+                                   accept="image/*" multiple onchange="handleFileSelection(this)">
+                            <div class="form-text mb-3">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Formats acceptés : JPG, PNG, GIF. Taille maximale : 5MB.
+                                    Formats acceptés : JPG, PNG, GIF. Taille maximale : 5MB par image.
                                 </small>
                             </div>
                         </div>
                         
                         <!-- Input URL -->
                         <div id="urlImageInput" style="display: none;">
-                            <input type="url" class="form-control" id="eventImageUrl" name="imageUrl" 
-                                   placeholder="https://exemple.com/mon-image.jpg">
-                            <div class="form-text">
+                            <div class="input-group mb-2">
+                                <input type="url" class="form-control" id="eventImageUrl" name="imageUrl" 
+                                       placeholder="https://exemple.com/mon-image.jpg">
+                                <button type="button" class="btn btn-primary" onclick="addImageFromUrl()">
+                                    <i class="fas fa-plus me-1"></i>Ajouter
+                                </button>
+                            </div>
+                            <div class="form-text mb-3">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Entrez l'URL complète d'une image (JPG, PNG, GIF).
@@ -84,16 +92,16 @@
                             </div>
                         </div>
                         
-                        <!-- Description de l'image (alt text) -->
-                        <div class="mt-2">
-                            <label for="eventImageDescription" class="form-label">
-                                <small>Description de l'image (optionnel) :</small>
-                            </label>
-                            <input type="text" class="form-control form-control-sm" id="eventImageDescription" name="imageDescription" 
-                                   placeholder="ex: Équipe de football lors d'un match">
-                            <div class="form-text">
-                                <small class="text-muted">Cette description améliore l'accessibilité et le référencement de votre événement.</small>
+                        <!-- Zone de prévisualisation et gestion des images -->
+                        <div id="imageManagementArea" class="border rounded p-3" style="min-height: 100px; background-color: #f8f9fa;">
+                            <div class="d-flex align-items-center justify-content-center text-muted" id="noImagesMessage">
+                                <div class="text-center">
+                                    <i class="fas fa-images fa-2x mb-2 opacity-50"></i>
+                                    <p class="mb-0">Aucune image sélectionnée</p>
+                                    <small>Les images ajoutées apparaîtront ici avec leurs options</small>
+                                </div>
                             </div>
+                            <div id="imagesList" class="row g-3"></div>
                         </div>
                     </div>
 

@@ -85,7 +85,7 @@ class ImageEvenement
     /**
      * Retourne le chemin complet du fichier sur le serveur
      */
-    public function getFullPath(): string
+    public function getFullPath(): ?string
     {
         // Si c'est une URL externe, pas de chemin local
         if (str_starts_with($this->filename, 'http')) {

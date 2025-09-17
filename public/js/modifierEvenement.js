@@ -17,6 +17,9 @@ const getRole = () => getCookie('role');
 const eventIdParam = new URLSearchParams(window.location.search).get('id');
 const eventId = eventIdParam !== null ? parseInt(eventIdParam) : null;
 let currentEvent = null;
+let uploadedImages = []; // Stockage des images uploadées avec leurs métadonnées
+let imageIdCounter = 0; // Compteur pour les IDs uniques des images
+let imagesToDelete = []; // Images à supprimer lors de la sauvegarde
 
 // === GESTION DES MESSAGES ===
 const showMessage = (message, type = 'info') => {
@@ -75,6 +78,253 @@ const toggleImageInput = () => {
 
 // Rendre la fonction accessible globalement
 window.toggleImageInput = toggleImageInput;
+
+// === GESTION AVANCÉE DES IMAGES ===
+const showImageManagementArea = () => {
+    document.getElementById('noImagesMessage').style.display = 'none';
+    document.getElementById('imagesList').style.display = 'block';
+};
+
+const hideImageManagementArea = () => {
+    if (uploadedImages.length === 0) {
+        document.getElementById('noImagesMessage').style.display = 'block';
+        document.getElementById('imagesList').style.display = 'none';
+    }
+};
+
+const updateImagesDisplay = () => {
+    const imagesList = document.getElementById('imagesList');
+    
+    if (uploadedImages.length === 0) {
+        imagesList.innerHTML = '';
+        hideImageManagementArea();
+        return;
+    }
+    
+    showImageManagementArea();
+    
+    imagesList.innerHTML = uploadedImages.map((img, index) => `
+        <div class="col-md-6 col-lg-4" data-image-id="${img.id}">
+            <div class="card h-100">
+                <div class="position-relative">
+                    <img src="${img.url}" alt="${img.description || 'Image événement'}" 
+                         class="card-img-top" style="height: 200px; object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2" 
+                            onclick="removeImage(${img.id})" title="Supprimer cette image">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    ${index === 0 ? '<div class="badge bg-primary position-absolute bottom-0 start-0 m-2">Image principale</div>' : ''}
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label text-sm">Description (alt text) :</label>
+                        <input type="text" class="form-control form-control-sm" 
+                               value="${img.description || ''}" 
+                               onchange="updateImageDescription(${img.id}, this.value)"
+                               placeholder="Décrivez cette image...">
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            ${img.isUrl ? 'URL' : 'Fichier'} • ${img.size || 'Taille inconnue'}
+                        </small>
+                        <div class="btn-group" role="group">
+                            ${index > 0 ? `<button type="button" class="btn btn-outline-primary btn-sm" 
+                                         onclick="moveImageUp(${img.id})" title="Monter">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>` : ''}
+                            ${index < uploadedImages.length - 1 ? `<button type="button" class="btn btn-outline-primary btn-sm" 
+                                         onclick="moveImageDown(${img.id})" title="Descendre">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+const handleFileSelection = async (input) => {
+    const files = Array.from(input.files);
+    if (files.length === 0) return;
+    
+    showMessage(`Upload de ${files.length} image(s) en cours...`, 'info');
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const file of files) {
+        try {
+            await uploadImageFile(file);
+            successCount++;
+        } catch (error) {
+            errorCount++;
+        }
+    }
+    
+    // Réinitialiser l'input
+    input.value = '';
+    
+    if (successCount > 0) {
+        showMessage(`${successCount} image(s) ajoutée(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`, errorCount > 0 ? 'warning' : 'success');
+    } else if (errorCount > 0) {
+        showMessage(`Échec de l'upload de toutes les images`, 'error');
+    }
+    
+    setTimeout(hideMessage, 3000);
+};
+
+const uploadImageFile = async (file) => {
+    try {
+        // Validation du fichier
+        if (file.size > 5 * 1024 * 1024) { // 5MB
+            throw new Error(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            throw new Error(`Le fichier ${file.name} n'est pas une image`);
+        }
+        
+        // Ne pas uploader immédiatement, juste ajouter à la liste locale
+        const imageData = {
+            id: imageIdCounter++,
+            url: URL.createObjectURL(file), // URL temporaire pour l'affichage
+            description: '',
+            isUrl: false,
+            originalName: file.name,
+            size: formatFileSize(file.size),
+            serverId: null, // Pas encore uploadé
+            file: file, // Stocker le fichier pour l'upload final
+            isNewFile: true // Marquer comme nouveau fichier à uploader
+        };
+        
+        uploadedImages.push(imageData);
+        updateImagesDisplay();
+        
+    } catch (error) {
+        throw error;
+    }
+};
+
+const addImageFromUrl = async () => {
+    const urlInput = document.getElementById('eventImageUrl');
+    const imageUrl = urlInput.value.trim();
+    
+    if (!imageUrl) {
+        showMessage('Veuillez entrer une URL d\'image', 'warning');
+        return;
+    }
+    
+    if (!isValidImageUrl(imageUrl)) {
+        showMessage('URL d\'image non valide', 'error');
+        return;
+    }
+    
+    try {
+        showMessage('Ajout de l\'image par URL...', 'info');
+        
+        // Ne pas uploader immédiatement, juste ajouter à la liste locale
+        const imageData = {
+            id: imageIdCounter++,
+            url: imageUrl,
+            description: '',
+            isUrl: true,
+            size: 'URL externe',
+            serverId: null, // Pas encore sauvegardé
+            isNewUrl: true // Marquer comme nouvelle URL à sauvegarder
+        };
+        
+        uploadedImages.push(imageData);
+        updateImagesDisplay();
+        
+        urlInput.value = '';
+        hideMessage();
+        
+    } catch (error) {
+        showMessage(`Erreur : ${error.message}`, 'error');
+    }
+};
+
+const removeImage = async (imageId) => {
+    const imageIndex = uploadedImages.findIndex(img => img.id === imageId);
+    if (imageIndex === -1) return;
+    
+    const image = uploadedImages[imageIndex];
+    
+    if (!confirm(`Supprimer cette image définitivement ?`)) {
+        return;
+    }
+    
+    try {
+        // Pour les images existantes (avec serverId), les ajouter à la liste de suppression
+        if (image.serverId) {
+            imagesToDelete.push({
+                serverId: image.serverId,
+                url: image.url,
+                description: image.description
+            });
+        }
+        
+        // Supprimer de l'affichage local
+        uploadedImages.splice(imageIndex, 1);
+        updateImagesDisplay();
+        
+    } catch (error) {
+        showMessage('Erreur lors de la suppression de l\'image', 'error');
+    }
+};
+
+const updateImageDescription = async (imageId, description) => {
+    const image = uploadedImages.find(img => img.id === imageId);
+    if (!image) return;
+    
+    // Mettre à jour la description localement
+    // La sauvegarde se fera lors de la validation du formulaire
+    image.description = description;
+};
+
+const moveImageUp = (imageId) => {
+    const index = uploadedImages.findIndex(img => img.id === imageId);
+    if (index <= 0) return;
+    
+    [uploadedImages[index], uploadedImages[index - 1]] = [uploadedImages[index - 1], uploadedImages[index]];
+    updateImagesDisplay();
+};
+
+const moveImageDown = (imageId) => {
+    const index = uploadedImages.findIndex(img => img.id === imageId);
+    if (index >= uploadedImages.length - 1) return;
+    
+    [uploadedImages[index], uploadedImages[index + 1]] = [uploadedImages[index + 1], uploadedImages[index]];
+    updateImagesDisplay();
+};
+
+// Fonctions utilitaires
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const isValidImageUrl = (url) => {
+    try {
+        const urlObj = new URL(url);
+        return ['http:', 'https:'].includes(urlObj.protocol) && 
+               /\.(jpg|jpeg|png|gif|webp)$/i.test(urlObj.pathname);
+    } catch {
+        return false;
+    }
+};
+
+// Rendre les fonctions accessibles globalement
+window.handleFileSelection = handleFileSelection;
+window.addImageFromUrl = addImageFromUrl;
+window.removeImage = removeImage;
+window.updateImageDescription = updateImageDescription;
+window.moveImageUp = moveImageUp;
+window.moveImageDown = moveImageDown;
 
 // === VALIDATION ET FORMATAGE DES DATES ===
 const formatDateForInput = (dateString) => {
@@ -179,7 +429,6 @@ const checkPermissions = async (event) => {
         }
         
     } catch (err) {
-        console.error("Erreur lors de la vérification des permissions:", err);
         showMessage("Erreur lors de la vérification des permissions.", 'error');
         setTimeout(() => window.location.href = `/evenement?id=${eventId}`, 2000);
     }
@@ -190,6 +439,9 @@ const populateForm = (event) => {
     // Champs de base
     document.getElementById('eventTitle').value = event.titre || '';
     document.getElementById('eventDescription').value = event.description || '';
+    
+    // Mettre à jour le badge de statut
+    updateStatusBadge(event.statut);
     
     // Dates et heures
     if (event.start) {
@@ -205,22 +457,64 @@ const populateForm = (event) => {
     // Lien de retour vers l'événement
     document.getElementById('returnToEventBtn').href = `/evenement?id=${eventId}`;
     
-    // Gestion des images actuelles
-    if (event.mainImageUrl && event.mainImageUrl !== '/Images/images event/joueuses.jpg') {
-        // Si l'image principale existe et commence par http, c'est une URL
-        if (event.mainImageUrl.startsWith('http')) {
-            document.getElementById('imageTypeUrl').checked = true;
-            document.getElementById('eventImageUrl').value = event.mainImageUrl;
-            toggleImageInput();
-        } else {
-            // Sinon c'est un fichier local, on garde le mode fichier par défaut
-            document.getElementById('imageTypeFile').checked = true;
-        }
+    // Charger les images existantes
+    loadExistingImages(event);
+};
+
+const loadExistingImages = (event) => {
+    uploadedImages = [];
+    imagesToDelete = []; // Réinitialiser aussi la liste des suppressions
+    imageIdCounter = 0;
+    
+    if (event.images && event.images.length > 0) {
+        event.images.forEach((image, index) => {
+            const imageData = {
+                id: imageIdCounter++,
+                url: image.url || image,
+                description: image.description || image.originalName || '',
+                isUrl: typeof image === 'string' && image.startsWith('http'),
+                size: 'Image existante',
+                serverId: image.id || null,
+                // Ces images existent déjà, ne pas les traiter comme nouvelles
+                isNewFile: false,
+                isNewUrl: false,
+                toDelete: false
+            };
+            
+            uploadedImages.push(imageData);
+        });
     }
     
-    // Affichage d'info sur les images existantes si il y en a plusieurs
-    if (event.images && event.images.length > 1) {
-        console.log(`Événement a ${event.images.length} images. La première est utilisée comme image principale.`);
+    updateImagesDisplay();
+};
+
+const updateStatusBadge = (statut) => {
+    const badge = document.getElementById('eventStatusBadge');
+    if (!badge) return;
+    
+    // Nettoyer les classes précédentes
+    badge.className = 'badge ms-2';
+    
+    switch (statut) {
+        case 'en_attente':
+            badge.classList.add('bg-warning', 'text-dark');
+            badge.textContent = 'En attente';
+            break;
+        case 'valide':
+            badge.classList.add('bg-success');
+            badge.textContent = 'Validé';
+            break;
+        case 'refuse':
+            badge.classList.add('bg-danger');
+            badge.textContent = 'Refusé';
+            break;
+        case 'demarre':
+            badge.classList.add('bg-info');
+            badge.textContent = 'Démarré';
+            break;
+        default:
+            badge.classList.add('bg-secondary');
+            badge.textContent = 'Inconnu';
     }
 };
 
@@ -259,14 +553,14 @@ const handleFormSubmit = async (event) => {
         end: formatDateTimeForAPI(endDate, endTime)
     };
     
-    // Gérer les images (support multi-images)
-    const imageType = document.querySelector('input[name="imageType"]:checked').value;
-    const imageFiles = imageType === 'file' ? document.getElementById('eventImageFile').files : [];
-    const imageUrl = imageType === 'url' ? document.getElementById('eventImageUrl').value : null;
-    
-    console.log('Type d\'image sélectionné:', imageType);
-    console.log('Images à traiter:', imageFiles ? imageFiles.length : 0, 'fichiers');
-    console.log('URL d\'image:', imageUrl);
+    // Détecter s'il y a des modifications d'images
+    const hasImageChanges = imagesToDelete.length > 0 || 
+                           uploadedImages.some(img => img.isNewFile || img.isNewUrl);
+                           
+    // Si seules les images ont changé, ajouter un marqueur pour forcer la modification
+    if (hasImageChanges) {
+        eventData._forceStatusChange = true;
+    }
     
     try {
         const token = getToken();
@@ -276,65 +570,10 @@ const handleFormSubmit = async (event) => {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sauvegarde...';
         
-        // Si de nouvelles images fichiers sont sélectionnées, les uploader
-        if (imageFiles && imageFiles.length > 0) {
-            const imageFormData = new FormData();
-            
-            Array.from(imageFiles).forEach((file, index) => {
-                console.log(`Ajout image ${index}:`, file.name);
-                imageFormData.append('images[]', file);
-            });
-            
-            // Ajouter la description de l'image si fournie
-            const imageDescription = document.getElementById('eventImageDescription').value.trim();
-            if (imageDescription) {
-                imageFormData.append('imageDescription', imageDescription);
-            }
-            
-            console.log('Upload vers /api/evenements/' + eventId + '/images');
-            const imageRes = await fetch(`/api/evenements/${eventId}/images`, {
-                method: 'POST',
-                headers: { 'X-AUTH-TOKEN': token },
-                body: imageFormData
-            });
-            
-            console.log('Réponse upload images:', imageRes.status);
-            if (!imageRes.ok) {
-                const errorText = await imageRes.text();
-                console.error('Erreur upload images:', errorText);
-                throw new Error('Erreur lors de l\'upload des images');
-            } else {
-                const imageData = await imageRes.json();
-                console.log('Images uploadées avec succès:', imageData);
-            }
-        } else if (imageUrl && imageUrl.trim() !== '') {
-            // Si une URL d'image est fournie, l'ajouter via l'API images
-            console.log('Ajout d\'image par URL:', imageUrl);
-            const imageFormData = new FormData();
-            imageFormData.append('imageUrl', imageUrl.trim());
-            
-            // Ajouter la description de l'image si fournie
-            const imageDescription = document.getElementById('eventImageDescription').value.trim();
-            if (imageDescription) {
-                imageFormData.append('imageDescription', imageDescription);
-            }
-            
-            const imageRes = await fetch(`/api/evenements/${eventId}/images`, {
-                method: 'POST',
-                headers: { 'X-AUTH-TOKEN': token },
-                body: imageFormData
-            });
-            
-            console.log('Réponse ajout image URL:', imageRes.status);
-            if (!imageRes.ok) {
-                const errorText = await imageRes.text();
-                console.error('Erreur ajout image URL:', errorText);
-                throw new Error('Erreur lors de l\'ajout de l\'image par URL');
-            } else {
-                const imageData = await imageRes.json();
-                console.log('Image URL ajoutée avec succès:', imageData);
-            }
-        }
+        // Mettre à jour l'événement principal (nécessaire pour changer le statut)
+        // Même si seules les images ont changé, on appelle l'endpoint principal
+        const hasImageChanges = imagesToDelete.length > 0 || 
+                               uploadedImages.some(img => img.isNewFile || img.isNewUrl);
         
         const res = await fetch(`/api/evenements/${eventId}`, {
             method: 'PUT',
@@ -346,9 +585,12 @@ const handleFormSubmit = async (event) => {
         });
         
         if (res.ok) {
-            showMessage('Événement modifié avec succès !', 'success');
+            // Traiter les images : upload des nouveaux fichiers, ajout des URLs, suppression des marquées
+            await processImages();
             
-            // Recharger les données pour mettre à jour l'affichage
+            showMessage('Événement modifié avec succès ! <a href="/evenement?id=' + eventId + '&refresh=' + Date.now() + '" class="alert-link">Voir l\'événement mis à jour</a>', 'success');
+            
+            // Recharger les données pour mettre à jour l'affichage local
             setTimeout(() => {
                 loadEvent();
             }, 1000);
@@ -365,6 +607,141 @@ const handleFormSubmit = async (event) => {
         const saveBtn = document.getElementById('saveEventBtn');
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Enregistrer les modifications';
+    }
+};
+
+const processImages = async () => {
+    const token = getToken();
+    
+    try {
+        
+        // 1. Supprimer les images marquées pour suppression
+        for (const image of imagesToDelete) {
+            try {
+                const response = await fetch(`/api/evenements/${eventId}/images/${image.serverId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-AUTH-TOKEN': token }
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                } else {
+                }
+            } catch (error) {
+            }
+        }
+        
+        // Vider la liste des suppressions après traitement
+        imagesToDelete = [];
+        
+        // 2. Uploader les nouveaux fichiers
+        const newFiles = uploadedImages.filter(img => img.isNewFile && img.file);
+        for (const imageData of newFiles) {
+            try {
+                const formData = new FormData();
+                formData.append('image', imageData.file);
+                
+                const response = await fetch(`/api/evenements/${eventId}/image`, {
+                    method: 'POST',
+                    headers: { 'X-AUTH-TOKEN': token },
+                    body: formData
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    const result = JSON.parse(responseText);
+                    
+                    // Créer l'entité ImageEvenement avec la description
+                    if (imageData.description) {
+                        await saveImageWithDescription({
+                            url: result.imagePath,
+                            description: imageData.description
+                        });
+                    } else {
+                        // Sauvegarder l'image sans description
+                        await saveImageWithDescription({
+                            url: result.imagePath,
+                            description: ''
+                        });
+                    }
+                } else {
+                }
+            } catch (error) {
+            }
+        }
+        
+        // 3. Sauvegarder les nouvelles URLs
+        const newUrls = uploadedImages.filter(img => img.isNewUrl && img.isUrl);
+        for (const imageData of newUrls) {
+            try {
+                await saveImageWithDescription({
+                    url: imageData.url,
+                    description: imageData.description
+                });
+            } catch (error) {
+            }
+        }
+        
+        // 4. Mettre à jour les descriptions des images existantes (DÉSACTIVÉ - endpoint n'existe pas)
+        // const existingImages = uploadedImages.filter(img => img.serverId && !img.isNewFile && !img.isNewUrl);
+        
+    } catch (error) {
+        throw error;
+    }
+};
+
+const saveImageWithDescription = async (imageData) => {
+    const token = getToken();
+    
+    
+    try {
+        // L'endpoint attend FormData avec imageUrl et imageDescription
+        const formData = new FormData();
+        formData.append('imageUrl', imageData.url);
+        formData.append('imageDescription', imageData.description || '');
+        
+        const response = await fetch(`/api/evenements/${eventId}/images`, {
+            method: 'POST',
+            headers: {
+                'X-AUTH-TOKEN': token
+                // Pas de Content-Type pour FormData
+            },
+            body: formData
+        });
+        
+        const responseText = await response.text();
+        
+        if (!response.ok) {
+            throw new Error('Erreur lors de la sauvegarde de l\'image: ' + responseText);
+        }
+        
+        const result = JSON.parse(responseText);
+        return result;
+    } catch (error) {
+        throw error;
+    }
+};
+
+const updateImageOrder = async () => {
+    try {
+        const token = getToken();
+        const imageOrder = uploadedImages.map(img => img.serverId).filter(Boolean);
+        
+        if (imageOrder.length === 0) return;
+        
+        await fetch(`/api/evenements/${eventId}/images/order`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            },
+            body: JSON.stringify({ imageOrder })
+        });
+        
+    } catch (error) {
+        console.warn('Impossible de mettre à jour l\'ordre des images:', error);
     }
 };
 

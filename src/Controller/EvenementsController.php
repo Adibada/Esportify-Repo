@@ -279,28 +279,40 @@ class EvenementsController extends AbstractController
                 return $this->json(['error' => "Données invalides"], Response::HTTP_BAD_REQUEST);
             }
 
-            // Log des données reçues pour debug
-            error_log("Données reçues pour modification événement $id: " . print_r($data, true));
+        // Log des données reçues pour debug
+
+        $hasChanges = false; // Tracker si des modifications sont apportées
+        $forceStatusChange = isset($data['_forceStatusChange']) && $data['_forceStatusChange'];
+        
+        if ($forceStatusChange) {
+        }
 
         // Mise à jour des champs
         if (isset($data['titre'])) {
             if (empty(trim($data['titre']))) {
                 return $this->json(['error' => "Le titre ne peut pas être vide"], Response::HTTP_BAD_REQUEST);
             }
-            $evenement->setTitre($data['titre']);
-        }
-
-        if (isset($data['description'])) {
+            if ($evenement->getTitre() !== $data['titre']) {
+                $evenement->setTitre($data['titre']);
+                $hasChanges = true;
+            }
+        }        if (isset($data['description'])) {
             if (empty(trim($data['description']))) {
                 return $this->json(['error' => "La description ne peut pas être vide"], Response::HTTP_BAD_REQUEST);
             }
-            $evenement->setDescription($data['description']);
+            if ($evenement->getDescription() !== $data['description']) {
+                $evenement->setDescription($data['description']);
+                $hasChanges = true;
+            }
         }
 
         if (isset($data['start'])) {
             try {
                 $startDate = new \DateTimeImmutable($data['start']);
-                $evenement->setStart($startDate);
+                if ($evenement->getStart() != $startDate) {
+                    $evenement->setStart($startDate);
+                    $hasChanges = true;
+                }
             } catch (\Exception $e) {
                 return $this->json(['error' => "Format de date de début invalide"], Response::HTTP_BAD_REQUEST);
             }
@@ -309,7 +321,10 @@ class EvenementsController extends AbstractController
         if (isset($data['end'])) {
             try {
                 $endDate = new \DateTimeImmutable($data['end']);
-                $evenement->setEnd($endDate);
+                if ($evenement->getEnd() != $endDate) {
+                    $evenement->setEnd($endDate);
+                    $hasChanges = true;
+                }
             } catch (\Exception $e) {
                 return $this->json(['error' => "Format de date de fin invalide"], Response::HTTP_BAD_REQUEST);
             }
@@ -322,11 +337,15 @@ class EvenementsController extends AbstractController
 
         // IMPORTANTE: Toute modification remet l'événement en attente de validation
         // Sauf si c'est un admin qui modifie (les admins peuvent modifier sans re-validation)
-        if (!$this->isGranted('ROLE_ADMIN')) {
+        if (($hasChanges || $forceStatusChange) && !$this->isGranted('ROLE_ADMIN')) {
             $evenement->setStatut(Evenements::STATUT_EN_ATTENTE);
-            error_log("Événement $id remis en attente suite à modification par organisateur");
+            if ($forceStatusChange) {
+            } else {
+            }
         } else {
-            error_log("Événement $id modifié par admin - statut conservé");
+            if ($this->isGranted('ROLE_ADMIN')) {
+            } else {
+            }
         }
 
         $this->manager->flush();
@@ -335,8 +354,6 @@ class EvenementsController extends AbstractController
         return new JsonResponse($evenementData, Response::HTTP_OK, [], true);
         
         } catch (\Exception $e) {
-            error_log("Erreur lors de la modification de l'événement $id: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
             return $this->json(['error' => 'Erreur interne du serveur: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -403,7 +420,13 @@ class EvenementsController extends AbstractController
         }
 
         $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
+        
+        // Méthode plus simple pour nettoyer le nom de fichier
+        $safeFilename = preg_replace('/[^A-Za-z0-9_-]/', '', $originalFilename);
+        if (empty($safeFilename)) {
+            $safeFilename = 'image';
+        }
+        
         $fileName = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
 
         try {
@@ -1345,16 +1368,27 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Image non trouvée'], Response::HTTP_NOT_FOUND);
         }
 
-        // Supprimer le fichier physique
-        $filePath = $image->getFullPath();
-        if (file_exists($filePath)) {
-            unlink($filePath);
+        try {
+            // Supprimer le fichier physique si ce n'est pas une URL
+            $filePath = $image->getFullPath();
+            if ($filePath && file_exists($filePath)) {
+                unlink($filePath);
+            }
+
+            // Supprimer l'entité
+            $this->manager->remove($image);
+            
+            // IMPORTANT: Toute suppression d'image remet l'événement en attente de validation
+            // Sauf si c'est un admin qui modifie (les admins peuvent modifier sans re-validation)
+            if (!$this->isGranted('ROLE_ADMIN')) {
+                $evenement->setStatut(Evenements::STATUT_EN_ATTENTE);
+            }
+            
+            $this->manager->flush();
+
+            return $this->json(['message' => 'Image supprimée avec succès']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Erreur lors de la suppression: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        // Supprimer l'entité
-        $this->manager->remove($image);
-        $this->manager->flush();
-
-        return $this->json(['message' => 'Image supprimée avec succès']);
     }
 }
