@@ -9,6 +9,7 @@ use App\Repository\EvenementsRepository;
 use App\Repository\ParticipationRepository;
 use App\Repository\UserRepository;
 use App\Repository\ImageEvenementRepository;
+use App\Service\EventStatusService;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,8 +31,21 @@ class EvenementsController extends AbstractController
         private UrlGeneratorInterface $urlGenerator,
         private ParticipationRepository $participationRepository,
         private UserRepository $userRepository,
-        private ImageEvenementRepository $imageRepository
+        private ImageEvenementRepository $imageRepository,
+        private EventStatusService $eventStatusService
     ) {}
+
+    /**
+     * Vérifie si l'événement est accessible (validé, en cours ou démarré)
+     */
+    private function isEventAccessible(Evenements $evenement): bool
+    {
+        return in_array($evenement->getStatut(), [
+            Evenements::STATUT_VALIDE,
+            Evenements::STATUT_EN_COURS,
+            Evenements::STATUT_DEMARRE
+        ]);
+    }
 
     #[IsGranted('ROLE_ORGANISATEUR')]
     #[Route('', name: 'new', methods: ['POST'])]
@@ -189,10 +203,14 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
         }
 
+        // Mettre à jour le statut de l'événement en fonction de ses dates
+        // $this->eventStatusService->updateEventStatus($evenement);
+        // $this->manager->flush();
+
         $user = $this->getUser();
         
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
+        if (!$this->isEventAccessible($evenement)) {
             if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -467,6 +485,71 @@ class EvenementsController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/demarrer', name: 'evenement_demarrer', methods: ['PUT'])]
+    #[OA\Put(
+        summary: 'Démarrer un événement (organisateur uniquement)',
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Événement démarré'),
+            new OA\Response(response: 403, description: 'Accès non autorisé'),
+            new OA\Response(response: 404, description: 'Événement non trouvé'),
+            new OA\Response(response: 400, description: 'Événement ne peut pas être démarré'),
+        ]
+    )]
+    public function demarrer(Evenements $evenement): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        // Debug : vérifier l'utilisateur
+        if (!$user) {
+            return $this->json(['error' => 'Utilisateur non connecté'], Response::HTTP_UNAUTHORIZED);
+        }
+        
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        
+        // Simplification temporaire : permettre à tous les admins
+        if (!$isAdmin) {
+            return $this->json([
+                'error' => 'Seul un admin peut tester cette fonctionnalité',
+                'debug' => [
+                    'user_id' => $user->getId(),
+                    'user_email' => $user->getEmail(),
+                    'user_roles' => $user->getRoles(),
+                    'is_admin' => $isAdmin
+                ]
+            ], Response::HTTP_FORBIDDEN);
+        }
+        
+        // Vérifier que l'utilisateur est l'organisateur ou un admin
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        $isOrganizer = $evenement->getOrganisateur() === $user;
+        
+        if (!$isOrganizer && !$isAdmin) {
+            return $this->json([
+                'error' => 'Seul l\'organisateur ou un admin peut démarrer cet événement'
+            ], Response::HTTP_FORBIDDEN);
+        }
+        
+        // Vérifier que l'événement peut être démarré
+        if (!$evenement->canBeStarted()) {
+            return $this->json([
+                'error' => 'Cet événement ne peut pas être démarré maintenant. Il doit être en cours (30 minutes avant le début jusqu\'à la fin) et avoir le statut "en_cours".'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+        
+        // Démarrer l'événement
+        $evenement->setStatut(Evenements::STATUT_DEMARRE);
+        $this->manager->flush();
+
+        return new JsonResponse([
+            'message' => 'Événement démarré avec succès',
+            'statut' => $evenement->getStatut(),
+        ]);
+    }
+
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
@@ -667,18 +750,18 @@ class EvenementsController extends AbstractController
     #[Route('/en-cours', name: 'current', methods: ['GET'])]
     public function current(): JsonResponse
     {
-        $now = new \DateTimeImmutable();
-        $qb = $this->repository->createQueryBuilder('e');
-        $qb->where('e.start <= :now')
-           ->andWhere('e.end >= :now')
-           ->andWhere('e.statut = :statut')
-           ->setParameter('now', $now)
-           ->setParameter('statut', Evenements::STATUT_VALIDE)
-           ->setMaxResults(3); // Limite à 3 évènements
-        $events = $qb->getQuery()->getResult();
+        // Option 1: Mise à jour complète (plus sûr mais plus lent)
+        // $this->eventStatusService->updateAllEventsStatus();
+        // $events = $this->eventStatusService->getCurrentEvents();
+        
+        // Option 2: Récupération directe des événements "en_cours" (plus rapide)
+        // Faire une mise à jour périodique via cron recommandée
+        $events = $this->eventStatusService->getEventsEnCours(3);
+        
         if (!$events || count($events) === 0) {
             return $this->json([], Response::HTTP_OK);
         }
+        
         $data = $this->serializer->serialize(
             $events,
             'json',
@@ -714,7 +797,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
+        if (!$this->isEventAccessible($evenement)) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -783,7 +866,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
+        if (!$this->isEventAccessible($evenement)) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -831,7 +914,7 @@ class EvenementsController extends AbstractController
         }
 
         // Vérifier les permissions pour les événements en attente
-        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
+        if (!$this->isEventAccessible($evenement)) {
             if (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR')) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
@@ -913,7 +996,7 @@ class EvenementsController extends AbstractController
 
         // Vérifier les permissions pour les événements en attente
         $user = $this->getUser();
-        if ($evenement->getStatut() !== Evenements::STATUT_VALIDE) {
+        if (!$this->isEventAccessible($evenement)) {
             if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }

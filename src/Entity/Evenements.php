@@ -25,6 +25,8 @@ class Evenements
     public const STATUT_EN_ATTENTE = 'en_attente';
     public const STATUT_VALIDE = 'valide';
     public const STATUT_REFUSE = 'refuse';
+    public const STATUT_EN_COURS = 'en_cours';
+    public const STATUT_DEMARRE = 'demarre';
 
     #[Groups([self::GROUP_READ])]
     #[ORM\Id]
@@ -144,6 +146,69 @@ class Evenements
             return $this->end > $this->start;
         }
         return true;
+    }
+
+    /**
+     * Vérifie si l'événement est actuellement en cours
+     * Un événement est considéré "en cours" 30 minutes avant son début jusqu'à sa fin
+     */
+    public function isEnCours(\DateTimeImmutable $now = null): bool
+    {
+        if ($now === null) {
+            $now = new \DateTimeImmutable();
+        }
+        
+        if (!$this->start || !$this->end) {
+            return false;
+        }
+        
+        // L'événement est "en cours" 30 minutes avant son début
+        $startWith30MinBuffer = $this->start->sub(new \DateInterval('PT30M'));
+        
+        return $startWith30MinBuffer <= $now && $now <= $this->end;
+    }
+
+    /**
+     * Détermine le statut que devrait avoir l'événement en fonction de ses dates
+     */
+    public function getStatutAttendu(\DateTimeImmutable $now = null): string
+    {
+        if ($now === null) {
+            $now = new \DateTimeImmutable();
+        }
+        
+        // Si l'événement n'est pas validé, garder le statut actuel
+        if ($this->statut === self::STATUT_EN_ATTENTE || $this->statut === self::STATUT_REFUSE) {
+            return $this->statut;
+        }
+        
+        // Si l'événement a été démarré manuellement, le laisser démarré tant qu'il n'est pas fini
+        if ($this->statut === self::STATUT_DEMARRE && $now <= $this->end) {
+            return self::STATUT_DEMARRE;
+        }
+        
+        // Si l'événement est en cours
+        if ($this->isEnCours($now)) {
+            return self::STATUT_EN_COURS;
+        }
+        
+        // Sinon, garder le statut validé
+        return self::STATUT_VALIDE;
+    }
+
+    /**
+     * Vérifie si l'événement peut être démarré par l'organisateur
+     */
+    public function canBeStarted(\DateTimeImmutable $now = null): bool
+    {
+        if ($now === null) {
+            $now = new \DateTimeImmutable();
+        }
+        
+        // L'événement peut être démarré s'il est "en_cours" et pas encore "démarré"
+        return $this->statut === self::STATUT_EN_COURS &&
+               $this->isEnCours($now) &&
+               $now <= $this->end;
     }
 
     public function getStatut(): ?string
