@@ -249,17 +249,14 @@ const updateEvent = (event) => {
 
     // Gestion des boutons selon l'état de connexion
     if (isConnected()) {
-        console.log('User is connected, event data:', event);
         updateAdminButtons(event);
         checkParticipationStatus(eventId).then(status => {
-            console.log('Participation status:', status);
             updateParticipationButton(status, event.statut);
             updateEditButton(status, event);
         }).catch(error => {
             console.error('Error checking participation status:', error);
         });
     } else {
-        console.log('User is not connected');
         hideParticipationButton();
         document.getElementById('organizerButtons')?.style.setProperty('display', 'none');
     }
@@ -459,26 +456,17 @@ const updateParticipationButton = (status, eventStatus) => {
 };
 
 const updateEditButton = (status, event) => {
-    console.log('updateEditButton called');
-    console.log('Status:', status);
-    console.log('Event:', event);
-    console.log('Current role:', getRole());
-    
     const editBtn = document.getElementById('editEventBtn');
     const organizerButtons = document.getElementById('organizerButtons');
     
     if (!editBtn || !organizerButtons) {
-        console.log('Elements not found - editBtn:', !!editBtn, 'organizerButtons:', !!organizerButtons);
         return;
     }
     
     const isAdmin = getRole() === 'ROLE_ADMIN';
     const startEventBtn = document.getElementById('startEventBtn');
-    console.log('isAdmin:', isAdmin, 'isOrganizer:', status.isOrganizer);
-    console.log('startEventBtn found:', !!startEventBtn);
     
     if (status.isOrganizer || isAdmin) {
-        console.log('User has permissions - showing organizer buttons');
         organizerButtons.style.removeProperty('display');
         organizerButtons.style.display = 'flex';
         organizerButtons.style.visibility = 'visible';
@@ -486,13 +474,10 @@ const updateEditButton = (status, event) => {
         
         // Afficher le bouton "Démarrer l'événement" seulement si l'événement est en cours
         if (startEventBtn) {
-            console.log('Event status:', event ? event.statut : 'no event');
             if (event && event.statut === 'en_cours') {
                 startEventBtn.style.display = 'inline-block';
-                console.log('Showing start button');
             } else {
                 startEventBtn.style.display = 'none';
-                console.log('Hiding start button - status is not en_cours');
             }
         }
         
@@ -501,7 +486,6 @@ const updateEditButton = (status, event) => {
             loadPendingParticipations();
         }
     } else {
-        console.log('User has no permissions - hiding organizer buttons');
         organizerButtons.style.display = 'none';
         organizerButtons.style.visibility = 'hidden';
         organizerButtons.style.setProperty('display', 'none', 'important');
