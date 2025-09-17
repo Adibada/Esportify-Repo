@@ -84,22 +84,29 @@ function loadUserParticipations(token) {
             eventList.innerHTML = `<li class="text-center py-3 text-muted">Aucune participation</li>`;
         } else {
             participations.forEach(participation => {
-                // Déterminer le badge selon le statut de participation
+                // Déterminer le badge selon le statut de l'événement
                 let statusBadge;
                 let badgeClass;
-                switch (participation.statutParticipation) {
-                    case 'validee':
+                switch (participation.statut) {
+                    case 'valide':
+                        badgeClass = 'bg-info';
+                        statusBadge = 'Validé';
+                        break;
+                    case 'en_cours':
+                        badgeClass = 'bg-primary';
+                        statusBadge = 'En cours';
+                        break;
+                    case 'demarre':
                         badgeClass = 'bg-success';
-                        statusBadge = 'Validée';
+                        statusBadge = 'Démarré !!';
                         break;
-                    case 'refusee':
-                        badgeClass = 'bg-danger';
-                        statusBadge = 'Refusée';
+                    case 'termine':
+                        badgeClass = 'bg-secondary';
+                        statusBadge = 'Terminé';
                         break;
-                    case 'en_attente':
                     default:
                         badgeClass = 'bg-warning';
-                        statusBadge = 'En attente';
+                        statusBadge = 'Inconnu';
                         break;
                 }
 
@@ -173,6 +180,7 @@ function loadOrganizedEvents(token, userRoles) {
             // Déterminer le badge selon le statut de l'événement
             let statusBadge;
             let badgeClass;
+            
             switch (event.statut) {
                 case 'valide':
                     badgeClass = 'bg-success';
@@ -182,7 +190,15 @@ function loadOrganizedEvents(token, userRoles) {
                     badgeClass = 'bg-danger';
                     statusBadge = 'Refusé';
                     break;
-                case 'en attente':
+                case 'en_cours':
+                    badgeClass = 'bg-primary';
+                    statusBadge = 'En cours';
+                    break;
+                case 'demarre':
+                    badgeClass = 'bg-info';
+                    statusBadge = 'Démarré!!';
+                    break;
+                case 'en_attente':
                 default:
                     badgeClass = 'bg-warning';
                     statusBadge = 'En attente';
@@ -191,6 +207,7 @@ function loadOrganizedEvents(token, userRoles) {
 
             const li = document.createElement("li");
             li.classList.add("event-in-list");
+            
             li.innerHTML = `
                 <a href="/evenement?id=${event.id}" onclick="window.route(event)">
                     <span>${event.titre || 'Sans titre'}</span>

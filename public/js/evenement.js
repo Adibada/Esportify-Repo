@@ -221,7 +221,7 @@ const updateEvent = (event) => {
                 'valide': 'Validé',
                 'refuse': 'Refusé',
                 'en_cours': 'En cours',
-                'demarre': 'Démarré'
+                'demarre': 'Démarré!!'
             };
             const statusColors = {
                 'en_attente': 'warning',
@@ -1149,7 +1149,7 @@ window.showNotification = (message, type = 'info') => {
 
 // Fonction pour démarrer un événement
 window.startEvent = async () => {
-    if (!eventId) {
+    if (eventId === null || eventId === undefined) {
         showNotification('Erreur: ID de l\'événement non trouvé', 'error');
         return;
     }
