@@ -49,11 +49,13 @@ class EvenementsTest extends TestCase
         $this->assertSame(Evenements::STATUT_VALIDE, $evenement->getStatut());
     }
 
-    public function testImage()
+    public function testImages()
     {
         $evenement = new Evenements();
-        $evenement->setImage("image.png");
-        $this->assertSame("image.png", $evenement->getImage());
+        $this->assertCount(0, $evenement->getImages());
+        
+        // Note: Pour tester addImage, il faudrait créer un objet ImageEvenement
+        // mais ce test se contente de vérifier que la collection est initialisée
     }
 
     public function testNumberCompetitorsStartsAtZero()
@@ -110,5 +112,65 @@ class EvenementsTest extends TestCase
 
         $evenement->setOrganisateur($organisateur);
         $this->assertSame($organisateur, $evenement->getOrganisateur());
+    }
+
+    public function testIsEnCours()
+    {
+        $evenement = new Evenements();
+        $start = new \DateTimeImmutable('2025-09-17 12:00:00');
+        $end = new \DateTimeImmutable('2025-09-17 18:00:00');
+        $evenement->setStart($start);
+        $evenement->setEnd($end);
+
+        // Pendant l'événement (15h00)
+        $nowDuring = new \DateTimeImmutable('2025-09-17 15:00:00');
+        $this->assertTrue($evenement->isEnCours($nowDuring));
+        
+        // 30 minutes avant le début (11h30) - doit être en cours
+        $now30MinBefore = new \DateTimeImmutable('2025-09-17 11:30:00');
+        $this->assertTrue($evenement->isEnCours($now30MinBefore));
+        
+        // 45 minutes avant le début (11h15) - ne doit pas être en cours
+        $now45MinBefore = new \DateTimeImmutable('2025-09-17 11:15:00');
+        $this->assertFalse($evenement->isEnCours($now45MinBefore));
+        
+        // Après la fin (20h00) - ne doit pas être en cours
+        $nowAfter = new \DateTimeImmutable('2025-09-17 20:00:00');
+        $this->assertFalse($evenement->isEnCours($nowAfter));
+    }
+
+    public function testGetStatutAttendu()
+    {
+        $evenement = new Evenements();
+        $start = new \DateTimeImmutable('2025-09-17 12:00:00');
+        $end = new \DateTimeImmutable('2025-09-17 18:00:00');
+        $evenement->setStart($start);
+        $evenement->setEnd($end);
+
+        // Événement en attente reste en attente
+        $evenement->setStatut(Evenements::STATUT_EN_ATTENTE);
+        $this->assertSame(Evenements::STATUT_EN_ATTENTE, $evenement->getStatutAttendu());
+
+        // Événement validé bien avant le début (10h00) reste validé
+        $evenement->setStatut(Evenements::STATUT_VALIDE);
+        $nowBefore = new \DateTimeImmutable('2025-09-17 10:00:00');
+        $this->assertSame(Evenements::STATUT_VALIDE, $evenement->getStatutAttendu($nowBefore));
+
+        // Événement validé 30 min avant le début (11h30) passe en cours
+        $now30MinBefore = new \DateTimeImmutable('2025-09-17 11:30:00');
+        $this->assertSame(Evenements::STATUT_EN_COURS, $evenement->getStatutAttendu($now30MinBefore));
+
+        // Événement validé pendant (15h00) est en cours
+        $nowDuring = new \DateTimeImmutable('2025-09-17 15:00:00');
+        $this->assertSame(Evenements::STATUT_EN_COURS, $evenement->getStatutAttendu($nowDuring));
+
+        // Événement validé après la fin (20h00) redevient validé
+        $nowAfter = new \DateTimeImmutable('2025-09-17 20:00:00');
+        $this->assertSame(Evenements::STATUT_VALIDE, $evenement->getStatutAttendu($nowAfter));
+    }
+
+    public function testStatutEnCoursConstant()
+    {
+        $this->assertSame('en_cours', Evenements::STATUT_EN_COURS);
     }
 }
