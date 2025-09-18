@@ -27,6 +27,7 @@ class Evenements
     public const STATUT_REFUSE = 'refuse';
     public const STATUT_EN_COURS = 'en_cours';
     public const STATUT_DEMARRE = 'demarre';
+    public const STATUT_TERMINE = 'termine';
 
     #[Groups([self::GROUP_READ])]
     #[ORM\Id]
@@ -182,9 +183,19 @@ class Evenements
             return $this->statut;
         }
         
+        // Si l'événement était démarré et qu'il est maintenant terminé
+        if ($this->statut === self::STATUT_DEMARRE && $now > $this->end) {
+            return self::STATUT_TERMINE;
+        }
+        
         // Si l'événement a été démarré manuellement, le laisser démarré tant qu'il n'est pas fini
         if ($this->statut === self::STATUT_DEMARRE && $now <= $this->end) {
             return self::STATUT_DEMARRE;
+        }
+        
+        // Si l'événement est terminé (après sa date de fin)
+        if ($now > $this->end) {
+            return self::STATUT_TERMINE;
         }
         
         // Si l'événement est en cours
