@@ -227,7 +227,21 @@ function loadOrganizedEvents(token, userRoles) {
         const eventsList = document.querySelector(".organized-events-list");
         if (!eventsList) return;
 
+        // Ajouter la classe pour le style du tableau
+        eventsList.parentElement.classList.add('organized-events-table');
         eventsList.innerHTML = "";
+        
+        // Ajouter l'en-tête des colonnes
+        const headerLi = document.createElement("li");
+        headerLi.innerHTML = `
+            <div class="row py-2 border-bottom fw-bold text-muted small">
+                <div class="col-md-4">Titre de l'événement</div>
+                <div class="col-md-3">Dates</div>
+                <div class="col-md-2">Participants</div>
+                <div class="col-md-3">Statut & Actions</div>
+            </div>
+        `;
+        eventsList.appendChild(headerLi);
         
         organizedEvents.forEach(event => {
             // Déterminer le badge selon le statut de l'événement
@@ -277,17 +291,24 @@ function loadOrganizedEvents(token, userRoles) {
             }
             
             li.innerHTML = `
-                <div class="d-flex align-items-center justify-content-between w-100 py-2">
-                    <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="flex-grow-1 text-decoration-none">
-                        <span>${event.titre || 'Sans titre'}</span>
-                        <span class="mx-2">/</span>
-                        <span><time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></span>
-                        <span class="mx-2">/</span>
-                        <span>${event.nombreParticipants || 0} Participant${(event.nombreParticipants || 0) !== 1 ? 's' : ''}</span>
-                        <span class="mx-2">/</span>
+                <div class="row align-items-center py-2">
+                    <div class="col-md-4">
+                        <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
+                            ${event.titre || 'Sans titre'}
+                        </a>
+                    </div>
+                    <div class="col-md-3 text-muted small">
+                        <div>Début: <time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></div>
+                        <div>Fin: <time datetime="${event.dateFin}">${new Date(event.dateFin).toLocaleDateString()}</time></div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <span class="badge bg-info">${event.numberCompetitors || 0}</span>
+                        <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center">
                         <span class="badge ${badgeClass}">${statusBadge}</span>
-                    </a>
-                    ${startButton}
+                        ${startButton}
+                    </div>
                 </div>
             `;
             eventsList.appendChild(li);
