@@ -61,7 +61,7 @@ class Evenements
     public function getNumberCompetitors(): int
     {
         return $this->participations->filter(
-            fn(Participation $participation) => $participation->getStatut() !== self::STATUT_REFUSE
+            fn(Participation $participation) => $participation->getStatut() === Participation::STATUT_VALIDE
         )->count();
     }
 

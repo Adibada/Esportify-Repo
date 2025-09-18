@@ -98,13 +98,17 @@ class UserController extends AbstractController
         // Ajouter les participations (événements où l'utilisateur participe)
         foreach ($user->getParticipations() as $participation) {
             $event = $participation->getEvenement();
+            
             $userData['participations'][] = [
                 'id' => $event->getId(),
                 'titre' => $event->getTitre(),
                 'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
                 'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
                 'statut' => $event->getStatut(),
-                'description' => $event->getDescription()
+                'description' => $event->getDescription(),
+                'score' => $participation->getScore(),
+                'statutParticipation' => $participation->getStatut(),
+                'numberCompetitors' => $event->getNumberCompetitors()
             ];
         }
 

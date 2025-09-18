@@ -1,6 +1,22 @@
+// Utilitaires de cookies
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function getToken() {
+    return getCookie('accesstoken');
+}
+
 // Récupération du profil et affichage du nom + participations
 function loadUserProfile() {
-    const token = getToken();   
+    const token = getCookie('accesstoken');   
     fetch('/api/users/me', {
         headers: {
             'X-AUTH-TOKEN': token
@@ -78,15 +94,32 @@ function loadUserParticipations(token) {
         const eventList = document.querySelector(".event-list");
         if (!eventList) return;
 
+        // Ajouter la classe pour le style du tableau
+        eventList.parentElement.classList.add('participations-table');
         eventList.innerHTML = "";
         
         if (participations.length === 0) {
             eventList.innerHTML = `<li class="text-center py-3 text-muted">Aucune participation</li>`;
         } else {
+            // Ajouter l'en-tête des colonnes
+            const headerLi = document.createElement("li");
+            headerLi.innerHTML = `
+                <div class="row py-2 border-bottom fw-bold text-muted small">
+                    <div class="col-md-3">Titre de l'événement</div>
+                    <div class="col-md-3">Dates</div>
+                    <div class="col-md-2">Participants</div>
+                    <div class="col-md-2">Statut</div>
+                    <div class="col-md-2 text-end">Score</div>
+                </div>
+            `;
+            eventList.appendChild(headerLi);
+            
             participations.forEach(participation => {
                 // Déterminer le badge selon le statut de l'événement
                 let statusBadge;
                 let badgeClass;
+                let scoreDisplay = '';
+                
                 switch (participation.statut) {
                     case 'valide':
                         badgeClass = 'bg-info';
@@ -103,6 +136,12 @@ function loadUserParticipations(token) {
                     case 'termine':
                         badgeClass = 'bg-dark';
                         statusBadge = 'Terminé';
+                        // Afficher le score pour les événements terminés
+                        if (participation.score !== null && participation.score !== undefined) {
+                            scoreDisplay = `<span class="badge bg-warning text-dark fw-bold">Score: ${participation.score}</span>`;
+                        } else {
+                            scoreDisplay = `<span class="text-muted small">Score non défini</span>`;
+                        }
                         break;
                     default:
                         badgeClass = 'bg-warning';
@@ -113,13 +152,27 @@ function loadUserParticipations(token) {
                 const li = document.createElement("li");
                 li.classList.add("event-in-list");
                 li.innerHTML = `
-                    <a href="/evenement?id=${participation.id}" onclick="window.route(event)">
-                        <span>${participation.titre || 'Sans titre'}</span>
-                        <span>/</span>
-                        <span><time datetime="${participation.dateDebut}">${new Date(participation.dateDebut).toLocaleDateString()}</time></span>
-                        <span>/</span>
-                        <span class="badge ${badgeClass}">${statusBadge}</span>
-                    </a>
+                    <div class="row align-items-center py-2">
+                        <div class="col-md-3">
+                            <a href="/evenement?id=${participation.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
+                                ${participation.titre || 'Sans titre'}
+                            </a>
+                        </div>
+                        <div class="col-md-3 text-muted small">
+                            <div>Début: <time datetime="${participation.dateDebut}">${new Date(participation.dateDebut).toLocaleDateString()}</time></div>
+                            <div>Fin: <time datetime="${participation.dateFin}">${new Date(participation.dateFin).toLocaleDateString()}</time></div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-info">${participation.numberCompetitors || 0}</span>
+                            <small class="d-block text-muted mt-1">participant${(participation.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="badge ${badgeClass}">${statusBadge}</span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            ${scoreDisplay}
+                        </div>
+                    </div>
                 `;
                 eventList.appendChild(li);
             });

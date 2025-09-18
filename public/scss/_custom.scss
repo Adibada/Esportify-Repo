@@ -97,3 +97,86 @@ $navbar-dark-icon-color: $secondary;
         color: $primary;
     }
 }
+
+// Styles pour le tableau des participations dans monProfil
+.participations-table {
+    width: 100%;
+    
+    .event-list {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        
+        li {
+            list-style: none;
+            width: 100%;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            
+            &:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+            
+            // En-tête du tableau
+            &:first-child {
+                background-color: rgba(255, 255, 255, 0.08);
+                font-weight: 600;
+                
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.08);
+                }
+            }
+            
+            .row {
+                margin: 0;
+                width: 100%;
+                
+                .col-md-3, .col-md-2 {
+                    padding-left: 15px;
+                    padding-right: 15px;
+                }
+            }
+            
+            a {
+                color: $primary;
+                transition: color 0.2s ease;
+                
+                &:hover {
+                    color: $secondary;
+                    text-decoration: underline;
+                }
+            }
+            
+            .badge {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.5rem;
+            }
+            
+            .text-muted {
+                color: rgba(255, 255, 255, 0.6) !important;
+                font-size: 0.85rem;
+            }
+        }
+    }
+}
+
+// Responsive pour mobile
+@media (max-width: 768px) {
+    .participations-table .event-list li {
+        .row {
+            flex-direction: column;
+            
+            .col-md-3, .col-md-2 {
+                max-width: 100%;
+                margin-bottom: 0.5rem;
+                
+                &:last-child {
+                    margin-bottom: 0;
+                }
+            }
+        }
+        
+        &:first-child {
+            display: none; // Cacher l'en-tête sur mobile
+        }
+    }
+}

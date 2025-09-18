@@ -105,6 +105,35 @@ class EvenementsTest extends TestCase
         $this->assertSame(0, $event->getNumberCompetitors());
     }
 
+    public function testNumberCompetitorsOnlyCountsValidatedParticipants()
+    {
+        $event = new Evenements();
+        
+        // Participation validée - doit être comptée
+        $user1 = new User();
+        $validParticipation = new Participation();
+        $validParticipation->setUser($user1);
+        $validParticipation->setStatut(Participation::STATUT_VALIDE);
+        $event->addParticipation($validParticipation);
+        
+        // Participation en attente - ne doit pas être comptée
+        $user2 = new User();
+        $pendingParticipation = new Participation();
+        $pendingParticipation->setUser($user2);
+        $pendingParticipation->setStatut(Participation::STATUT_EN_ATTENTE);
+        $event->addParticipation($pendingParticipation);
+        
+        // Participation refusée - ne doit pas être comptée
+        $user3 = new User();
+        $refusedParticipation = new Participation();
+        $refusedParticipation->setUser($user3);
+        $refusedParticipation->setStatut(Participation::STATUT_REFUSE);
+        $event->addParticipation($refusedParticipation);
+
+        // Seule la participation validée doit être comptée
+        $this->assertSame(1, $event->getNumberCompetitors());
+    }
+
     public function testOrganisateur()
     {
         $evenement = new Evenements();
