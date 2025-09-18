@@ -243,10 +243,9 @@ function displayResults(events, total = 0, reset = true) {
         eventsHTML += `
             <li>
                 <div class="row py-2 border-bottom fw-bold text-muted small">
-                    <div class="col-md-4">Titre de l'événement</div>
-                    <div class="col-md-3">Dates</div>
+                    <div class="col-md-6">Titre de l'événement</div>
+                    <div class="col-md-4">Dates</div>
                     <div class="col-md-2">Participants</div>
-                    <div class="col-md-3">Organisateur</div>
                 </div>
             </li>
         `;
@@ -260,24 +259,18 @@ function displayResults(events, total = 0, reset = true) {
         return `
             <li class="event-in-list">
                 <div class="row align-items-center py-2">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
                             ${event.titre || 'Sans titre'}
                         </a>
                     </div>
-                    <div class="col-md-3 text-muted small">
+                    <div class="col-md-4 text-muted small">
                         ${dateDebut ? `<div>Début: <time datetime="${event.start}">${dateDebut.toLocaleDateString()}</time></div>` : ''}
                         ${dateFin ? `<div>Fin: <time datetime="${event.end}">${dateFin.toLocaleDateString()}</time></div>` : ''}
                     </div>
                     <div class="col-md-2 text-center">
                         <span class="badge bg-info">${event.numberCompetitors || 0}</span>
                         <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
-                    </div>
-                    <div class="col-md-3">
-                        ${event.organisateur ? `
-                            <span class="text-muted small">par</span>
-                            <div class="fw-medium">${event.organisateur.username}</div>
-                        ` : '<span class="text-muted small">Non défini</span>'}
                     </div>
                 </div>
             </li>
@@ -345,18 +338,6 @@ function initializeSearchHandlers() {
             const eventName = document.getElementById('eventName')?.value.trim();
             if (eventName) {
                 searchEvents({ titre: eventName }, true);
-            }
-        });
-    }
-    
-    // Recherche par organisateur
-    const searchEventOrganizerForm = document.getElementById('searchEventOrganizer');
-    if (searchEventOrganizerForm) {
-        searchEventOrganizerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const organizerName = document.getElementById('organizerName')?.value.trim();
-            if (organizerName) {
-                searchEvents({ organisateur: organizerName }, true);
             }
         });
     }
@@ -434,14 +415,12 @@ function performCombinedSearch() {
     
     // Récupérer tous les champs remplis
     const eventName = document.getElementById('eventName')?.value.trim();
-    const organizerName = document.getElementById('organizerName')?.value.trim();
     const minParticipants = document.getElementById('minParticipants')?.value;
     const maxParticipants = document.getElementById('maxParticipants')?.value;
     const searchDateStart = document.getElementById('searchDateStart')?.value;
     const searchDateEnd = document.getElementById('searchDateEnd')?.value;
     
     if (eventName) filters.titre = eventName;
-    if (organizerName) filters.organisateur = organizerName;
     if (minParticipants) filters.minParticipants = parseInt(minParticipants);
     if (maxParticipants) filters.maxParticipants = parseInt(maxParticipants);
     if (searchDateStart) filters.dateStart = searchDateStart;
