@@ -91,7 +91,8 @@ class UserController extends AbstractController
                 'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
                 'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
                 'statut' => $event->getStatut(),
-                'description' => $event->getDescription()
+                'description' => $event->getDescription(),
+                'numberCompetitors' => $event->getNumberCompetitors()
             ];
         }
 
