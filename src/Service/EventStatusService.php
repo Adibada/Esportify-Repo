@@ -67,7 +67,7 @@ class EventStatusService
 
     /**
      * Récupère tous les événements actuellement en cours
-     * (30 minutes avant le début jusqu'à la fin)
+     * (événements avec statut 'démarré'/'en_cours' ou événements en cours selon leurs dates)
      */
     public function getCurrentEvents(\DateTimeImmutable $now = null): array
     {
@@ -79,26 +79,27 @@ class EventStatusService
         $nowMinus30Min = $now->sub(new \DateInterval('PT30M'));
 
         return $this->evenementsRepository->createQueryBuilder('e')
-            ->where('e.start >= :nowMinus30Min')
-            ->andWhere('e.start <= :nowPlus30Min')
-            ->andWhere('e.end >= :now')
-            ->andWhere('e.statut IN (:validStatuses)')
-            ->setParameter('nowMinus30Min', $nowMinus30Min)
-            ->setParameter('nowPlus30Min', $now->add(new \DateInterval('PT30M')))
+            ->where(
+                '(e.statut IN (:currentStatuses)) OR ' .
+                '(e.statut IN (:validStatuses) AND e.start <= :now AND e.end >= :nowMinus30Min)'
+            )
+            ->setParameter('currentStatuses', [Evenements::STATUT_DEMARRE, Evenements::STATUT_EN_COURS])
+            ->setParameter('validStatuses', [Evenements::STATUT_VALIDE])
             ->setParameter('now', $now)
-            ->setParameter('validStatuses', [Evenements::STATUT_VALIDE, Evenements::STATUT_EN_COURS])
+            ->setParameter('nowMinus30Min', $nowMinus30Min)
+            ->orderBy('e.start', 'ASC')
             ->getQuery()
             ->getResult();
     }
 
     /**
-     * Récupère les événements avec le statut "en_cours" (plus efficace pour l'affichage)
+     * Récupère les événements avec le statut "en_cours" ou "demarre" (plus efficace pour l'affichage)
      */
     public function getEventsEnCours(int $limit = null): array
     {
         $qb = $this->evenementsRepository->createQueryBuilder('e')
-            ->where('e.statut = :statut')
-            ->setParameter('statut', Evenements::STATUT_EN_COURS)
+            ->where('e.statut IN (:statuts)')
+            ->setParameter('statuts', [Evenements::STATUT_EN_COURS, Evenements::STATUT_DEMARRE])
             ->orderBy('e.start', 'ASC');
 
         if ($limit) {

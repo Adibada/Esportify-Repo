@@ -868,12 +868,13 @@ class EvenementsController extends AbstractController
     public function current(): JsonResponse
     {
         // Option 1: Mise à jour complète (plus sûr mais plus lent)
-        // $this->eventStatusService->updateAllEventsStatus();
-        // $events = $this->eventStatusService->getCurrentEvents();
+        $this->eventStatusService->updateAllEventsStatus();
+        $events = $this->eventStatusService->getCurrentEvents();
         
-        // Option 2: Récupération directe des événements "en_cours" (plus rapide)
-        // Faire une mise à jour périodique via cron recommandée
-        $events = $this->eventStatusService->getEventsEnCours(3);
+        // Fallback: si pas d'événements avec getCurrentEvents, essayer getEventsEnCours
+        if (!$events || count($events) === 0) {
+            $events = $this->eventStatusService->getEventsEnCours(3);
+        }
         
         if (!$events || count($events) === 0) {
             return $this->json([], Response::HTTP_OK);
