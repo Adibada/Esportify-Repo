@@ -164,9 +164,32 @@ class EvenementsTest extends TestCase
         $nowDuring = new \DateTimeImmutable('2025-09-17 15:00:00');
         $this->assertSame(Evenements::STATUT_EN_COURS, $evenement->getStatutAttendu($nowDuring));
 
-        // Événement validé après la fin (20h00) redevient validé
+        // Événement validé après la fin (20h00) devient terminé
         $nowAfter = new \DateTimeImmutable('2025-09-17 20:00:00');
-        $this->assertSame(Evenements::STATUT_VALIDE, $evenement->getStatutAttendu($nowAfter));
+        $this->assertSame(Evenements::STATUT_TERMINE, $evenement->getStatutAttendu($nowAfter));
+    }
+
+    public function testStatutDemarreVersTermine()
+    {
+        $evenement = new Evenements();
+        $start = new \DateTimeImmutable('2025-09-17 12:00:00');
+        $end = new \DateTimeImmutable('2025-09-17 18:00:00');
+        $evenement->setStart($start);
+        $evenement->setEnd($end);
+
+        // Événement démarré pendant la période reste démarré
+        $evenement->setStatut(Evenements::STATUT_DEMARRE);
+        $nowDuring = new \DateTimeImmutable('2025-09-17 15:00:00');
+        $this->assertSame(Evenements::STATUT_DEMARRE, $evenement->getStatutAttendu($nowDuring));
+
+        // Événement démarré après la fin devient terminé
+        $nowAfter = new \DateTimeImmutable('2025-09-17 20:00:00');
+        $this->assertSame(Evenements::STATUT_TERMINE, $evenement->getStatutAttendu($nowAfter));
+    }
+
+    public function testStatutTermineConstant()
+    {
+        $this->assertSame('termine', Evenements::STATUT_TERMINE);
     }
 
     public function testStatutEnCoursConstant()

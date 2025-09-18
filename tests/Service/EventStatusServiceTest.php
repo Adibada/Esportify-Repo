@@ -67,7 +67,7 @@ class EventStatusServiceTest extends TestCase
         $this->assertEquals(Evenements::STATUT_EN_COURS, $event->getStatut());
     }
 
-    public function testUpdateEventStatusBackToValide(): void
+    public function testUpdateEventStatusBackToTermine(): void
     {
         $event = new Evenements();
         $event->setTitre('Test Event');
@@ -84,7 +84,7 @@ class EventStatusServiceTest extends TestCase
         $hasChanged = $this->eventStatusService->updateEventStatus($event, $now);
 
         $this->assertTrue($hasChanged);
-        $this->assertEquals(Evenements::STATUT_VALIDE, $event->getStatut());
+        $this->assertEquals(Evenements::STATUT_TERMINE, $event->getStatut());
     }
 
     public function testEventEnAttenteRemainsEnAttente(): void
@@ -105,5 +105,25 @@ class EventStatusServiceTest extends TestCase
 
         $this->assertFalse($hasChanged);
         $this->assertEquals(Evenements::STATUT_EN_ATTENTE, $event->getStatut());
+    }
+
+    public function testEventDemarreBecomesTermine(): void
+    {
+        $event = new Evenements();
+        $event->setTitre('Test Event');
+        $event->setDescription('Test Description');
+        $event->setStart(new \DateTimeImmutable('2025-09-17 12:00:00'));
+        $event->setEnd(new \DateTimeImmutable('2025-09-17 18:00:00'));
+        $event->setStatut(Evenements::STATUT_DEMARRE);
+        
+        $user = new User();
+        $event->setOrganisateur($user);
+
+        $now = new \DateTimeImmutable('2025-09-17 20:00:00'); // Après la fin
+
+        $hasChanged = $this->eventStatusService->updateEventStatus($event, $now);
+
+        $this->assertTrue($hasChanged);
+        $this->assertEquals(Evenements::STATUT_TERMINE, $event->getStatut());
     }
 }
