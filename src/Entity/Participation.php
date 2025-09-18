@@ -35,6 +35,10 @@ class Participation
     #[ORM\Column(length: 50, nullable: false, options: ['default' => self::STATUT_EN_ATTENTE])]
     private string $statut = self::STATUT_EN_ATTENTE;
 
+    #[Groups([self::GROUP_READ])]
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $score = null;
+
     public function getUser(): ?User
     {
         return $this->user;
@@ -65,6 +69,17 @@ class Participation
     public function setStatut(string $statut): static
     {
         $this->statut = $statut;
+        return $this;
+    }
+
+    public function getScore(): ?int
+    {
+        return $this->score;
+    }
+
+    public function setScore(?int $score): static
+    {
+        $this->score = $score;
         return $this;
     }
 }
