@@ -98,6 +98,73 @@ function loadUserParticipations(token) {
         eventList.parentElement.classList.add('participations-table');
         eventList.innerHTML = "";
         
+        // Ajouter les styles CSS pour l'effet de clignotement
+        if (!document.getElementById('joinBtnStyles')) {
+            const style = document.createElement('style');
+            style.id = 'joinBtnStyles';
+            style.textContent = `
+                @keyframes joinBlink {
+                    0%, 100% { 
+                        background-color: var(--bs-primary);
+                        border-color: var(--bs-primary);
+                    }
+                    50% { 
+                        background-color: var(--bs-secondary);
+                        border-color: var(--bs-secondary);
+                    }
+                }
+                
+                .join-blink {
+                    animation: joinBlink 1.5s infinite;
+                    font-weight: bold;
+                    white-space: nowrap;
+                }
+                
+                .join-blink:hover {
+                    animation-play-state: paused;
+                    background-color: var(--bs-success) !important;
+                    border-color: var(--bs-success) !important;
+                }
+                
+                .join-btn-container {
+                    z-index: 10;
+                }
+                
+                /* Version desktop : bouton dans la marge de droite */
+                .join-btn-desktop {
+                    display: block;
+                }
+                
+                /* Version mobile : bouton dans le bloc, masquer la version desktop */
+                @media (max-width: 767.98px) {
+                    .join-btn-desktop {
+                        display: none !important;
+                    }
+                    
+                    .join-btn-mobile {
+                        display: block !important;
+                    }
+                }
+                
+                /* Version desktop : masquer la version mobile */
+                @media (min-width: 768px) {
+                    .join-btn-mobile {
+                        display: none !important;
+                    }
+                }
+                
+                .participations-table {
+                    overflow: visible;
+                    position: relative;
+                }
+                
+                .event-in-list {
+                    overflow: visible;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         if (participations.length === 0) {
             eventList.innerHTML = `<li class="text-center py-3 text-muted">Aucune participation</li>`;
         } else {
@@ -119,6 +186,7 @@ function loadUserParticipations(token) {
                 let statusBadge;
                 let badgeClass;
                 let scoreDisplay = '';
+                let joinButton = '';
                 
                 switch (participation.statut) {
                     case 'valide':
@@ -132,6 +200,19 @@ function loadUserParticipations(token) {
                     case 'demarre':
                         badgeClass = 'bg-success';
                         statusBadge = 'Démarré !!';
+                        // Bouton rejoindre avec positionnement adaptatif (marge sur desktop, dans le bloc sur mobile)
+                        joinButton = `
+                            <div class="join-btn-container join-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
+                                <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
+                                    <i class="fas fa-play me-1"></i>Rejoindre
+                                </button>
+                            </div>
+                            <div class="join-btn-container join-btn-mobile d-block d-md-none mt-2 text-center">
+                                <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
+                                    <i class="fas fa-play me-1"></i>Rejoindre
+                                </button>
+                            </div>
+                        `;
                         break;
                     case 'termine':
                         badgeClass = 'bg-dark';
@@ -151,6 +232,7 @@ function loadUserParticipations(token) {
 
                 const li = document.createElement("li");
                 li.classList.add("event-in-list");
+                li.style.position = 'relative'; // Pour permettre le positionnement absolu du bouton
                 li.innerHTML = `
                     <div class="row align-items-center py-2">
                         <div class="col-md-3">
@@ -173,6 +255,7 @@ function loadUserParticipations(token) {
                             ${scoreDisplay}
                         </div>
                     </div>
+                    ${joinButton}
                 `;
                 eventList.appendChild(li);
             });
@@ -237,8 +320,8 @@ function loadOrganizedEvents(token, userRoles) {
             <div class="row py-2 border-bottom fw-bold text-muted small">
                 <div class="col-md-4">Titre de l'événement</div>
                 <div class="col-md-3">Dates</div>
-                <div class="col-md-2">Participants</div>
-                <div class="col-md-3">Statut & Actions</div>
+                <div class="col-md-2 text-center">Participants</div>
+                <div class="col-md-3 text-center">Statut & Actions</div>
             </div>
         `;
         eventsList.appendChild(headerLi);
@@ -305,7 +388,7 @@ function loadOrganizedEvents(token, userRoles) {
                         <span class="badge bg-info">${event.numberCompetitors || 0}</span>
                         <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
                     </div>
-                    <div class="col-md-3 d-flex align-items-center">
+                    <div class="col-md-3 text-center d-flex align-items-center justify-content-center">
                         <span class="badge ${badgeClass}">${statusBadge}</span>
                         ${startButton}
                     </div>
@@ -393,6 +476,46 @@ window.startEventFromProfile = async (eventId, clickEvent) => {
         }
     } catch (error) {
         console.error('Erreur lors du démarrage de l\'événement:', error);
+        alert('Erreur de connexion');
+    }
+};
+
+// Fonction pour rejoindre un événement depuis la page profil
+window.joinEventFromProfile = async (eventId) => {
+    const token = getToken();
+    if (!token) {
+        alert('Vous devez être connecté pour effectuer cette action');
+        return;
+    }
+
+    if (!confirm('Êtes-vous prêt à rejoindre cet événement démarré ?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/rejoindre`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert('Vous avez rejoint l\'événement avec succès !');
+            
+            // Optionnel : recharger les participations pour mettre à jour l'affichage
+            loadUserProfile();
+            
+            // Optionnel : rediriger vers une page spécifique de l'événement
+            // window.location.href = data.redirectUrl || `/evenement-live?id=${eventId}`;
+        } else {
+            const errorData = await response.json();
+            alert(errorData.message || errorData.error || 'Erreur lors de la connexion à l\'événement');
+        }
+    } catch (error) {
+        console.error('Erreur lors de la connexion à l\'événement:', error);
         alert('Erreur de connexion');
     }
 };
