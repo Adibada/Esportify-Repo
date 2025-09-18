@@ -1091,6 +1091,9 @@ const deleteComment = async (commentId) => {
     }
 };
 
+// Rendre la fonction accessible globalement
+window.deleteComment = deleteComment;
+
 // Initialisation principale
 const init = () => {
     if (eventId === null || isNaN(eventId)) {
