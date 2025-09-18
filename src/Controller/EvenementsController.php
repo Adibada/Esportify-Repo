@@ -36,14 +36,15 @@ class EvenementsController extends AbstractController
     ) {}
 
     /**
-     * Vérifie si l'événement est accessible (validé, en cours ou démarré)
+     * Vérifie si l'événement est accessible (validé, en cours, démarré ou terminé)
      */
     private function isEventAccessible(Evenements $evenement): bool
     {
         return in_array($evenement->getStatut(), [
             Evenements::STATUT_VALIDE,
             Evenements::STATUT_EN_COURS,
-            Evenements::STATUT_DEMARRE
+            Evenements::STATUT_DEMARRE,
+            Evenements::STATUT_TERMINE
         ]);
     }
 
@@ -204,8 +205,8 @@ class EvenementsController extends AbstractController
         }
 
         // Mettre à jour le statut de l'événement en fonction de ses dates
-        // $this->eventStatusService->updateEventStatus($evenement);
-        // $this->manager->flush();
+        $this->eventStatusService->updateEventStatus($evenement);
+        $this->manager->flush();
 
         $user = $this->getUser();
         
@@ -666,6 +667,9 @@ class EvenementsController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
+        // Mettre à jour les statuts de tous les événements
+        $this->eventStatusService->updateAllEventsStatus();
+        
         $user = $this->getUser();
         $qb = $this->repository->createQueryBuilder('e');
         

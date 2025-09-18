@@ -46,9 +46,9 @@ class EventStatusService
 
         $updatedCount = 0;
 
-        // Récupérer tous les événements validés ou en cours
+        // Récupérer tous les événements validés, en cours ou démarrés
         $events = $this->evenementsRepository->findBy([
-            'statut' => [Evenements::STATUT_VALIDE, Evenements::STATUT_EN_COURS]
+            'statut' => [Evenements::STATUT_VALIDE, Evenements::STATUT_EN_COURS, Evenements::STATUT_DEMARRE]
         ]);
 
         foreach ($events as $event) {
