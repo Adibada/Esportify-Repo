@@ -101,7 +101,7 @@ function loadUserParticipations(token) {
                         statusBadge = 'Démarré !!';
                         break;
                     case 'termine':
-                        badgeClass = 'bg-secondary';
+                        badgeClass = 'bg-dark';
                         statusBadge = 'Terminé';
                         break;
                     default:
@@ -197,6 +197,10 @@ function loadOrganizedEvents(token, userRoles) {
                 case 'demarre':
                     badgeClass = 'bg-info';
                     statusBadge = 'Démarré!!';
+                    break;
+                case 'termine':
+                    badgeClass = 'bg-dark';
+                    statusBadge = 'Terminé';
                     break;
                 case 'en_attente':
                 default:
