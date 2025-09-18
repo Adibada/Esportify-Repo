@@ -221,14 +221,16 @@ const updateEvent = (event) => {
                 'valide': 'Validé',
                 'refuse': 'Refusé',
                 'en_cours': 'En cours',
-                'demarre': 'Démarré!!'
+                'demarre': 'Démarré!!',
+                'termine': 'Terminé'
             };
             const statusColors = {
                 'en_attente': 'warning',
                 'valide': 'success', 
                 'refuse': 'danger',
                 'en_cours': 'primary',
-                'demarre': 'info'
+                'demarre': 'info',
+                'termine': 'dark'
             };
             const label = statusLabels[c] || c;
             const color = statusColors[c] || 'secondary';
@@ -449,8 +451,12 @@ const updateParticipationButton = (status, eventStatus) => {
 
     // Logique normale pour les autres utilisateurs
     let config;
-    if (eventStatus !== 'valide' && eventStatus !== 'en_cours' && eventStatus !== 'demarre') {
+    if (eventStatus !== 'valide' && eventStatus !== 'en_cours' && eventStatus !== 'demarre' && eventStatus !== 'termine') {
         config = configs.invalid;
+    } else if (eventStatus === 'termine') {
+        // Si l'événement est terminé, masquer le bouton (le badge de statut suffit)
+        btn.style.display = 'none';
+        return;
     } else if (eventStatus === 'demarre' && !status.participationStatut) {
         // Si l'événement est démarré et l'utilisateur n'a pas de participation, bloquer
         config = configs.demarre_no_participation;

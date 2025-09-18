@@ -512,6 +512,10 @@ const updateStatusBadge = (statut) => {
             badge.classList.add('bg-info');
             badge.textContent = 'Démarré';
             break;
+        case 'termine':
+            badge.classList.add('bg-dark');
+            badge.textContent = 'Terminé';
+            break;
         default:
             badge.classList.add('bg-secondary');
             badge.textContent = 'Inconnu';
