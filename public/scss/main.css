@@ -12223,24 +12223,39 @@ body {
   min-height: 400px;
 }
 
+#upcomingEventCarousel .carousel-inner {
+  height: auto;
+  min-height: 400px;
+}
+
+#upcomingEventCarousel .carousel-item {
+  height: auto;
+  min-height: 400px;
+}
+
 @media (max-width: 576px) {
-  #eventCarousel .carousel-inner {
+  #eventCarousel .carousel-inner,
+  #upcomingEventCarousel .carousel-inner {
     min-height: 600px;
   }
-  #eventCarousel .carousel-item {
+  #eventCarousel .carousel-item,
+  #upcomingEventCarousel .carousel-item {
     min-height: 600px;
   }
-  #eventCarousel .event-carousel-item .row {
+  #eventCarousel .event-carousel-item .row,
+  #upcomingEventCarousel .event-carousel-item .row {
     flex-direction: column;
     height: auto;
   }
-  #eventCarousel .event-carousel-img {
+  #eventCarousel .event-carousel-img,
+  #upcomingEventCarousel .event-carousel-img {
     max-height: 250px;
     width: 100%;
     -o-object-fit: cover;
        object-fit: cover;
   }
-  #eventCarousel .event-carousel-text-col {
+  #eventCarousel .event-carousel-text-col,
+  #upcomingEventCarousel .event-carousel-text-col {
     margin-top: 1rem;
     padding: 1rem;
     border-radius: 1rem;
