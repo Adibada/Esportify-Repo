@@ -81,14 +81,14 @@ window.toggleImageInput = toggleImageInput;
 
 // === GESTION AVANCÉE DES IMAGES ===
 const showImageManagementArea = () => {
-    document.getElementById('noImagesMessage').style.display = 'none';
-    document.getElementById('imagesList').style.display = 'block';
+    const imagesList = document.getElementById('imagesList');
+    if (imagesList) imagesList.style.display = 'block';
 };
 
 const hideImageManagementArea = () => {
     if (uploadedImages.length === 0) {
-        document.getElementById('noImagesMessage').style.display = 'block';
-        document.getElementById('imagesList').style.display = 'none';
+        const imagesList = document.getElementById('imagesList');
+        if (imagesList) imagesList.style.display = 'none';
     }
 };
 
@@ -97,11 +97,8 @@ const updateImagesDisplay = () => {
     
     if (uploadedImages.length === 0) {
         imagesList.innerHTML = '';
-        hideImageManagementArea();
         return;
     }
-    
-    showImageManagementArea();
     
     imagesList.innerHTML = uploadedImages.map((img, index) => `
         <div class="col-md-6 col-lg-4" data-image-id="${img.id}">

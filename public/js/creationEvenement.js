@@ -1,4 +1,23 @@
 // creationEvenement.js
+// === UTILITAIRES ===
+const tokenCookieName = "accesstoken";
+const getCookie = (name) => {
+    const nameEQ = name + "=";
+    return document.cookie.split(';')
+        .map(c => c.trim())
+        .find(c => c.indexOf(nameEQ) === 0)
+        ?.substring(nameEQ.length) || null;
+};
+
+const getToken = () => getCookie(tokenCookieName);
+const isConnected = () => getToken() !== null;
+const getUserId = () => getCookie('userId') ? parseInt(getCookie('userId')) : null;
+const getRole = () => getCookie('role');
+
+// === VARIABLES GLOBALES ===
+let uploadedImages = []; // Stockage des images uploadées avec leurs métadonnées
+let imageIdCounter = 0; // Compteur pour les IDs uniques des images
+
 // Fonctions d'accessibilité pour générer les labels dynamiques
 function generateImageAlt(file) {
     if (file && file.name) {
@@ -19,7 +38,322 @@ function generateImageTitle(file) {
     return 'Aperçu de l\'image à uploader';
 }
 
-// Initialisation de la page
+// === GESTION DES MESSAGES ===
+const showMessage = (message, type = 'info') => {
+    // Créer ou obtenir le conteneur de messages
+    let messageContainer = document.getElementById('messageContainer');
+    if (!messageContainer) {
+        messageContainer = document.createElement('div');
+        messageContainer.id = 'messageContainer';
+        messageContainer.className = 'alert d-none';
+        messageContainer.setAttribute('role', 'alert');
+        
+        // Insérer après le titre
+        const title = document.querySelector('h2');
+        if (title) {
+            title.after(messageContainer);
+        } else {
+            // Fallback : insérer en haut du container
+            const container = document.querySelector('.container');
+            if (container) {
+                container.prepend(messageContainer);
+            }
+        }
+    }
+    
+    const alertTypes = {
+        success: 'alert-success',
+        error: 'alert-danger',
+        warning: 'alert-warning',
+        info: 'alert-info'
+    };
+    
+    messageContainer.className = `alert ${alertTypes[type]} d-block`;
+    messageContainer.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+        ${message}
+    `;
+    
+    // Faire défiler vers le message
+    messageContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Auto-hide pour les messages de succès
+    if (type === 'success') {
+        setTimeout(() => {
+            messageContainer.classList.add('d-none');
+        }, 5000);
+    }
+};
+
+const hideMessage = () => {
+    const messageContainer = document.getElementById('messageContainer');
+    if (messageContainer) {
+        messageContainer.classList.add('d-none');
+    }
+};
+
+// === GESTION DE L'IMAGE ===
+const toggleImageInput = () => {
+    const imageType = document.querySelector('input[name="imageType"]:checked').value;
+    const fileInput = document.getElementById('fileImageInput');
+    const urlInput = document.getElementById('urlImageInput');
+    
+    if (imageType === 'file') {
+        fileInput.style.display = 'block';
+        urlInput.style.display = 'none';
+        // Reset URL input
+        document.getElementById('eventImageUrl').value = '';
+    } else {
+        fileInput.style.display = 'none';
+        urlInput.style.display = 'block';
+        // Reset file input
+        document.getElementById('eventImageFile').value = '';
+    }
+};
+
+// Rendre la fonction accessible globalement
+window.toggleImageInput = toggleImageInput;
+
+// === GESTION AVANCÉE DES IMAGES ===
+const showImageManagementArea = () => {
+    const imagesList = document.getElementById('imagesList');
+    if (imagesList) imagesList.style.display = 'block';
+};
+
+const hideImageManagementArea = () => {
+    if (uploadedImages.length === 0) {
+        const imagesList = document.getElementById('imagesList');
+        if (imagesList) imagesList.style.display = 'none';
+    }
+};
+
+const updateImagesDisplay = () => {
+    const imagesList = document.getElementById('imagesList');
+    
+    if (!imagesList) {
+        console.warn('Element imagesList non trouvé');
+        return;
+    }
+    
+    if (uploadedImages.length === 0) {
+        imagesList.innerHTML = '';
+        return;
+    }
+    
+    imagesList.innerHTML = uploadedImages.map((img, index) => `
+        <div class="col-md-6 col-lg-4" data-image-id="${img.id}">
+            <div class="card h-100">
+                <div class="position-relative">
+                    <img src="${img.url}" alt="${img.description || 'Image événement'}" 
+                         class="card-img-top" style="height: 200px; object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2" 
+                            onclick="removeImage(${img.id})" title="Supprimer cette image">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    ${index === 0 ? '<div class="badge bg-primary position-absolute bottom-0 start-0 m-2">Image principale</div>' : ''}
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <label class="form-label text-sm">Description (alt text) :</label>
+                        <input type="text" class="form-control form-control-sm" 
+                               value="${img.description || ''}" 
+                               onchange="updateImageDescription(${img.id}, this.value)"
+                               placeholder="Décrivez cette image...">
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            ${img.isUrl ? 'URL' : 'Fichier'} • ${img.size || 'Taille inconnue'}
+                        </small>
+                        <div class="btn-group" role="group">
+                            ${index > 0 ? `<button type="button" class="btn btn-outline-primary btn-sm" 
+                                         onclick="moveImageUp(${img.id})" title="Monter">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>` : ''}
+                            ${index < uploadedImages.length - 1 ? `<button type="button" class="btn btn-outline-primary btn-sm" 
+                                         onclick="moveImageDown(${img.id})" title="Descendre">
+                                <i class="fas fa-arrow-down"></i>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+const handleFileSelection = async (input) => {
+    const files = Array.from(input.files);
+    if (files.length === 0) return;
+    
+    showMessage(`Upload de ${files.length} image(s) en cours...`, 'info');
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const file of files) {
+        try {
+            await uploadImageFile(file);
+            successCount++;
+        } catch (error) {
+            errorCount++;
+            console.error('Erreur upload fichier:', error);
+        }
+    }
+    
+    // Réinitialiser l'input
+    input.value = '';
+    
+    if (successCount > 0) {
+        showMessage(`${successCount} image(s) ajoutée(s) avec succès${errorCount > 0 ? `, ${errorCount} échec(s)` : ''}`, errorCount > 0 ? 'warning' : 'success');
+    } else if (errorCount > 0) {
+        showMessage(`Échec de l'upload de toutes les images`, 'error');
+    }
+    
+    setTimeout(hideMessage, 3000);
+};
+
+const uploadImageFile = async (file) => {
+    try {
+        // Validation du fichier
+        if (file.size > 5 * 1024 * 1024) { // 5MB
+            throw new Error(`Le fichier ${file.name} est trop volumineux (max 5MB)`);
+        }
+        
+        if (!file.type.startsWith('image/')) {
+            throw new Error(`Le fichier ${file.name} n'est pas une image`);
+        }
+        
+        // Ajouter à la liste locale pour la prévisualisation
+        const imageData = {
+            id: imageIdCounter++,
+            url: URL.createObjectURL(file), // URL temporaire pour l'affichage
+            description: '',
+            isUrl: false,
+            originalName: file.name,
+            size: formatFileSize(file.size),
+            file: file, // Stocker le fichier pour l'upload final
+            isNewFile: true // Marquer comme nouveau fichier à uploader
+        };
+        
+        uploadedImages.push(imageData);
+        updateImagesDisplay();
+        
+            } catch (error) {
+            console.error('Erreur lors du traitement du fichier:', error);
+            throw error;
+        }
+};
+
+const addImageFromUrl = async () => {
+    const urlInput = document.getElementById('eventImageUrl');
+    if (!urlInput) return;
+    
+    const imageUrl = urlInput.value.trim();
+    
+    if (!imageUrl) {
+        showMessage('Veuillez entrer une URL d\'image', 'warning');
+        return;
+    }
+    
+    if (!isValidImageUrl(imageUrl)) {
+        showMessage('URL d\'image non valide', 'error');
+        return;
+    }
+    
+    try {
+        showMessage('Ajout de l\'image par URL...', 'info');
+        
+        // Ajouter à la liste locale
+        const imageData = {
+            id: imageIdCounter++,
+            url: imageUrl,
+            description: '',
+            isUrl: true,
+            size: 'URL externe',
+            isNewUrl: true // Marquer comme nouvelle URL à sauvegarder
+        };
+        
+        uploadedImages.push(imageData);
+        updateImagesDisplay();
+        
+        urlInput.value = '';
+        hideMessage();
+        
+    } catch (error) {
+        showMessage(`Erreur : ${error.message}`, 'error');
+    }
+};
+
+const removeImage = async (imageId) => {
+    const imageIndex = uploadedImages.findIndex(img => img.id === imageId);
+    if (imageIndex === -1) return;
+    
+    if (!confirm(`Supprimer cette image définitivement ?`)) {
+        return;
+    }
+    
+    try {
+        // Supprimer de l'affichage local
+        uploadedImages.splice(imageIndex, 1);
+        updateImagesDisplay();
+        
+    } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        showMessage('Erreur lors de la suppression de l\'image', 'error');
+    }
+};
+
+const updateImageDescription = async (imageId, description) => {
+    const image = uploadedImages.find(img => img.id === imageId);
+    if (!image) return;
+    
+    // Mettre à jour la description localement
+    image.description = description;
+};
+
+const moveImageUp = (imageId) => {
+    const index = uploadedImages.findIndex(img => img.id === imageId);
+    if (index <= 0) return;
+    
+    [uploadedImages[index], uploadedImages[index - 1]] = [uploadedImages[index - 1], uploadedImages[index]];
+    updateImagesDisplay();
+};
+
+const moveImageDown = (imageId) => {
+    const index = uploadedImages.findIndex(img => img.id === imageId);
+    if (index >= uploadedImages.length - 1) return;
+    
+    [uploadedImages[index], uploadedImages[index + 1]] = [uploadedImages[index + 1], uploadedImages[index]];
+    updateImagesDisplay();
+};
+
+// Fonctions utilitaires
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const isValidImageUrl = (url) => {
+    try {
+        const urlObj = new URL(url);
+        return ['http:', 'https:'].includes(urlObj.protocol) && 
+               /\.(jpg|jpeg|png|gif|webp)$/i.test(urlObj.pathname);
+    } catch {
+        return false;
+    }
+};
+
+// Rendre les fonctions accessibles globalement
+window.handleFileSelection = handleFileSelection;
+window.addImageFromUrl = addImageFromUrl;
+window.removeImage = removeImage;
+window.updateImageDescription = updateImageDescription;
+window.moveImageUp = moveImageUp;
+window.moveImageDown = moveImageDown;
+
 function initPage() {
     
     // Vérification que l'utilisateur a les droits
@@ -68,36 +402,25 @@ function setupFormHandlers() {
         console.error('Bouton confirmCreateBtn non trouvé');
     }
     
-    // Gestionnaire pour la sélection multiple d'images
-    const imageFileInput = document.getElementById('imageFile');
+    // Gestionnaire pour la sélection d'images (nouvelle méthode avancée)
+    const imageFileInput = document.getElementById('eventImageFile');
     if (imageFileInput) {
-        imageFileInput.addEventListener('change', handleMultipleImageSelection);
+        imageFileInput.addEventListener('change', (e) => handleFileSelection(e.target));
     }
     
-    // Gestionnaire pour supprimer toutes les images
-    const clearImagesBtn = document.getElementById('clearImagesBtn');
-    if (clearImagesBtn) {
-        clearImagesBtn.addEventListener('click', clearAllImages);
-    }
-    
-    // Gestionnaires pour les URLs
-    const addUrlBtn = document.getElementById('addUrlBtn');
+    // Gestionnaire pour ajouter une URL d'image
+    const addUrlBtn = document.getElementById('addImageUrlBtn');
     if (addUrlBtn) {
-        addUrlBtn.addEventListener('click', addImageUrl);
-    }
-    
-    const clearUrlsBtn = document.getElementById('clearUrlsBtn');
-    if (clearUrlsBtn) {
-        clearUrlsBtn.addEventListener('click', clearAllUrls);
+        addUrlBtn.addEventListener('click', addImageFromUrl);
     }
     
     // Gestionnaire pour ajouter URL avec Enter
-    const imageUrlInput = document.getElementById('imageUrl');
+    const imageUrlInput = document.getElementById('eventImageUrl');
     if (imageUrlInput) {
         imageUrlInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                addImageUrl();
+                addImageFromUrl();
             }
         });
     }
@@ -111,8 +434,8 @@ function setupImageTypeHandlers() {
     
     const imageTypeFile = document.getElementById('imageTypeFile');
     const imageTypeUrl = document.getElementById('imageTypeUrl');
-    const imageFileContainer = document.getElementById('imageFileContainer');
-    const imageUrlContainer = document.getElementById('imageUrlContainer');
+    const imageFileContainer = document.getElementById('fileImageInput');
+    const imageUrlContainer = document.getElementById('urlImageInput');
     
     
     if (imageTypeFile && imageTypeUrl && imageFileContainer && imageUrlContainer) {
@@ -122,8 +445,9 @@ function setupImageTypeHandlers() {
                 imageFileContainer.style.display = 'block';
                 imageUrlContainer.style.display = 'none';
                 // Vider les URLs si on switch vers fichier
-                clearAllUrls();
-                document.getElementById('imageUrl').value = '';
+                // Note: les images uploadées restent dans uploadedImages jusqu'à suppression manuelle
+                const imageUrlInput = document.getElementById('eventImageUrl');
+                if (imageUrlInput) imageUrlInput.value = '';
             }
         });
         
@@ -131,15 +455,13 @@ function setupImageTypeHandlers() {
             if (imageTypeUrl.checked) {
                 imageFileContainer.style.display = 'none';
                 imageUrlContainer.style.display = 'block';
-                // Vider les fichiers si on switch vers URL
-                clearAllImages();
+                // Note: les images uploadées restent dans uploadedImages jusqu'à suppression manuelle
             }
         });
         
         // Gérer la sélection multiple de fichiers
-        const imageFileInput = document.getElementById('imageFile');
+        const imageFileInput = document.getElementById('eventImageFile');
         if (imageFileInput) {
-            // La gestion est déjà configurée dans setupFormHandlers
             // Permettre la sélection multiple
             imageFileInput.setAttribute('multiple', 'multiple');
             imageFileInput.setAttribute('accept', 'image/*');
@@ -276,20 +598,7 @@ function validateForm() {
     });
     
     // Validation de l'image
-    const imageTypeFile = document.getElementById('imageTypeFile');
-    const imageTypeUrl = document.getElementById('imageTypeUrl');
-    
-    if (imageTypeFile && imageTypeFile.checked) {
-        // Mode fichier - vérifier qu'au moins une image est sélectionnée
-        if (!selectedImages || selectedImages.length === 0) {
-            missingFields.push('Au moins une image de l\'événement');
-        }
-    } else if (imageTypeUrl && imageTypeUrl.checked) {
-        // Mode URL - vérifier qu'au moins une URL est ajoutée
-        if (!selectedUrls || selectedUrls.length === 0) {
-            missingFields.push('Au moins une URL d\'image');
-        }
-    } else {
+    if (uploadedImages.length === 0) {
         missingFields.push('Au moins une image de l\'événement');
     }
     
@@ -356,33 +665,26 @@ function createEvent() {
     formData.append('dateStart', dateStart);
     formData.append('dateEnd', dateEnd);
     
-    // Gestion des images selon le type sélectionné
-    const imageTypeFile = document.getElementById('imageTypeFile');
-    
-    if (imageTypeFile && imageTypeFile.checked) {
-        // Mode fichier - utiliser les images sélectionnées
-        if (selectedImages && selectedImages.length > 0) {
-            // Ajouter toutes les images sélectionnées avec leurs descriptions
-            selectedImages.forEach((imageObj, index) => {
-                formData.append('images[]', imageObj.file);
-                formData.append('imageDescriptions[]', imageObj.description || '');
-            });
-            
-            // La première image est considérée comme principale
-            formData.append('mainImageIndex', '0');
-        }
-    } else {
-        // Mode URL - utiliser les URLs sélectionnées
-        if (selectedUrls && selectedUrls.length > 0) {
-            // Envoyer les URLs avec leurs descriptions
-            selectedUrls.forEach((urlObj, index) => {
-                formData.append('imageUrls[]', urlObj.url);
-                formData.append('imageDescriptions[]', urlObj.description || '');
-            });
-            
-            // La première URL est considérée comme principale
-            formData.append('mainImageIndex', '0');
-        }
+    // Gestion des images avec la nouvelle structure
+    if (uploadedImages && uploadedImages.length > 0) {
+        // Séparer les fichiers des URLs
+        const imageFiles = uploadedImages.filter(img => !img.isUrl && img.file);
+        const imageUrls = uploadedImages.filter(img => img.isUrl);
+        
+        // Ajouter les fichiers
+        imageFiles.forEach((imageObj, index) => {
+            formData.append('images[]', imageObj.file);
+            formData.append('imageDescriptions[]', imageObj.description || '');
+        });
+        
+        // Ajouter les URLs
+        imageUrls.forEach((urlObj, index) => {
+            formData.append('imageUrls[]', urlObj.url);
+            formData.append('imageDescriptions[]', urlObj.description || '');
+        });
+        
+        // La première image est considérée comme principale
+        formData.append('mainImageIndex', '0');
     }
 
     // Créer d'abord l'événement
@@ -404,10 +706,8 @@ function createEvent() {
         }
     })
     .then(data => {
-        // Si on a des images en mode fichier, les uploader séparément
-        if (imageTypeFile && imageTypeFile.checked && data.id) {
-            return uploadEventImages(data.id, token).then(() => data);
-        }
+        // Les images ont déjà été incluses dans le FormData principal
+        // Plus besoin d'upload séparé
         return data;
     })
     .then(data => {
@@ -466,342 +766,5 @@ function createEvent() {
 }
 
 // Upload des images pour un événement créé
-async function uploadEventImages(eventId, token) {
-    const imageFiles = document.getElementById('imageFile').files;
-    if (!imageFiles || imageFiles.length === 0) {
-        return Promise.resolve();
-    }
-
-    const uploadFormData = new FormData();
-    
-    // Ajouter toutes les images (la première sera considérée comme principale)
-    Array.from(imageFiles).forEach((file) => {
-        uploadFormData.append('images[]', file);
-    });
-
-    try {
-        const response = await fetch(`/api/evenements/${eventId}/images`, {
-            method: 'POST',
-            headers: {
-                'X-AUTH-TOKEN': token
-            },
-            body: uploadFormData
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Erreur upload images ${response.status}: ${errorText}`);
-        }
-
-        return response.json();
-    } catch (error) {
-        console.error('Erreur lors de l\'upload des images:', error);
-        // Ne pas faire échouer la création d'événement si l'upload d'images échoue
-        alert('Événement créé, mais erreur lors de l\'upload des images. Vous pourrez les ajouter plus tard.');
-        return Promise.resolve();
-    }
-}
-
-// === GESTION DES IMAGES MULTIPLES ===
-let selectedImages = []; // Structure: [{file, description}]
-let selectedUrls = []; // Structure: [{url, description}]
-let maxImages = 10; // Limite du nombre d'images
-
-function handleMultipleImageSelection(event) {
-    const files = Array.from(event.target.files);
-    const validImages = [];
-    const errors = [];
-    
-    // Validation des fichiers
-    files.forEach((file, index) => {
-        if (selectedImages.length + validImages.length >= maxImages) {
-            errors.push(`Limite de ${maxImages} images atteinte`);
-            return;
-        }
-        
-        // Vérifier le type
-        if (!file.type.startsWith('image/')) {
-            errors.push(`${file.name}: Type de fichier non supporté`);
-            return;
-        }
-        
-        // Vérifier la taille (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            errors.push(`${file.name}: Fichier trop volumineux (max 5MB)`);
-            return;
-        }
-        
-        validImages.push({file: file, description: ''});
-    });
-    
-    // Ajouter les images valides
-    selectedImages = selectedImages.concat(validImages);
-    
-    // Afficher les erreurs s'il y en a
-    if (errors.length > 0) {
-        alert('Certaines images n\'ont pas pu être ajoutées :\n' + errors.join('\n'));
-    }
-    
-    // Mettre à jour l'aperçu
-    updateImagePreview();
-    
-    // Réinitialiser l'input pour permettre la re-sélection
-    event.target.value = '';
-}
-
-function updateImagePreview() {
-    const container = document.getElementById('imagePreviewContainer');
-    const grid = document.getElementById('imagePreviewGrid');
-    
-    if (selectedImages.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'block';
-    grid.innerHTML = '';
-    
-    selectedImages.forEach((imageObj, index) => {
-        const col = document.createElement('div');
-        col.className = 'col-md-6 col-12 mb-3'; // Plus large pour inclure le champ description
-        
-        const card = document.createElement('div');
-        card.className = 'card';
-        
-        // Container pour l'image
-        const imageContainer = document.createElement('div');
-        imageContainer.className = 'position-relative';
-        imageContainer.style.cssText = 'height: 120px;';
-        
-        // Image preview
-        const img = document.createElement('img');
-        img.className = 'card-img-top h-100';
-        img.style.cssText = 'object-fit: cover; cursor: pointer;';
-        img.alt = generateImageAlt(imageObj.file);
-        img.title = generateImageTitle(imageObj.file);
-        
-        // Créer l'aperçu
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(imageObj.file);
-        
-        // Bouton de suppression
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0 m-1';
-        removeBtn.style.cssText = 'z-index: 10; opacity: 0.9;';
-        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        removeBtn.onclick = () => removeImage(index);
-        
-        // Indicateur d'image principale
-        const mainIndicator = document.createElement('span');
-        mainIndicator.className = 'badge bg-primary position-absolute bottom-0 start-0 m-1';
-        mainIndicator.style.cssText = 'font-size: 0.7em; opacity: 0.9;';
-        if (index === 0) {
-            mainIndicator.textContent = 'Principale';
-        } else {
-            mainIndicator.textContent = `#${index + 1}`;
-        }
-        
-        imageContainer.appendChild(img);
-        imageContainer.appendChild(removeBtn);
-        imageContainer.appendChild(mainIndicator);
-        
-        // Corps de la carte avec le champ description
-        const cardBody = document.createElement('div');
-        cardBody.className = 'card-body p-2';
-        
-        const descInput = document.createElement('input');
-        descInput.type = 'text';
-        descInput.className = 'form-control form-control-sm';
-        descInput.placeholder = 'Description de cette image (optionnel)';
-        descInput.value = imageObj.description || '';
-        descInput.addEventListener('input', (e) => {
-            selectedImages[index].description = e.target.value;
-        });
-        
-        const label = document.createElement('label');
-        label.className = 'form-label';
-        label.innerHTML = '<small class="text-muted">Description :</small>';
-        
-        cardBody.appendChild(label);
-        cardBody.appendChild(descInput);
-        
-        card.appendChild(imageContainer);
-        card.appendChild(cardBody);
-        col.appendChild(card);
-        grid.appendChild(col);
-    });
-}
-
-function removeImage(index) {
-    selectedImages.splice(index, 1);
-    updateImagePreview();
-}
-
-function clearAllImages() {
-    selectedImages = [];
-    updateImagePreview();
-    document.getElementById('imageFile').value = '';
-}
-
-// === GESTION DES URLs MULTIPLES ===
-function addImageUrl() {
-    const urlInput = document.getElementById('imageUrl');
-    const url = urlInput.value.trim();
-    
-    if (!url) {
-        alert('Veuillez saisir une URL d\'image');
-        return;
-    }
-    
-    // Vérifier la limite
-    if (selectedUrls.length >= maxImages) {
-        alert(`Limite de ${maxImages} images atteinte`);
-        return;
-    }
-    
-    // Vérifier si l'URL est déjà ajoutée
-    if (selectedUrls.some(urlObj => urlObj.url === url)) {
-        alert('Cette URL a déjà été ajoutée');
-        return;
-    }
-    
-    // Validation basique de l'URL
-    try {
-        new URL(url);
-    } catch (e) {
-        alert('URL invalide');
-        return;
-    }
-    
-    // Validation asynchrone de l'image
-    validateImageUrl(url).then(isValid => {
-        if (isValid) {
-            selectedUrls.push({url: url, description: ''});
-            updateUrlList();
-            urlInput.value = '';
-            urlInput.focus();
-        } else {
-            alert('L\'URL ne pointe pas vers une image valide ou accessible');
-        }
-    });
-}
-
-function validateImageUrl(url) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        
-        const timeout = setTimeout(() => {
-            resolve(false);
-        }, 10000); // 10 secondes de timeout
-        
-        img.onload = () => {
-            clearTimeout(timeout);
-            resolve(true);
-        };
-        
-        img.onerror = () => {
-            clearTimeout(timeout);
-            resolve(false);
-        };
-        
-        img.src = url;
-    });
-}
-
-function updateUrlList() {
-    const container = document.getElementById('urlListContainer');
-    const list = document.getElementById('urlList');
-    
-    if (selectedUrls.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-    
-    container.style.display = 'block';
-    list.innerHTML = '';
-    
-    selectedUrls.forEach((urlObj, index) => {
-        const item = document.createElement('div');
-        item.className = 'list-group-item';
-        
-        const row = document.createElement('div');
-        row.className = 'd-flex align-items-center mb-2';
-        
-        // Aperçu de l'image
-        const imagePreview = document.createElement('img');
-        imagePreview.src = urlObj.url;
-        imagePreview.className = 'me-3 rounded';
-        imagePreview.style.cssText = 'width: 60px; height: 60px; object-fit: cover;';
-        imagePreview.alt = `Aperçu image ${index + 1}`;
-        
-        // Informations sur l'URL
-        const content = document.createElement('div');
-        content.className = 'flex-grow-1 me-2';
-        
-        const urlDisplay = document.createElement('div');
-        urlDisplay.className = 'fw-bold text-truncate';
-        urlDisplay.style.cssText = 'max-width: 300px;';
-        urlDisplay.textContent = urlObj.url;
-        urlDisplay.title = urlObj.url;
-        
-        const badge = document.createElement('span');
-        badge.className = 'badge bg-secondary mt-1';
-        badge.textContent = index === 0 ? 'Image principale' : `Image #${index + 1}`;
-        
-        content.appendChild(urlDisplay);
-        content.appendChild(badge);
-        
-        // Bouton de suppression
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-sm btn-outline-danger';
-        removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        removeBtn.onclick = () => removeUrl(index);
-        
-        row.appendChild(imagePreview);
-        row.appendChild(content);
-        row.appendChild(removeBtn);
-        
-        // Champ description sous l'image
-        const descContainer = document.createElement('div');
-        descContainer.className = 'ms-3';
-        
-        const label = document.createElement('label');
-        label.className = 'form-label';
-        label.innerHTML = '<small class="text-muted">Description :</small>';
-        
-        const descInput = document.createElement('input');
-        descInput.type = 'text';
-        descInput.className = 'form-control form-control-sm';
-        descInput.placeholder = 'Description de cette image (optionnel)';
-        descInput.value = urlObj.description || '';
-        descInput.addEventListener('input', (e) => {
-            selectedUrls[index].description = e.target.value;
-        });
-        
-        descContainer.appendChild(label);
-        descContainer.appendChild(descInput);
-        
-        item.appendChild(row);
-        item.appendChild(descContainer);
-        list.appendChild(item);
-    });
-}
-
-function removeUrl(index) {
-    selectedUrls.splice(index, 1);
-    updateUrlList();
-}
-
-function clearAllUrls() {
-    selectedUrls = [];
-    updateUrlList();
-    document.getElementById('imageUrl').value = '';
-}
-
 // Export par défaut pour le router
 export default initPage;
