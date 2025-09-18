@@ -218,6 +218,9 @@ function displayResults(events, total = 0, reset = true) {
     
     if (!resultsContainer) return;
     
+    // Ajouter la classe pour le style du tableau
+    resultsContainer.parentElement.classList.add('events-table');
+    
     // Mise à jour du titre avec le nombre de résultats
     if (titleElement && reset) {
         titleElement.textContent = `Résultats de la recherche (${total} événement${total !== 1 ? 's' : ''} trouvé${total !== 1 ? 's' : ''})`;
@@ -234,30 +237,87 @@ function displayResults(events, total = 0, reset = true) {
         return;
     }
     
-    // Générer le HTML des résultats
-    const eventsHTML = events.map(event => `
-        <li class="event-in-list">
-            <a href="/evenement?id=${event.id}" onclick="window.route(event)">
-                <span class="event-name">${event.titre || 'Sans titre'}</span>
-                <span class="separator">/</span>
-                <span class="event-date">
-                    <time datetime="${event.start}">${new Date(event.start).toLocaleDateString()}</time>
-                </span>
-                <span class="separator">/</span>
-                <span class="event-participants">${event.numberCompetitors || 0} Participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</span>
-                ${event.organisateur ? `
-                    <span class="separator">/</span>
-                    <span class="event-organizer">par ${event.organisateur.username}</span>
-                ` : ''}
-            </a>
-        </li>
-    `).join('');
+    // Si c'est un reset, ajouter l'en-tête du tableau
+    let eventsHTML = '';
+    if (reset) {
+        eventsHTML += `
+            <li>
+                <div class="row py-2 border-bottom fw-bold text-muted small">
+                    <div class="col-md-4">Titre de l'événement</div>
+                    <div class="col-md-3">Dates</div>
+                    <div class="col-md-2">Participants</div>
+                    <div class="col-md-3">Organisateur</div>
+                </div>
+            </li>
+        `;
+    }
+    
+    // Générer le HTML des résultats en format tableau
+    eventsHTML += events.map(event => {
+        const dateDebut = event.start ? new Date(event.start) : null;
+        const dateFin = event.end ? new Date(event.end) : null;
+        
+        return `
+            <li class="event-in-list">
+                <div class="row align-items-center py-2">
+                    <div class="col-md-4">
+                        <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
+                            ${event.titre || 'Sans titre'}
+                        </a>
+                    </div>
+                    <div class="col-md-3 text-muted small">
+                        ${dateDebut ? `<div>Début: <time datetime="${event.start}">${dateDebut.toLocaleDateString()}</time></div>` : ''}
+                        ${dateFin ? `<div>Fin: <time datetime="${event.end}">${dateFin.toLocaleDateString()}</time></div>` : ''}
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <span class="badge bg-info">${event.numberCompetitors || 0}</span>
+                        <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
+                    </div>
+                    <div class="col-md-3">
+                        ${event.organisateur ? `
+                            <span class="text-muted small">par</span>
+                            <div class="fw-medium">${event.organisateur.username}</div>
+                        ` : '<span class="text-muted small">Non défini</span>'}
+                    </div>
+                </div>
+            </li>
+        `;
+    }).join('');
     
     if (reset) {
         resultsContainer.innerHTML = eventsHTML;
     } else {
-        // Ajouter les nouveaux événements à la liste existante
-        resultsContainer.insertAdjacentHTML('beforeend', eventsHTML);
+        // Ajouter les nouveaux événements à la liste existante (sans en-tête)
+        resultsContainer.insertAdjacentHTML('beforeend', events.map(event => {
+            const dateDebut = event.start ? new Date(event.start) : null;
+            const dateFin = event.end ? new Date(event.end) : null;
+            
+            return `
+                <li class="event-in-list">
+                    <div class="row align-items-center py-2">
+                        <div class="col-md-4">
+                            <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
+                                ${event.titre || 'Sans titre'}
+                            </a>
+                        </div>
+                        <div class="col-md-3 text-muted small">
+                            ${dateDebut ? `<div>Début: <time datetime="${event.start}">${dateDebut.toLocaleDateString()}</time></div>` : ''}
+                            ${dateFin ? `<div>Fin: <time datetime="${event.end}">${dateFin.toLocaleDateString()}</time></div>` : ''}
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-info">${event.numberCompetitors || 0}</span>
+                            <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
+                        </div>
+                        <div class="col-md-3">
+                            ${event.organisateur ? `
+                                <span class="text-muted small">par</span>
+                                <div class="fw-medium">${event.organisateur.username}</div>
+                            ` : '<span class="text-muted small">Non défini</span>'}
+                        </div>
+                    </div>
+                </li>
+            `;
+        }).join(''));
     }
 }
 

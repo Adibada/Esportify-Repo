@@ -12040,78 +12040,86 @@ textarea.form-control-lg {
   color: #4F7EF3;
 }
 
-.participations-table, .organized-events-table {
+.participations-table, .organized-events-table, .events-table {
   width: 100%;
 }
-.participations-table .event-list, .participations-table .organized-events-list, .organized-events-table .event-list, .organized-events-table .organized-events-list {
+.participations-table .event-list, .participations-table .organized-events-list, .organized-events-table .event-list, .organized-events-table .organized-events-list, .events-table .event-list, .events-table .organized-events-list {
   width: 100%;
   padding: 0;
   margin: 0;
 }
-.participations-table .event-list li, .participations-table .organized-events-list li, .organized-events-table .event-list li, .organized-events-table .organized-events-list li {
+.participations-table .event-list li, .participations-table .organized-events-list li, .organized-events-table .event-list li, .organized-events-table .organized-events-list li, .events-table .event-list li, .events-table .organized-events-list li {
   list-style: none;
   width: 100%;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.participations-table .event-list li:hover, .participations-table .organized-events-list li:hover, .organized-events-table .event-list li:hover, .organized-events-table .organized-events-list li:hover {
+.participations-table .event-list li:hover, .participations-table .organized-events-list li:hover, .organized-events-table .event-list li:hover, .organized-events-table .organized-events-list li:hover, .events-table .event-list li:hover, .events-table .organized-events-list li:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
-.participations-table .event-list li:first-child, .participations-table .organized-events-list li:first-child, .organized-events-table .event-list li:first-child, .organized-events-table .organized-events-list li:first-child {
+.participations-table .event-list li:first-child, .participations-table .organized-events-list li:first-child, .organized-events-table .event-list li:first-child, .organized-events-table .organized-events-list li:first-child, .events-table .event-list li:first-child, .events-table .organized-events-list li:first-child {
   background-color: rgba(255, 255, 255, 0.08);
   font-weight: 600;
 }
-.participations-table .event-list li:first-child:hover, .participations-table .organized-events-list li:first-child:hover, .organized-events-table .event-list li:first-child:hover, .organized-events-table .organized-events-list li:first-child:hover {
+.participations-table .event-list li:first-child:hover, .participations-table .organized-events-list li:first-child:hover, .organized-events-table .event-list li:first-child:hover, .organized-events-table .organized-events-list li:first-child:hover, .events-table .event-list li:first-child:hover, .events-table .organized-events-list li:first-child:hover {
   background-color: rgba(255, 255, 255, 0.08);
 }
-.participations-table .event-list li .row, .participations-table .organized-events-list li .row, .organized-events-table .event-list li .row, .organized-events-table .organized-events-list li .row {
+.participations-table .event-list li .row, .participations-table .organized-events-list li .row, .organized-events-table .event-list li .row, .organized-events-table .organized-events-list li .row, .events-table .event-list li .row, .events-table .organized-events-list li .row {
   margin: 0;
   width: 100%;
 }
-.participations-table .event-list li .row .col-md-3, .participations-table .event-list li .row .col-md-2, .participations-table .event-list li .row .col-md-4, .participations-table .organized-events-list li .row .col-md-3, .participations-table .organized-events-list li .row .col-md-2, .participations-table .organized-events-list li .row .col-md-4, .organized-events-table .event-list li .row .col-md-3, .organized-events-table .event-list li .row .col-md-2, .organized-events-table .event-list li .row .col-md-4, .organized-events-table .organized-events-list li .row .col-md-3, .organized-events-table .organized-events-list li .row .col-md-2, .organized-events-table .organized-events-list li .row .col-md-4 {
+.participations-table .event-list li .row .col-md-3, .participations-table .event-list li .row .col-md-2, .participations-table .event-list li .row .col-md-4, .participations-table .organized-events-list li .row .col-md-3, .participations-table .organized-events-list li .row .col-md-2, .participations-table .organized-events-list li .row .col-md-4, .organized-events-table .event-list li .row .col-md-3, .organized-events-table .event-list li .row .col-md-2, .organized-events-table .event-list li .row .col-md-4, .organized-events-table .organized-events-list li .row .col-md-3, .organized-events-table .organized-events-list li .row .col-md-2, .organized-events-table .organized-events-list li .row .col-md-4, .events-table .event-list li .row .col-md-3, .events-table .event-list li .row .col-md-2, .events-table .event-list li .row .col-md-4, .events-table .organized-events-list li .row .col-md-3, .events-table .organized-events-list li .row .col-md-2, .events-table .organized-events-list li .row .col-md-4 {
   padding-left: 15px;
   padding-right: 15px;
 }
-.participations-table .event-list li a, .participations-table .organized-events-list li a, .organized-events-table .event-list li a, .organized-events-table .organized-events-list li a {
+.participations-table .event-list li a, .participations-table .organized-events-list li a, .organized-events-table .event-list li a, .organized-events-table .organized-events-list li a, .events-table .event-list li a, .events-table .organized-events-list li a {
   color: #4F7EF3;
   transition: color 0.2s ease;
 }
-.participations-table .event-list li a:hover, .participations-table .organized-events-list li a:hover, .organized-events-table .event-list li a:hover, .organized-events-table .organized-events-list li a:hover {
+.participations-table .event-list li a:hover, .participations-table .organized-events-list li a:hover, .organized-events-table .event-list li a:hover, .organized-events-table .organized-events-list li a:hover, .events-table .event-list li a:hover, .events-table .organized-events-list li a:hover {
   color: #F3C74F;
   text-decoration: underline;
 }
-.participations-table .event-list li .badge, .participations-table .organized-events-list li .badge, .organized-events-table .event-list li .badge, .organized-events-table .organized-events-list li .badge {
+.participations-table .event-list li .badge, .participations-table .organized-events-list li .badge, .organized-events-table .event-list li .badge, .organized-events-table .organized-events-list li .badge, .events-table .event-list li .badge, .events-table .organized-events-list li .badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
 }
-.participations-table .event-list li .text-muted, .participations-table .organized-events-list li .text-muted, .organized-events-table .event-list li .text-muted, .organized-events-table .organized-events-list li .text-muted {
+.participations-table .event-list li .text-muted, .participations-table .organized-events-list li .text-muted, .organized-events-table .event-list li .text-muted, .organized-events-table .organized-events-list li .text-muted, .events-table .event-list li .text-muted, .events-table .organized-events-list li .text-muted {
   color: rgba(255, 255, 255, 0.6) !important;
   font-size: 0.85rem;
 }
-.participations-table .event-list li .btn, .participations-table .organized-events-list li .btn, .organized-events-table .event-list li .btn, .organized-events-table .organized-events-list li .btn {
+.participations-table .event-list li .btn, .participations-table .organized-events-list li .btn, .organized-events-table .event-list li .btn, .organized-events-table .organized-events-list li .btn, .events-table .event-list li .btn, .events-table .organized-events-list li .btn {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
 }
 
 @media (max-width: 768px) {
   .participations-table .event-list li .row,
-  .organized-events-table .organized-events-list li .row {
+  .organized-events-table .organized-events-list li .row,
+  .events-table .event-list li .row {
     flex-direction: column;
   }
   .participations-table .event-list li .row .col-md-3, .participations-table .event-list li .row .col-md-2, .participations-table .event-list li .row .col-md-4,
   .organized-events-table .organized-events-list li .row .col-md-3,
   .organized-events-table .organized-events-list li .row .col-md-2,
-  .organized-events-table .organized-events-list li .row .col-md-4 {
+  .organized-events-table .organized-events-list li .row .col-md-4,
+  .events-table .event-list li .row .col-md-3,
+  .events-table .event-list li .row .col-md-2,
+  .events-table .event-list li .row .col-md-4 {
     max-width: 100%;
     margin-bottom: 0.5rem;
   }
   .participations-table .event-list li .row .col-md-3:last-child, .participations-table .event-list li .row .col-md-2:last-child, .participations-table .event-list li .row .col-md-4:last-child,
   .organized-events-table .organized-events-list li .row .col-md-3:last-child,
   .organized-events-table .organized-events-list li .row .col-md-2:last-child,
-  .organized-events-table .organized-events-list li .row .col-md-4:last-child {
+  .organized-events-table .organized-events-list li .row .col-md-4:last-child,
+  .events-table .event-list li .row .col-md-3:last-child,
+  .events-table .event-list li .row .col-md-2:last-child,
+  .events-table .event-list li .row .col-md-4:last-child {
     margin-bottom: 0;
   }
   .participations-table .event-list li:first-child,
-  .organized-events-table .organized-events-list li:first-child {
+  .organized-events-table .organized-events-list li:first-child,
+  .events-table .event-list li:first-child {
     display: none;
   }
 }

@@ -99,7 +99,7 @@ $navbar-dark-icon-color: $secondary;
 }
 
 // Styles pour le tableau des participations dans monProfil
-.participations-table, .organized-events-table {
+.participations-table, .organized-events-table, .events-table {
     width: 100%;
     
     .event-list, .organized-events-list {
@@ -167,7 +167,8 @@ $navbar-dark-icon-color: $secondary;
 // Responsive pour mobile
 @media (max-width: 768px) {
     .participations-table .event-list li, 
-    .organized-events-table .organized-events-list li {
+    .organized-events-table .organized-events-list li,
+    .events-table .event-list li {
         .row {
             flex-direction: column;
             
