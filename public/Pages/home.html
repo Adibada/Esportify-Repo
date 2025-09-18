@@ -66,24 +66,19 @@
 </div>
 
 <!--Section Évènements à venir-->
-<div class="bloc" aria-labelledby="event-title">
+<div class="bloc" aria-labelledby="upcoming-event-title">
 
     <!--Titre du bloc-->
-    <h2 id="event-title" class="text-start fs-1">Évènements à venir</h2>
+    <h2 id="upcoming-event-title" class="text-start fs-1">Évènements à venir</h2>
 
-    <!--Liens évènements à venir-->
-    <div class="mt-3">
-        <ul class="event-list" id="upcomingEventsList">
-            <!-- Les événements à venir seront chargés dynamiquement -->
-            <li class="text-center py-3 text-muted">
-                <div class="spinner-border spinner-border-sm me-2"></div>
-                Chargement des événements à venir...
-            </li>
-        </ul>
-    </div>
-    <div class="me-3 mb-3">
-        <a href="/rechercheEvenements" onclick="window.route(event)"
-            class="fs-5 fs-md-3 text-end d-block me-2 mb-3">Voir tous
-            les évènements à venir</a>
+    <!--Carrousel dynamique évènements à venir-->
+    <div id="upcomingEventCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="6000">
+        <div class="carousel-inner event-carousel-inner" id="upcomingEventCarouselInner"></div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#upcomingEventCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#upcomingEventCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
     </div>
 </div>
