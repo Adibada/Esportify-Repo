@@ -38,6 +38,16 @@ function createSearchSlide(isActive = false) {
     `;
 }
 
+function createSearchSlideForUpcoming(isActive = false) {
+    return `
+    <div class="carousel-item${isActive ? ' active' : ''}">
+        <div class="d-flex flex-column justify-content-center align-items-center p-5" style="height: 400px;">
+            <a href="/rechercheEvenements" onclick="window.route(event)" class="btn btn-primary btn-lg">Voir tous les événements</a>
+        </div>
+    </div>
+    `;
+}
+
 function fillEventCarousel() {
     fetch('/api/evenements/en-cours')
         .then(res => res.json())
@@ -72,14 +82,15 @@ function fillEventCarousel() {
         });
 }
 
-// Fonction pour charger les événements à venir
-function loadUpcomingEvents() {
-    const upcomingEventsList = document.getElementById('upcomingEventsList');
-    if (!upcomingEventsList) return;
-
+// Fonction pour charger les événements à venir dans un carousel
+function fillUpcomingEventCarousel() {
     fetch('/api/evenements')
         .then(res => res.json())
         .then(events => {
+            const carouselInner = document.getElementById('upcomingEventCarouselInner');
+            if (!carouselInner) return;
+            carouselInner.innerHTML = '';
+            
             if (!Array.isArray(events)) return;
             
             // Filtrer les événements à venir (date de début > maintenant)
@@ -89,46 +100,43 @@ function loadUpcomingEvents() {
                 .sort((a, b) => new Date(a.start) - new Date(b.start))
                 .slice(0, 3); // Prendre seulement les 3 premiers
             
-            if (upcomingEvents.length === 0) {
-                upcomingEventsList.innerHTML = `
-                    <li class="text-center py-3 text-muted">
-                        <div>Aucun événement à venir pour le moment</div>
-                        <div class="mt-2">
-                            <a href="/rechercheEvenements" onclick="window.route(event)" class="btn btn-outline-primary btn-sm">
-                                Voir tous les événements
-                            </a>
-                        </div>
-                    </li>
-                `;
-                return;
+            let slides = [];
+            if (upcomingEvents.length > 0) {
+                upcomingEvents.forEach((event, idx) => {
+                    slides.push(createEventSlide(event, idx === 0));
+                });
             }
             
-            // Générer le HTML pour les événements à venir
-            const eventsHTML = upcomingEvents.map(event => `
-                <li class="event-in-list">
-                    <a href="/evenement?id=${event.id}" onclick="window.route(event)">
-                        <span>${event.titre || 'Sans titre'}</span>
-                        <span>/</span>
-                        <span><time datetime="${event.start}">${new Date(event.start).toLocaleDateString()}</time></span>
-                        <span>/</span>
-                        <span>${event.numberCompetitors || 0} Participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</span>
-                    </a>
-                </li>
-            `).join('');
+            // Ajoute la slide "recherche" (active si aucun évènement)
+            slides.push(createSearchSlideForUpcoming(slides.length === 0));
+            carouselInner.innerHTML = slides.join('');
             
-            upcomingEventsList.innerHTML = eventsHTML;
+            // Initialiser le carrousel Bootstrap pour qu'il soit automatique
+            const carouselElement = document.getElementById('upcomingEventCarousel');
+            if (carouselElement && window.bootstrap) {
+                new bootstrap.Carousel(carouselElement, {
+                    interval: 6000, // Change toutes les 6 secondes
+                    ride: true,     // Démarrage automatique
+                    pause: 'hover'  // Pause au survol
+                });
+            }
         })
         .catch(err => {
-            upcomingEventsList.innerHTML = `
-                <li class="text-center py-3 text-danger">
-                    <div>Erreur lors du chargement des événements</div>
-                    <div class="mt-2">
-                        <button class="btn btn-outline-secondary btn-sm" onclick="loadUpcomingEvents()">
-                            Réessayer
-                        </button>
+            // Silently handle errors - carousel will remain empty
+            const carouselInner = document.getElementById('upcomingEventCarouselInner');
+            if (carouselInner) {
+                carouselInner.innerHTML = `
+                    <div class="carousel-item active">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">Erreur de chargement</h5>
+                                <p class="card-text">Impossible de charger les événements à venir</p>
+                                <button class="btn btn-outline-secondary" onclick="fillUpcomingEventCarousel()">Réessayer</button>
+                            </div>
+                        </div>
                     </div>
-                </li>
-            `;
+                `;
+            }
         });
 }
 
@@ -143,7 +151,7 @@ function initCarousels() {
         });
     }
     
-    // Initialiser le carrousel d'événements après un court délai
+    // Initialiser le carrousel d'événements en cours après un court délai
     setTimeout(() => {
         const eventCarousel = document.getElementById('eventCarousel');
         if (eventCarousel) {
@@ -152,12 +160,23 @@ function initCarousels() {
                 ride: 'carousel'
             });
         }
-    }, 500); // Délai pour s'assurer que le contenu dynamique est chargé
+    }, 500);
+    
+    // Initialiser le carrousel d'événements à venir après un court délai
+    setTimeout(() => {
+        const upcomingEventCarousel = document.getElementById('upcomingEventCarousel');
+        if (upcomingEventCarousel) {
+            const carousel = new bootstrap.Carousel(upcomingEventCarousel, {
+                interval: 6000,
+                ride: 'carousel'
+            });
+        }
+    }, 600);
 }
 
 // Exécution immédiate après injection
 fillEventCarousel();
-// Exécuter le chargement des événements à venir
-loadUpcomingEvents();
+// Exécuter le chargement des événements à venir en carousel
+fillUpcomingEventCarousel();
 // Initialiser les carrousels
 initCarousels();
