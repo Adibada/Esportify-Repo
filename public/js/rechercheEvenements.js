@@ -360,6 +360,18 @@ function initializeSearchHandlers() {
         });
     }
     
+    // Recherche par organisateur
+    const searchEventOrganizerForm = document.getElementById('searchEventOrganizer');
+    if (searchEventOrganizerForm) {
+        searchEventOrganizerForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const organizerName = document.getElementById('organizerName')?.value.trim();
+            if (organizerName) {
+                searchEvents({ organisateur: organizerName }, true);
+            }
+        });
+    }
+    
     // Recherche par date de début
     const formDateStartForm = document.getElementById('formDateStart');
     if (formDateStartForm) {
@@ -415,12 +427,14 @@ function performCombinedSearch() {
     
     // Récupérer tous les champs remplis
     const eventName = document.getElementById('eventName')?.value.trim();
+    const organizerName = document.getElementById('organizerName')?.value.trim();
     const minParticipants = document.getElementById('minParticipants')?.value;
     const maxParticipants = document.getElementById('maxParticipants')?.value;
     const searchDateStart = document.getElementById('searchDateStart')?.value;
     const searchDateEnd = document.getElementById('searchDateEnd')?.value;
     
     if (eventName) filters.titre = eventName;
+    if (organizerName) filters.organisateur = organizerName;
     if (minParticipants) filters.minParticipants = parseInt(minParticipants);
     if (maxParticipants) filters.maxParticipants = parseInt(maxParticipants);
     if (searchDateStart) filters.dateStart = searchDateStart;
