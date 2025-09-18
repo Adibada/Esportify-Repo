@@ -12040,6 +12040,69 @@ textarea.form-control-lg {
   color: #4F7EF3;
 }
 
+.participations-table {
+  width: 100%;
+}
+.participations-table .event-list {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+.participations-table .event-list li {
+  list-style: none;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.participations-table .event-list li:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.participations-table .event-list li:first-child {
+  background-color: rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+.participations-table .event-list li:first-child:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.participations-table .event-list li .row {
+  margin: 0;
+  width: 100%;
+}
+.participations-table .event-list li .row .col-md-3, .participations-table .event-list li .row .col-md-2 {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+.participations-table .event-list li a {
+  color: #4F7EF3;
+  transition: color 0.2s ease;
+}
+.participations-table .event-list li a:hover {
+  color: #F3C74F;
+  text-decoration: underline;
+}
+.participations-table .event-list li .badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+.participations-table .event-list li .text-muted {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .participations-table .event-list li .row {
+    flex-direction: column;
+  }
+  .participations-table .event-list li .row .col-md-3, .participations-table .event-list li .row .col-md-2 {
+    max-width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  .participations-table .event-list li .row .col-md-3:last-child, .participations-table .event-list li .row .col-md-2:last-child {
+    margin-bottom: 0;
+  }
+  .participations-table .event-list li:first-child {
+    display: none;
+  }
+}
 header {
   position: fixed;
   top: 0;

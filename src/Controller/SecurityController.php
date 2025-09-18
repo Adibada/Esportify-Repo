@@ -190,7 +190,7 @@ class SecurityController extends AbstractController
         $data = $serializer->serialize(
             $participations,
             'json',
-            ['groups' => ['evenement:read', 'user:public']]
+            ['groups' => ['evenement:read', 'user:public', 'participation:read']]
         );
 
         return new JsonResponse(json_decode($data), Response::HTTP_OK, []);
