@@ -36,7 +36,7 @@ class EventStatusService
     }
 
     /**
-     * Met à jour le statut de tous les événements validés
+     * Met à jour le statut de tous les événements qui nécessitent une vérification
      */
     public function updateAllEventsStatus(\DateTimeImmutable $now = null): int
     {
@@ -46,9 +46,14 @@ class EventStatusService
 
         $updatedCount = 0;
 
-        // Récupérer tous les événements validés, en cours ou démarrés
+        // Récupérer tous les événements validés, en cours, démarrés ET en attente
         $events = $this->evenementsRepository->findBy([
-            'statut' => [Evenements::STATUT_VALIDE, Evenements::STATUT_EN_COURS, Evenements::STATUT_DEMARRE]
+            'statut' => [
+                Evenements::STATUT_VALIDE,
+                Evenements::STATUT_EN_COURS,
+                Evenements::STATUT_DEMARRE,
+                Evenements::STATUT_EN_ATTENTE  // Ajout des événements en attente
+            ]
         ]);
 
         foreach ($events as $event) {
@@ -124,5 +129,57 @@ class EventStatusService
         $this->entityManager->flush();
 
         return $event;
+    }
+
+    /**
+     * Refuse automatiquement les événements en attente dont la date de début est dépassée
+     */
+    public function refusePendingEventsAfterStartDate(\DateTimeImmutable $now = null): int
+    {
+        if ($now === null) {
+            $now = new \DateTimeImmutable();
+        }
+
+        $refusedCount = 0;
+
+        // Récupérer tous les événements en attente dont la date de début est dépassée
+        $events = $this->evenementsRepository->createQueryBuilder('e')
+            ->where('e.statut = :statut_en_attente')
+            ->andWhere('e.start <= :now')
+            ->setParameter('statut_en_attente', Evenements::STATUT_EN_ATTENTE)
+            ->setParameter('now', $now)
+            ->getQuery()
+            ->getResult();
+
+        foreach ($events as $event) {
+            $event->setStatut(Evenements::STATUT_REFUSE);
+            $refusedCount++;
+        }
+
+        // Sauvegarder les changements
+        if ($refusedCount > 0) {
+            $this->entityManager->flush();
+        }
+
+        return $refusedCount;
+    }
+
+    /**
+     * Met à jour tous les statuts d'événements (gestion globale incluant refus automatique)
+     */
+    public function updateAllEventsStatusComplete(\DateTimeImmutable $now = null): array
+    {
+        if ($now === null) {
+            $now = new \DateTimeImmutable();
+        }
+
+        $statusUpdated = $this->updateAllEventsStatus($now);
+        $eventsRefused = $this->refusePendingEventsAfterStartDate($now);
+
+        return [
+            'status_updated' => $statusUpdated,
+            'events_refused' => $eventsRefused,
+            'total_changes' => $statusUpdated + $eventsRefused
+        ];
     }
 }

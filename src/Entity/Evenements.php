@@ -178,7 +178,12 @@ class Evenements
             $now = new \DateTimeImmutable();
         }
         
-        // Si l'événement n'est pas validé, garder le statut actuel
+        // Si l'événement est en attente et que sa date de début est dépassée, il est automatiquement refusé
+        if ($this->statut === self::STATUT_EN_ATTENTE && $now >= $this->start) {
+            return self::STATUT_REFUSE;
+        }
+        
+        // Si l'événement n'est pas validé, garder le statut actuel (sauf cas traité ci-dessus)
         if ($this->statut === self::STATUT_EN_ATTENTE || $this->statut === self::STATUT_REFUSE) {
             return $this->statut;
         }
