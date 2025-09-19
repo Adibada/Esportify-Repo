@@ -228,19 +228,21 @@ function loadUserParticipations(token) {
                     case 'demarre':
                         badgeClass = 'bg-success';
                         statusBadge = 'Démarré !!';
-                        // Bouton rejoindre avec positionnement adaptatif (marge sur desktop, dans le bloc sur mobile)
-                        joinButton = `
-                            <div class="join-btn-container join-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
-                                <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
-                                    <i class="fas fa-play me-1"></i>Rejoindre
-                                </button>
-                            </div>
-                            <div class="join-btn-container join-btn-mobile d-block d-md-none mt-2 text-center">
-                                <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
-                                    <i class="fas fa-play me-1"></i>Rejoindre
-                                </button>
-                            </div>
-                        `;
+                        // Bouton rejoindre seulement si la participation de l'utilisateur est validée
+                        if (participation.statutParticipation === 'valide') {
+                            joinButton = `
+                                <div class="join-btn-container join-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
+                                    <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
+                                        <i class="fas fa-play me-1"></i>Rejoindre
+                                    </button>
+                                </div>
+                                <div class="join-btn-container join-btn-mobile d-block d-md-none mt-2 text-center">
+                                    <button class="btn btn-primary btn-sm join-blink" onclick="joinEventFromProfile(${participation.id})">
+                                        <i class="fas fa-play me-1"></i>Rejoindre
+                                    </button>
+                                </div>
+                            `;
+                        }
                         break;
                     case 'termine':
                         badgeClass = 'bg-dark';
@@ -570,11 +572,10 @@ window.joinEventFromProfile = async (eventId) => {
             const data = await response.json();
             alert('Vous avez rejoint l\'événement avec succès !');
             
-            // Optionnel : recharger les participations pour mettre à jour l'affichage
-            loadUserProfile();
-            
-            // Optionnel : rediriger vers une page spécifique de l'événement
-            // window.location.href = data.redirectUrl || `/evenement-live?id=${eventId}`;
+            // Rediriger vers la page de l'événement
+            setTimeout(() => {
+                navigate(`/evenement?id=${eventId}`);
+            }, 1000); // Délai pour permettre à l'utilisateur de voir le message
         } else {
             const errorData = await response.json();
             alert(errorData.message || errorData.error || 'Erreur lors de la connexion à l\'événement');
