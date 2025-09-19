@@ -14,18 +14,22 @@
         <div id="eventStart" class="d-flex flex-column flex-grow-1 flex-md-grow-0 mb-3" role="search"
             aria-labelledby="id">
             <label for="setDateStart">Début de l'évènement :</label>
-            <div class="d-flex">
-                <input class="form-control me-2" type="date" id="setDateStart" name="setDateStart"
+            <div class="d-flex gap-2">
+                <input class="form-control" type="date" id="setDateStart" name="setDateStart"
                     placeholder="Date de début" required />
+                <input class="form-control" type="time" id="setTimeStart" name="setTimeStart"
+                    placeholder="Heure de début" required />
             </div>
         </div>
 
         <div id="eventEnd" class="d-flex flex-column flex-grow-1 flex-md-grow-0 mb-3" role="search"
             aria-labelledby="id">
             <label for="setDateEnd">Fin de l'évènement :</label>
-            <div class="d-flex">
-                <input class="form-control me-2" type="date" id="setDateEnd" name="setDateEnd" placeholder="Date de fin"
+            <div class="d-flex gap-2">
+                <input class="form-control" type="date" id="setDateEnd" name="setDateEnd" placeholder="Date de fin"
                     required />
+                <input class="form-control" type="time" id="setTimeEnd" name="setTimeEnd"
+                    placeholder="Heure de fin" required />
             </div>
         </div>
 

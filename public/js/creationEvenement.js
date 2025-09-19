@@ -584,7 +584,9 @@ function validateForm() {
         { id: 'eventName', label: 'Nom de l\'événement' },
         { id: 'eventDetail', label: 'Détails de l\'événement' },
         { id: 'setDateStart', label: 'Date de début' },
-        { id: 'setDateEnd', label: 'Date de fin' }
+        { id: 'setDateEnd', label: 'Date de fin' },
+        { id: 'setTimeStart', label: 'Heure de début' },
+        { id: 'setTimeEnd', label: 'Heure de fin' }
     ];
     
     const missingFields = [];
@@ -602,21 +604,24 @@ function validateForm() {
         missingFields.push('Au moins une image de l\'événement');
     }
     
-    // Validation des dates
+    // Validation des dates et horaires
     const startDate = document.getElementById('setDateStart')?.value;
     const endDate = document.getElementById('setDateEnd')?.value;
+    const startTime = document.getElementById('setTimeStart')?.value;
+    const endTime = document.getElementById('setTimeEnd')?.value;
     
-    if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+    if (startDate && endDate && startTime && endTime) {
+        // Créer les objets Date avec date et heure
+        const startDateTime = new Date(`${startDate}T${startTime}`);
+        const endDateTime = new Date(`${endDate}T${endTime}`);
         const now = new Date();
         
-        if (start < now) {
-            missingFields.push('La date de début doit être dans le futur');
+        if (startDateTime < now) {
+            missingFields.push('La date et heure de début doivent être dans le futur');
         }
         
-        if (end <= start) {
-            missingFields.push('La date de fin doit être après la date de début');
+        if (endDateTime <= startDateTime) {
+            missingFields.push('La date et heure de fin doivent être après le début');
         }
     }
     
@@ -659,11 +664,17 @@ function createEvent() {
     const eventDetail = document.getElementById('eventDetail').value;
     const dateStart = document.getElementById('setDateStart').value;
     const dateEnd = document.getElementById('setDateEnd').value;
+    const timeStart = document.getElementById('setTimeStart').value;
+    const timeEnd = document.getElementById('setTimeEnd').value;
+    
+    // Combiner date et heure pour créer des timestamps ISO
+    const startDateTime = `${dateStart}T${timeStart}:00`;
+    const endDateTime = `${dateEnd}T${timeEnd}:00`;
     
     formData.append('name', eventName);
     formData.append('detail', eventDetail);
-    formData.append('dateStart', dateStart);
-    formData.append('dateEnd', dateEnd);
+    formData.append('dateStart', startDateTime);
+    formData.append('dateEnd', endDateTime);
     
     // Gestion des images avec la nouvelle structure
     if (uploadedImages && uploadedImages.length > 0) {

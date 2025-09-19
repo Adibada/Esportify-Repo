@@ -114,46 +114,71 @@ function loadUserParticipations(token) {
                     }
                 }
                 
+                @keyframes startBlink {
+                    0%, 100% { 
+                        background-color: var(--bs-warning);
+                        border-color: var(--bs-warning);
+                    }
+                    50% { 
+                        background-color: var(--bs-danger);
+                        border-color: var(--bs-danger);
+                    }
+                }
+                
                 .join-blink {
                     animation: joinBlink 1.5s infinite;
                     font-weight: bold;
                     white-space: nowrap;
                 }
                 
-                .join-blink:hover {
+                .start-blink {
+                    animation: startBlink 1.2s infinite;
+                    font-weight: bold;
+                    white-space: nowrap;
+                }
+                
+                .join-blink:hover, .start-blink:hover {
                     animation-play-state: paused;
+                }
+                
+                .join-blink:hover {
                     background-color: var(--bs-success) !important;
                     border-color: var(--bs-success) !important;
                 }
                 
-                .join-btn-container {
+                .start-blink:hover {
+                    background-color: var(--bs-success) !important;
+                    border-color: var(--bs-success) !important;
+                }
+                
+                .join-btn-container, .start-btn-container {
                     z-index: 10;
                 }
                 
                 /* Version desktop : bouton dans la marge de droite */
-                .join-btn-desktop {
+                .join-btn-desktop, .start-btn-desktop {
                     display: block;
                 }
                 
                 /* Version mobile : bouton dans le bloc, masquer la version desktop */
                 @media (max-width: 767.98px) {
-                    .join-btn-desktop {
+                    .join-btn-desktop, .start-btn-desktop {
                         display: none !important;
                     }
                     
-                    .join-btn-mobile {
+                    .join-btn-mobile, .start-btn-mobile {
                         display: block !important;
                     }
                 }
                 
                 /* Version desktop : masquer la version mobile */
                 @media (min-width: 768px) {
-                    .join-btn-mobile {
+                    .join-btn-mobile, .start-btn-mobile {
                         display: none !important;
                     }
                 }
                 
-                .participations-table {
+                .participations-table, .organized-events-table {
                     overflow: visible;
                     position: relative;
                 }
@@ -361,15 +386,24 @@ function loadOrganizedEvents(token, userRoles) {
 
             const li = document.createElement("li");
             li.classList.add("event-in-list");
+            li.style.position = 'relative'; // Pour permettre le positionnement absolu du bouton
             
-            // Créer le bouton démarrer si l'événement est en cours
+            // Créer le bouton démarrer avec effet de clignotement si l'événement est en cours
             let startButton = '';
             if (event.statut === 'en_cours') {
                 startButton = `
-                    <button class="btn btn-success btn-sm ms-2" onclick="startEventFromProfile(${event.id}, event)" 
-                            title="Démarrer l'événement">
-                        <i class="fas fa-play me-1"></i>Démarrer
-                    </button>
+                    <div class="start-btn-container start-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
+                        <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
+                                title="Démarrer l'événement">
+                            <i class="fas fa-rocket me-1"></i>Démarrer
+                        </button>
+                    </div>
+                    <div class="start-btn-container start-btn-mobile d-block d-md-none mt-2 text-center">
+                        <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
+                                title="Démarrer l'événement">
+                            <i class="fas fa-rocket me-1"></i>Démarrer
+                        </button>
+                    </div>
                 `;
             }
             
@@ -390,9 +424,9 @@ function loadOrganizedEvents(token, userRoles) {
                     </div>
                     <div class="col-md-3 text-center d-flex align-items-center justify-content-center">
                         <span class="badge ${badgeClass}">${statusBadge}</span>
-                        ${startButton}
                     </div>
                 </div>
+                ${startButton}
             `;
             eventsList.appendChild(li);
         });
