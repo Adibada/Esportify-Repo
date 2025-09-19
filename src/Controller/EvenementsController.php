@@ -210,9 +210,22 @@ class EvenementsController extends AbstractController
 
         $user = $this->getUser();
         
-        // Vérifier les permissions pour les événements en attente
+        // Vérifier les permissions pour les événements non accessibles au public
         if (!$this->isEventAccessible($evenement)) {
-            if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
+            if (!$user) {
+                return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+            }
+            
+            // Les admins peuvent voir tous les événements (en attente, refusés, etc.)
+            if ($this->isGranted('ROLE_ADMIN')) {
+                // L'admin a accès à tous les événements
+            }
+            // Les organisateurs ne peuvent voir que leurs propres événements non accessibles
+            else if ($this->isGranted('ROLE_ORGANISATEUR') && $evenement->getOrganisateur() === $user) {
+                // L'organisateur a accès à ses propres événements
+            }
+            // Sinon, refuser l'accès
+            else {
                 return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
             }
         }
@@ -337,16 +350,9 @@ class EvenementsController extends AbstractController
         }
 
         // IMPORTANTE: Toute modification remet l'événement en attente de validation
-        // Sauf si c'est un admin qui modifie (les admins peuvent modifier sans re-validation)
-        if (($hasChanges || $forceStatusChange) && !$this->isGranted('ROLE_ADMIN')) {
+        // Même les admins doivent repasser par la validation après modification
+        if ($hasChanges || $forceStatusChange) {
             $evenement->setStatut(Evenements::STATUT_EN_ATTENTE);
-            if ($forceStatusChange) {
-            } else {
-            }
-        } else {
-            if ($this->isGranted('ROLE_ADMIN')) {
-            } else {
-            }
         }
 
         $this->manager->flush();
@@ -514,7 +520,7 @@ class EvenementsController extends AbstractController
     )]
     public function refuser(Evenements $evenement, EntityManagerInterface $em): JsonResponse
     {
-        $evenement->setStatut('refusé');
+        $evenement->setStatut(Evenements::STATUT_REFUSE);
         $em->flush();
 
         return new JsonResponse([

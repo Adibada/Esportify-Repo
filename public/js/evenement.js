@@ -681,9 +681,21 @@ window.validateParticipation = validateParticipation;
 window.rejectParticipation = rejectParticipation;
 
 // === ACTIONS UTILISATEUR ===
-const handleApiRequest = async (url, method, successMsg, errorPrefix = 'Erreur') => {
+// Version améliorée de handleApiRequest avec indicateurs visuels
+const handleApiRequestWithLoading = async (url, method, successMsg, errorPrefix = 'Erreur', buttonElement = null) => {
     const token = getToken();
-    if (!token) return alert('Vous devez être connecté.');
+    if (!token) {
+        alert('Vous devez être connecté.');
+        return false;
+    }
+
+    // Affichage de l'indicateur de chargement sur le bouton
+    let originalButtonText = '';
+    if (buttonElement) {
+        originalButtonText = buttonElement.innerHTML;
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
+    }
 
     try {
         const res = await fetch(url, {
@@ -692,14 +704,107 @@ const handleApiRequest = async (url, method, successMsg, errorPrefix = 'Erreur')
         });
 
         if (res.ok) {
+            // Actualisation des données de la page
             await refreshEventData();
-            if (successMsg) alert(successMsg);
+            
+            // Message de succès temporaire
+            if (successMsg) {
+                showTemporaryMessage(successMsg, 'success');
+            }
+            return true;
         } else {
             const error = await res.text();
-            alert(`${errorPrefix} : ${error}`);
+            showTemporaryMessage(`${errorPrefix} : ${error}`, 'error');
+            return false;
         }
-    } catch {
-        alert(`${errorPrefix} lors de l'opération.`);
+    } catch (err) {
+        console.error('Erreur lors de la requête:', err);
+        showTemporaryMessage(`${errorPrefix} lors de l'opération.`, 'error');
+        return false;
+    } finally {
+        // Restaurer le bouton
+        if (buttonElement) {
+            buttonElement.disabled = false;
+            buttonElement.innerHTML = originalButtonText;
+        }
+    }
+};
+
+// Fonction pour afficher des messages temporaires stylés
+const showTemporaryMessage = (message, type = 'info', duration = 4000) => {
+    // Supprimer un message existant s'il y en a un
+    const existingMessage = document.getElementById('temporary-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+
+    // Créer le nouveau message
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'temporary-message';
+    messageDiv.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} alert-dismissible fade show position-fixed`;
+    messageDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+    
+    messageDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(messageDiv);
+
+    // Supprimer automatiquement après la durée spécifiée
+    setTimeout(() => {
+        if (messageDiv && messageDiv.parentNode) {
+            messageDiv.remove();
+        }
+    }, duration);
+};
+
+// Alias pour maintenir la compatibilité avec l'ancienne fonction
+const handleApiRequest = async (url, method, successMsg, errorPrefix = 'Erreur') => {
+    return await handleApiRequestWithLoading(url, method, successMsg, errorPrefix, null);
+};
+
+// Initialiser les styles pour les messages temporaires
+const initTemporaryMessageStyles = () => {
+    if (!document.getElementById('temp-message-styles')) {
+        const style = document.createElement('style');
+        style.id = 'temp-message-styles';
+        style.textContent = `
+            #temporary-message {
+                animation: slideInRight 0.3s ease-out;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                border-left: 4px solid;
+            }
+            
+            #temporary-message.alert-success {
+                border-left-color: #198754;
+            }
+            
+            #temporary-message.alert-danger {
+                border-left-color: #dc3545;
+            }
+            
+            #temporary-message.alert-info {
+                border-left-color: #0dcaf0;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            .btn:disabled {
+                cursor: not-allowed;
+            }
+        `;
+        document.head.appendChild(style);
     }
 };
 
@@ -750,28 +855,54 @@ const refreshEventData = async () => {
 };
 
 // === FONCTIONS ADMINISTRATIVES ===
-function validateEvent(eventId) {
+async function validateEvent(eventId, buttonElement = null) {
     // Vérification du rôle administrateur
     if (getRole() !== 'ROLE_ADMIN') {
-        alert('Accès non autorisé. Seuls les administrateurs peuvent valider les événements.');
+        showTemporaryMessage('Accès non autorisé. Seuls les administrateurs peuvent valider les événements.', 'error');
         return;
     }
     
     if (!confirm('Valider cet événement ?')) return;
-    handleApiRequest(`/api/evenements/${eventId}/valider`, 'PUT', 'Événement validé avec succès !', 'Erreur')
-        .then(() => location.reload());
+    
+    const success = await handleApiRequestWithLoading(
+        `/api/evenements/${eventId}/valider`, 
+        'PUT', 
+        'Événement validé avec succès ! Rechargement de la page...', 
+        'Erreur lors de la validation',
+        buttonElement
+    );
+    
+    // Recharger la page après succès pour mettre à jour toute l'interface
+    if (success) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500); // Délai pour permettre à l'utilisateur de voir le message
+    }
 }
 
-function rejectEvent(eventId) {
+async function rejectEvent(eventId, buttonElement = null) {
     // Vérification du rôle administrateur
     if (getRole() !== 'ROLE_ADMIN') {
-        alert('Accès non autorisé. Seuls les administrateurs peuvent rejeter les événements.');
+        showTemporaryMessage('Accès non autorisé. Seuls les administrateurs peuvent rejeter les événements.', 'error');
         return;
     }
     
     if (!confirm('Rejeter cet événement ? Cette action est irréversible.')) return;
-    handleApiRequest(`/api/evenements/${eventId}/rejeter`, 'PUT', 'Événement rejeté.', 'Erreur')
-        .then(() => window.location.href = '/');
+    
+    const success = await handleApiRequestWithLoading(
+        `/api/evenements/${eventId}/refuser`, 
+        'PUT', 
+        'Événement rejeté avec succès. Rechargement de la page...', 
+        'Erreur lors du rejet',
+        buttonElement
+    );
+    
+    // Recharger la page après succès pour mettre à jour toute l'interface
+    if (success) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500); // Délai pour permettre à l'utilisateur de voir le message
+    }
 }
 
 // Rendre les fonctions accessibles globalement
@@ -827,10 +958,10 @@ const updateAdminButtons = (event) => {
         adminContainer.removeAttribute('style');
         adminContainer.style.cssText = 'display: flex !important; justify-content: center; gap: 1rem; margin-top: 1rem;';
         adminContainer.innerHTML = `
-            <button class="btn btn-success px-4 py-2" onclick="validateEvent('${eventId}')">
+            <button class="btn btn-success px-4 py-2" id="validateBtn-${eventId}" onclick="validateEvent('${eventId}', this)">
                 <i class="fas fa-check me-2"></i>Valider l'événement
             </button>
-            <button class="btn btn-danger px-4 py-2" onclick="rejectEvent('${eventId}')">
+            <button class="btn btn-danger px-4 py-2" id="rejectBtn-${eventId}" onclick="rejectEvent('${eventId}', this)">
                 <i class="fas fa-times me-2"></i>Refuser l'événement
             </button>`;
     } else {
@@ -1100,6 +1231,9 @@ const init = () => {
         setState('error', 'ID d\'événement manquant ou invalide');
         return;
     }
+    
+    // Initialiser les styles pour les messages temporaires
+    initTemporaryMessageStyles();
     
     // Masquer les boutons admin et organisateur par défaut
     const adminContainer = document.querySelector('.admin-controls, .admin-buttons, [data-admin]');
