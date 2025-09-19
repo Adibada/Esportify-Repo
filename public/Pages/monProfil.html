@@ -26,7 +26,12 @@
 
     <!-- Événements organisés (visible uniquement aux organisateurs) -->
     <div class="bloc" id="organizedEventsSection" style="display: none;" aria-labelledby="organized-events-title">
-        <h2 id="organized-events-title" class="text-start fs-1">Événements organisés :</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 id="organized-events-title" class="text-start fs-1 mb-0">Événements organisés :</h2>
+            <button type="button" class="btn btn-success" id="createEventBtn">
+                <i class="bi bi-plus-circle me-2"></i>Créer un événement
+            </button>
+        </div>
 
         <div class="mt-3">
             <ul class="organized-events-list">
