@@ -22,6 +22,7 @@ class UserController extends AbstractController
     #[Route('/search', name: 'search', methods: ['GET'])]
     #[OA\Get(
         summary: 'Rechercher des utilisateurs par nom',
+        tags: ['Consultation publique'],
         parameters: [
             new OA\Parameter(
                 name: 'query',
@@ -60,6 +61,7 @@ class UserController extends AbstractController
     #[Route('/me', name: 'profile_me', methods: ['GET'])]
     #[OA\Get(
         summary: 'Récupérer le profil de l\'utilisateur connecté',
+        tags: ['Gestion profil'],
         security: [['X-AUTH-TOKEN' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Profil de l\'utilisateur'),
@@ -119,6 +121,7 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'show', methods: ['GET'])]
     #[OA\Get(
         summary: 'Afficher un utilisateur par ID',
+        tags: ['Consultation publique'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
@@ -177,6 +180,7 @@ class UserController extends AbstractController
     #[Route('/update', name: 'update_profile', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Mettre à jour le profil de l\'utilisateur connecté',
+        tags: ['Gestion profil'],
         security: [['X-AUTH-TOKEN' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -275,6 +279,7 @@ class UserController extends AbstractController
     #[Route('/{id}/role', name: 'update_user_role', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Modifier le rôle d\'un utilisateur (Admin uniquement)',
+        tags: ['Administration'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(
@@ -317,11 +322,6 @@ class UserController extends AbstractController
         $targetUser = $this->repository->find($id);
         if (!$targetUser) {
             return $this->json(['error' => 'Utilisateur non trouvé'], 404);
-        }
-
-        // Empêcher de modifier son propre rôle
-        if ($targetUser->getId() === $currentUser->getId()) {
-            return $this->json(['error' => 'Vous ne pouvez pas modifier votre propre rôle'], 400);
         }
 
         $data = json_decode($request->getContent(), true);

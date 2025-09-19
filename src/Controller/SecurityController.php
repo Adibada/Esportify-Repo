@@ -15,7 +15,6 @@ use App\Repository\UserRepository;
 use OpenApi\Attributes as OA;
 
 #[Route('/api', name: 'app_api_')]
-#[OA\Tag(name: 'Security')]
 class SecurityController extends AbstractController
 {
     public function __construct(
@@ -28,7 +27,7 @@ class SecurityController extends AbstractController
     #[OA\Post(
         path: '/api/registration',
         summary: 'Enregistrer un nouvel utilisateur',
-        tags: ['Security'],
+        tags: ['Authentification'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -76,7 +75,7 @@ class SecurityController extends AbstractController
     #[OA\Post(
         path: '/api/login',
         summary: 'Connecter un utilisateur',
-        tags: ['Security'],
+        tags: ['Authentification'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
@@ -119,7 +118,7 @@ class SecurityController extends AbstractController
     #[OA\Get(
         path: '/api/me',
         summary: 'Récupère les infos du user connecté via le token',
-        tags: ['Security'],
+        tags: ['Authentification'],
         parameters: [
             new OA\Parameter(
                 name: 'Authorization',
@@ -157,7 +156,7 @@ class SecurityController extends AbstractController
     #[OA\Get(
         path: '/api/me/participations',
         summary: 'Récupère les participations du user connecté',
-        tags: ['Security'],
+        tags: ['Participations'],
         parameters: [
             new OA\Parameter(
                 name: 'X-AUTH-TOKEN',
@@ -200,7 +199,7 @@ class SecurityController extends AbstractController
     #[OA\Delete(
         path: '/api/me',
         summary: 'Supprimer le compte de l\'utilisateur connecté',
-        tags: ['Security'],
+        tags: ['Gestion profil'],
         parameters: [
             new OA\Parameter(
                 name: 'X-AUTH-TOKEN',
@@ -243,6 +242,7 @@ class SecurityController extends AbstractController
     #[Route('/logout', name: 'logout', methods: ['POST'])]
     #[OA\Post(
         summary: 'Déconnexion utilisateur et invalidation du token',
+        tags: ['Authentification'],
         security: [['X-AUTH-TOKEN' => []]],
         responses: [
             new OA\Response(response: 200, description: 'Déconnexion réussie'),

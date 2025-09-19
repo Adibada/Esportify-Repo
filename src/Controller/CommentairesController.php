@@ -26,6 +26,7 @@ class CommentairesController extends AbstractController
     #[Route('/evenement/{id}', name: 'list_by_event', methods: ['GET'])]
     #[OA\Get(
         summary: 'Récupérer tous les commentaires d\'un événement',
+        tags: ['Commentaires'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', description: 'ID de l\'événement', required: true)
         ],
@@ -55,6 +56,7 @@ class CommentairesController extends AbstractController
     #[Route('', name: 'create', methods: ['POST'])]
     #[OA\Post(
         summary: 'Créer un nouveau commentaire',
+        tags: ['Commentaires'],
         security: [['X-AUTH-TOKEN' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -113,6 +115,7 @@ class CommentairesController extends AbstractController
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     #[OA\Delete(
         summary: 'Supprimer un commentaire',
+        tags: ['Commentaires'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', description: 'ID du commentaire', required: true)

@@ -52,6 +52,7 @@ class EvenementsController extends AbstractController
     #[Route('', name: 'new', methods: ['POST'])]
     #[OA\Post(
         summary: 'Créer un nouvel événement',
+        tags: ['Gestion événements'],
         security: [['X-AUTH-TOKEN' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -188,6 +189,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     #[OA\Get(
         summary: 'Afficher un événement par ID',
+        tags: ['Consultation publique'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
@@ -245,6 +247,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}', name: 'edit', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Modifier un événement',
+        tags: ['Gestion événements'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
@@ -368,6 +371,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/image', name: 'upload_image', methods: ['POST'])]
     #[OA\Post(
         summary: 'Upload image pour un événement',
+        tags: ['Gestion événements'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -453,6 +457,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
     #[OA\Delete(
         summary: 'Supprimer un événement',
+        tags: ['Administration'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -484,6 +489,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/valider', name: 'evenement_valider', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Valider un événement',
+        tags: ['Administration'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -509,6 +515,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/refuser', name: 'evenement_refuser', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Refuser un événement',
+        tags: ['Administration'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -532,6 +539,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/demarrer', name: 'evenement_demarrer', methods: ['PUT'])]
     #[OA\Put(
         summary: 'Démarrer un événement (organisateur uniquement)',
+        tags: ['Gestion événements'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -598,6 +606,7 @@ class EvenementsController extends AbstractController
     #[OA\Post(
         path: '/api/evenements/{id}/rejoindre',
         summary: 'Rejoindre un événement démarré',
+        tags: ['Participations'],
         description: 'Permet à un participant validé de rejoindre un événement qui a été démarré'
     )]
     #[OA\Parameter(
@@ -671,6 +680,13 @@ class EvenementsController extends AbstractController
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
+    #[OA\Get(
+        summary: 'Liste de tous les événements',
+        tags: ['Consultation publique'],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des événements')
+        ]
+    )]
     public function list(): JsonResponse
     {
         // Mettre à jour les statuts de tous les événements
@@ -726,6 +742,7 @@ class EvenementsController extends AbstractController
     #[Route('/search', name: 'search', methods: ['GET'])]
     #[OA\Get(
         summary: 'Rechercher des événements avec des critères avancés',
+        tags: ['Consultation publique'],
         parameters: [
             new OA\Parameter(
                 name: 'titre',
@@ -929,6 +946,13 @@ class EvenementsController extends AbstractController
     }
 
     #[Route('/en-cours', name: 'current', methods: ['GET'])]
+    #[OA\Get(
+        summary: 'Obtenir les événements actuellement en cours',
+        tags: ['Consultation publique'],
+        responses: [
+            new OA\Response(response: 200, description: 'Liste des événements en cours')
+        ]
+    )]
     public function current(): JsonResponse
     {
         // Option 1: Mise à jour complète (plus sûr mais plus lent)
@@ -955,6 +979,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/participer', name: 'participate', methods: ['POST'], requirements: ['id' => '\d+'])]
     #[OA\Post(
         summary: 'Participer à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -1024,6 +1049,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/annuler-participation', name: 'cancel_participation', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     #[OA\Delete(
         summary: 'Annuler sa participation à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -1073,6 +1099,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/statut-participation', name: 'participation_status', methods: ['GET'], requirements: ['id' => '\d+'])]
     #[OA\Get(
         summary: 'Vérifier le statut de participation à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -1119,6 +1146,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/participations', name: 'event_participations', methods: ['GET'], requirements: ['id' => '\d+'])]
     #[OA\Get(
         summary: 'Obtenir toutes les participations à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -1161,6 +1189,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/participants', name: 'event_participants_public', methods: ['GET'], requirements: ['id' => '\d+'])]
     #[OA\Get(
         summary: 'Obtenir la liste publique des participants validés d\'un événement',
+        tags: ['Consultation publique'],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
         ],
@@ -1199,6 +1228,7 @@ class EvenementsController extends AbstractController
     #[Route('/{eventId}/participations/{userId}/valider', name: 'validate_participation', methods: ['POST'], requirements: ['eventId' => '\d+', 'userId' => '\d+'])]
     #[OA\Post(
         summary: 'Valider une participation à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
@@ -1251,6 +1281,7 @@ class EvenementsController extends AbstractController
     #[Route('/{eventId}/participations/{userId}/refuser', name: 'reject_participation', methods: ['POST'], requirements: ['eventId' => '\d+', 'userId' => '\d+'])]
     #[OA\Post(
         summary: 'Refuser une participation à un événement',
+        tags: ['Participations'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
@@ -1347,6 +1378,7 @@ class EvenementsController extends AbstractController
     #[Route('/{id}/images', name: 'upload_images', methods: ['POST'])]
     #[OA\Post(
         summary: 'Ajouter des images à un événement',
+        tags: ['Gestion événements'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
@@ -1414,6 +1446,7 @@ class EvenementsController extends AbstractController
     #[Route('/{eventId}/images/{imageId}', name: 'delete_image', methods: ['DELETE'])]
     #[OA\Delete(
         summary: 'Supprimer une image d\'événement',
+        tags: ['Gestion événements'],
         security: [['X-AUTH-TOKEN' => []]],
         parameters: [
             new OA\Parameter(name: 'eventId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
