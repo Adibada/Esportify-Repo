@@ -10,13 +10,14 @@ Site web pour une entreprise fictive d'événements e-sport.
 - **MySQL** pour la base de données
 - **Doctrine ORM** pour la gestion des entités
 - **API Platform** pour les endpoints REST
-- **Nelmio API Doc** pour la documentation
+- **Nelmio API Doc** pour la documentation Swagger
+- **Service EventStatusService** pour la gestion automatique des statuts
 
 ### Frontend
 - **HTML5** / **CSS3** / **JavaScript ES6+**
 - **Bootstrap 5** pour le design responsive
-- **Architecture SPA** (Single Page Application)
-- **Routing côté client**
+- **Architecture SPA** (Single Page Application) avec routing côté client
+- **Notifications temporaires** stylisées
 
 ## 🚀 Installation
 
@@ -53,13 +54,7 @@ Site web pour une entreprise fictive d'événements e-sport.
    php bin/console doctrine:database:create
    php bin/console doctrine:migrations:migrate
    ```
-
-5. **Charger les fixtures (optionnel)**
-   ```bash
-   php bin/console doctrine:fixtures:load
-   ```
-
-6. **Lancer le serveur de développement**
+5. **Lancer le serveur de développement**
    ```bash
    symfony server:start
    # ou
@@ -70,14 +65,6 @@ Site web pour une entreprise fictive d'événements e-sport.
 
 La documentation interactive de l'API est accessible à l'adresse :
 **[http://localhost:8000/api/doc](http://localhost:8000/api/doc)**
-
-### Endpoints principaux
-- `GET /api/evenements` - Liste des événements
-- `GET /api/evenements/en-cours` - Événements en cours
-- `GET /api/users/{id}` - Profil utilisateur
-- `PUT /api/users/{id}/role` - Modifier le rôle (Admin uniquement)
-- `POST /api/login` - Authentification
-- `POST /api/registration` - Inscription
 
 ## 👤 Comptes de test
 
@@ -106,53 +93,42 @@ Plusieurs comptes sont disponibles pour tester les différentes fonctionnalités
 | **Mot de passe** | `azerty` |
 | **Rôle** | `ROLE_USER` |
 
-## 🎯 Fonctionnalités
 
-### Pour tous les utilisateurs
-- 🏠 **Page d'accueil** avec carrousels automatiques
-- 🔍 **Recherche d'événements** avec filtres
-- 👥 **Recherche de profils** utilisateurs
-- 📅 **Consultation des événements** (détails, participants)
-- 📝 **Inscription/Connexion**
+## 🔐 Sécurité et Permissions
 
-## 📱 Design responsive
-
-Le site est entièrement responsive et s'adapte aux différentes tailles d'écran :
-- 💻 **Desktop** (1200px+)
-- 📱 **Tablet** (768px - 1199px)
-- 📱 **Mobile** (320px - 767px)
-
-## 🔐 Sécurité
-
-- **Authentification** par token API
-- **Gestion des rôles** (USER, ORGANISATEUR, ADMIN)
-- **Validation** des données côté serveur
-- **Protection CSRF** avec Symfony
-- **Hashage sécurisé** des mots de passe
+- **Authentification** par token API sécurisé
+- **Système de rôles hiérarchique** (USER < ORGANISATEUR < ADMIN)
+- **Contrôle d'accès** par endpoint API
+- **Validation stricte** des données côté serveur avec Symfony Validator
+- **Protection CSRF** intégrée
+- **Hashage sécurisé** des mots de passe avec bcrypt
+- **Filtrage des événements** selon les permissions utilisateur
+- **Gestion des statuts d'événements** automatisée et sécurisée
 
 ## 🏗️ Architecture
 
 ```
 public/
-├── Images/           # Ressources images
-├── js/              # Scripts JavaScript
-├── Pages/           # Templates HTML
-├── Router/          # Système de routage SPA
-└── scss/            # Styles CSS
+├── Images/           # Ressources images et uploads
+├── js/              # Scripts JavaScript modulaires
+│   ├── auth/        # Scripts authentification (monProfil.js)
+│   ├── creationEvenement.js
+│   ├── evenement.js # Gestion détaillée des événements
+│   ├── main.js      # Router SPA principal
+│   └── ...
+├── Pages/           # Templates HTML du SPA
+├── Router/          # Configuration routage client
+└── scss/            # Styles CSS/SCSS
 
 src/
-├── Controller/      # Contrôleurs API
-├── Entity/          # Entités Doctrine
-├── Repository/      # Repositories
-├── Security/        # Configuration sécurité
-└── DataFixtures/    # Données de test
-```
+├── Controller/      # Contrôleurs API REST
+│   ├── EvenementsController.php # CRUD complet événements
+│   ├── UserController.php       # Gestion utilisateurs
+│   └── ...
+├── Entity/          # Entités Doctrine avec relations
+├── Repository/      # Repositories avec queries optimisées
+├── Security/        # Authentificateurs et voters
+├── Service/         # Services métier (EventStatusService)
+└── DataFixtures/    # Jeux de données pour développement
 
-## 📄 Licence
-
-Ce projet est réalisé dans un cadre éducatif.
-
-## 👨‍💻 Auteur
-
-**Adibada** - *Développement complet* - [GitHub](https://github.com/Adibada)
 
