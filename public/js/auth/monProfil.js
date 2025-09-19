@@ -41,6 +41,9 @@ function loadUserProfile() {
         // Charger les événements organisés si l'utilisateur est organisateur
         loadOrganizedEvents(token, user.roles);
 
+        // Charger les événements en attente si l'utilisateur est administrateur
+        loadPendingEvents(token, user.roles);
+
         // Suppression du compte
         const deleteButton = document.getElementById("deleteAccountBtn");
         if (deleteButton) {
@@ -578,6 +581,214 @@ window.joinEventFromProfile = async (eventId) => {
         }
     } catch (error) {
         console.error('Erreur lors de la connexion à l\'événement:', error);
+        alert('Erreur de connexion');
+    }
+};
+
+// Charger les événements en attente pour les administrateurs
+function loadPendingEvents(token, userRoles) {
+    // Vérifier si l'utilisateur est administrateur
+    const isAdmin = userRoles && userRoles.includes('ROLE_ADMIN');
+    
+    const pendingEventsSection = document.getElementById('pendingEventsSection');
+    if (!pendingEventsSection) return;
+    
+    if (!isAdmin) {
+        // Masquer la section si l'utilisateur n'est pas administrateur
+        pendingEventsSection.style.display = 'none';
+        return;
+    }
+    
+    // Afficher la section pour les administrateurs
+    pendingEventsSection.style.display = 'block';
+    
+    // Charger les événements en attente
+    fetch('/api/evenements', {
+        headers: {
+            'X-AUTH-TOKEN': token
+        }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Erreur lors du chargement des événements en attente");
+        return res.json();
+    })
+    .then(data => {
+        // Pour l'API /api/evenements, la réponse est directement un tableau d'événements
+        const allEvents = Array.isArray(data) ? data : (data.events || []);
+        // Filtrer uniquement les événements en attente
+        const events = allEvents.filter(event => event.statut === 'en_attente');
+        
+        const pendingEventsList = document.querySelector(".pending-events-list");
+        const pendingEventsCount = document.getElementById("pendingEventsCount");
+        
+        if (!pendingEventsList) return;
+        
+        // Mettre à jour le compteur
+        if (pendingEventsCount) {
+            pendingEventsCount.textContent = events.length;
+        }
+        
+        if (events.length === 0) {
+            pendingEventsList.innerHTML = `
+                <li class="text-center py-4 text-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    Aucun événement en attente de validation !
+                </li>
+            `;
+            return;
+        }
+        
+        // Ajouter l'en-tête des colonnes
+        pendingEventsList.innerHTML = "";
+        const headerLi = document.createElement("li");
+        headerLi.innerHTML = `
+            <div class="row py-2 border-bottom fw-bold text-muted small">
+                <div class="col-md-3">Titre de l'événement</div>
+                <div class="col-md-2">Organisateur</div>
+                <div class="col-md-2">Date de début</div>
+                <div class="col-md-2">Participants</div>
+                <div class="col-md-3">Actions</div>
+            </div>
+        `;
+        pendingEventsList.appendChild(headerLi);
+        
+        // Afficher chaque événement en attente
+        events.forEach(event => {
+            const eventLi = document.createElement("li");
+            eventLi.className = "event-in-list border-bottom py-2";
+            
+            const eventDate = new Date(event.start);
+            const formattedDate = eventDate.toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const organizerName = event.organisateur ? event.organisateur.username : 'Inconnu';
+            const participantCount = event.numberCompetitors || 0;
+            
+            eventLi.innerHTML = `
+                <div class="row align-items-center py-2">
+                    <div class="col-md-3">
+                        <div class="d-flex flex-column">
+                            <strong class="text-primary">${event.titre}</strong>
+                            <small class="text-muted text-truncate" style="max-width: 200px;" title="${event.description}">
+                                ${event.description ? event.description.substring(0, 60) + (event.description.length > 60 ? '...' : '') : 'Pas de description'}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-info">${organizerName}</span>
+                    </div>
+                    <div class="col-md-2">
+                        <small>${formattedDate}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge bg-secondary">${participantCount}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-success btn-sm" onclick="validateEventFromProfile('${event.id}')" 
+                                    title="Valider l'événement">
+                                <i class="bi bi-check-lg me-1"></i>Valider
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectEventFromProfile('${event.id}')" 
+                                    title="Refuser l'événement">
+                                <i class="bi bi-x-lg me-1"></i>Refuser
+                            </button>
+                            <a href="/evenement?id=${event.id}" class="btn btn-outline-primary btn-sm" 
+                               title="Voir les détails">
+                                <i class="bi bi-eye me-1"></i>Voir
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            pendingEventsList.appendChild(eventLi);
+        });
+    })
+    .catch(err => {
+        console.error('Erreur lors du chargement des événements en attente:', err);
+        const pendingEventsList = document.querySelector(".pending-events-list");
+        if (pendingEventsList) {
+            pendingEventsList.innerHTML = `
+                <li class="text-center py-3 text-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Erreur lors du chargement des événements en attente
+                    <div class="mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="loadPendingEvents('${token}', ${JSON.stringify(userRoles).replace(/"/g, "'")})">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Réessayer
+                        </button>
+                    </div>
+                </li>
+            `;
+        }
+    });
+}
+
+// Fonction pour valider un événement depuis le profil
+window.validateEventFromProfile = async function(eventId) {
+    if (!confirm('Voulez-vous valider cet événement ?')) return;
+    
+    const token = getToken();
+    if (!token) {
+        alert('Vous devez être connecté');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/valider`, {
+            method: 'PUT',
+            headers: {
+                'X-AUTH-TOKEN': token
+            }
+        });
+        
+        if (response.ok) {
+            alert('Événement validé avec succès !');
+            // Recharger les événements en attente
+            loadUserProfile();
+        } else {
+            const errorData = await response.json();
+            alert('Erreur : ' + (errorData.message || errorData.error || 'Impossible de valider l\'événement'));
+        }
+    } catch (error) {
+        console.error('Erreur lors de la validation:', error);
+        alert('Erreur de connexion');
+    }
+};
+
+// Fonction pour refuser un événement depuis le profil
+window.rejectEventFromProfile = async function(eventId) {
+    if (!confirm('Voulez-vous refuser cet événement ? Cette action est irréversible.')) return;
+    
+    const token = getToken();
+    if (!token) {
+        alert('Vous devez être connecté');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/refuser`, {
+            method: 'PUT',
+            headers: {
+                'X-AUTH-TOKEN': token
+            }
+        });
+        
+        if (response.ok) {
+            alert('Événement refusé avec succès.');
+            // Recharger les événements en attente
+            loadUserProfile();
+        } else {
+            const errorData = await response.json();
+            alert('Erreur : ' + (errorData.message || errorData.error || 'Impossible de refuser l\'événement'));
+        }
+    } catch (error) {
+        console.error('Erreur lors du refus:', error);
         alert('Erreur de connexion');
     }
 };
