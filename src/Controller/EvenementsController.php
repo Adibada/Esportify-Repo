@@ -679,10 +679,39 @@ class EvenementsController extends AbstractController
         $user = $this->getUser();
         $qb = $this->repository->createQueryBuilder('e');
         
-        // Si l'utilisateur n'est pas ADMIN ou ORGANISATEUR, ne montrer que les événements validés
-        if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
-            $qb->where('e.statut = :statut')
-               ->setParameter('statut', Evenements::STATUT_VALIDE);
+        // Logique de filtrage selon le rôle utilisateur (même que dans search)
+        if (!$user) {
+            // Utilisateur non connecté : seulement les événements accessibles au public
+            $qb->where('e.statut IN (:publicStatuts)')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ]);
+        } elseif ($this->isGranted('ROLE_ADMIN')) {
+            // Admin : peut voir tous les événements
+            // Pas de filtre supplémentaire
+        } elseif ($this->isGranted('ROLE_ORGANISATEUR')) {
+            // Organisateur : peut voir tous les événements accessibles au public 
+            // ET ses propres événements (même en attente ou refusés)
+            $qb->where('e.statut IN (:publicStatuts) OR e.organisateur = :currentUser')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ])
+               ->setParameter('currentUser', $user);
+        } else {
+            // Utilisateur connecté sans rôle spécial : seulement les événements accessibles au public
+            $qb->where('e.statut IN (:publicStatuts)')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ]);
         }
         
         $evenements = $qb->getQuery()->getResult();
@@ -769,10 +798,39 @@ class EvenementsController extends AbstractController
         $user = $this->getUser();
         $qb = $this->repository->createQueryBuilder('e');
         
-        // Si l'utilisateur n'est pas ADMIN ou ORGANISATEUR, ne montrer que les événements validés
-        if (!$user || (!$this->isGranted('ROLE_ADMIN') && !$this->isGranted('ROLE_ORGANISATEUR'))) {
-            $qb->where('e.statut = :statut')
-               ->setParameter('statut', Evenements::STATUT_VALIDE);
+        // Logique de filtrage selon le rôle utilisateur
+        if (!$user) {
+            // Utilisateur non connecté : seulement les événements accessibles au public
+            $qb->where('e.statut IN (:publicStatuts)')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ]);
+        } elseif ($this->isGranted('ROLE_ADMIN')) {
+            // Admin : peut voir tous les événements
+            // Pas de filtre supplémentaire
+        } elseif ($this->isGranted('ROLE_ORGANISATEUR')) {
+            // Organisateur : peut voir tous les événements accessibles au public 
+            // ET ses propres événements (même en attente ou refusés)
+            $qb->where('e.statut IN (:publicStatuts) OR e.organisateur = :currentUser')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ])
+               ->setParameter('currentUser', $user);
+        } else {
+            // Utilisateur connecté sans rôle spécial : seulement les événements accessibles au public
+            $qb->where('e.statut IN (:publicStatuts)')
+               ->setParameter('publicStatuts', [
+                   Evenements::STATUT_VALIDE,
+                   Evenements::STATUT_EN_COURS,
+                   Evenements::STATUT_DEMARRE,
+                   Evenements::STATUT_TERMINE
+               ]);
         }
         
         $paramCounter = 1;
