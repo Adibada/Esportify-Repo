@@ -111,7 +111,14 @@ async function displayProfile(user) {
     }
     
     // Statut utilisateur
-    const userStatus = user.roles && user.roles.includes('ROLE_ORGANISATEUR') ? 'Organisateur' : 'Participant';
+    let userStatus = 'Participant'; // Par défaut
+    if (user.roles) {
+        if (user.roles.includes('ROLE_ADMIN')) {
+            userStatus = 'Administrateur';
+        } else if (user.roles.includes('ROLE_ORGANISATEUR')) {
+            userStatus = 'Organisateur';
+        }
+    }
     const userStatusElement = document.getElementById('userStatus');
     if (userStatusElement) {
         userStatusElement.textContent = userStatus;
@@ -125,6 +132,9 @@ async function displayProfile(user) {
     if (profileContentElement) {
         profileContentElement.classList.remove('d-none');
     }
+    
+    // Initialiser les event listeners après l'affichage
+    initEventListeners();
 }
 
 function displayAllParticipations(participations) {
@@ -150,7 +160,9 @@ function displayAllParticipations(participations) {
         
         // Déterminer le badge selon le statut de participation
         let statusBadge;
-        switch (participation.statutParticipation) {
+        const status = participation.statutParticipation || 'en_attente';
+        
+        switch (status) {
             case 'valide':
                 statusBadge = '<span class="badge bg-success">Validée</span>';
                 break;
@@ -393,6 +405,21 @@ function showRoleUpdateMessage(message, type) {
             messageElement.classList.add('d-none');
         }, 5000);
     }
+}
+
+// Gérer le bouton de création d'événement
+function handleCreateEventButton() {
+    const createEventBtn = document.getElementById('createEventBtn');
+    if (createEventBtn) {
+        createEventBtn.addEventListener('click', function() {
+            window.navigate('/creationEvenement');
+        });
+    }
+}
+
+// Ajouter l'event listener après le chargement du profil
+function initEventListeners() {
+    handleCreateEventButton();
 }
 
 // Rendre la fonction accessible globalement pour le bouton
