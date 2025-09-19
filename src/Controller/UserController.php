@@ -165,7 +165,9 @@ class UserController extends AbstractController
                 'dateDebut' => $event->getStart()?->format('Y-m-d H:i:s'),
                 'dateFin' => $event->getEnd()?->format('Y-m-d H:i:s'),
                 'statut' => $event->getStatut(),
-                'description' => $event->getDescription()
+                'statutParticipation' => $participation->getStatut(), // Statut de la participation
+                'description' => $event->getDescription(),
+                'score' => $participation->getScore()
             ];
         }
 
