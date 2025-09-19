@@ -323,113 +323,141 @@ function loadOrganizedEvents(token, userRoles) {
     .then(userData => {
         const organizedEvents = userData.evenements || [];  // Utiliser 'evenements' au lieu de 'evenementsOrganises'
         
-        // Afficher la section seulement s'il y a des événements organisés
-        if (organizedEvents.length === 0) {
+        // Vérifier si l'utilisateur est organisateur ou admin
+        const isOrganizerOrAdmin = userRoles && (userRoles.includes('ROLE_ORGANISATEUR') || userRoles.includes('ROLE_ADMIN'));
+        
+        // Afficher la section si l'utilisateur est organisateur/admin
+        if (isOrganizerOrAdmin) {
+            organizedSection.style.display = 'block';
+            
+            // Ajouter le gestionnaire d'événement pour le bouton de création d'événement
+            const createEventBtn = document.getElementById('createEventBtn');
+            if (createEventBtn) {
+                // Supprimer l'ancien event listener s'il existe
+                createEventBtn.replaceWith(createEventBtn.cloneNode(true));
+                const newCreateEventBtn = document.getElementById('createEventBtn');
+                newCreateEventBtn.addEventListener('click', function() {
+                    window.navigate('/creationEvenement');
+                });
+            }
+            
+            const eventsList = document.querySelector(".organized-events-list");
+            if (!eventsList) return;
+
+            // Ajouter la classe pour le style du tableau
+            eventsList.parentElement.classList.add('organized-events-table');
+            eventsList.innerHTML = "";
+            
+            if (organizedEvents.length === 0) {
+                // Afficher un message s'il n'y a pas d'événements organisés
+                eventsList.innerHTML = `
+                    <li class="text-center py-4 text-muted">
+                        <i class="fas fa-calendar-plus fa-2x mb-2"></i>
+                        <div>Vous n'avez pas encore créé d'événements.</div>
+                        <div class="mt-2">
+                            <small>Utilisez le bouton "Créer un événement" pour commencer !</small>
+                        </div>
+                    </li>
+                `;
+                return;
+            }
+            
+            // Ajouter l'en-tête des colonnes
+            const headerLi = document.createElement("li");
+            headerLi.innerHTML = `
+                <div class="row py-2 border-bottom fw-bold text-muted small">
+                    <div class="col-md-4">Titre de l'événement</div>
+                    <div class="col-md-3">Dates</div>
+                    <div class="col-md-2 text-center">Participants</div>
+                    <div class="col-md-3 text-center">Statut & Actions</div>
+                </div>
+            `;
+            eventsList.appendChild(headerLi);
+            
+            // Traiter chaque événement organisé
+            organizedEvents.forEach(event => {
+                // Déterminer le badge selon le statut de l'événement
+                let statusBadge;
+                let badgeClass;
+                
+                switch (event.statut) {
+                    case 'valide':
+                        badgeClass = 'bg-success';
+                        statusBadge = 'Validé';
+                        break;
+                    case 'refuse':
+                        badgeClass = 'bg-danger';
+                        statusBadge = 'Refusé';
+                        break;
+                    case 'en_cours':
+                        badgeClass = 'bg-primary';
+                        statusBadge = 'En cours';
+                        break;
+                    case 'demarre':
+                        badgeClass = 'bg-info';
+                        statusBadge = 'Démarré!!';
+                        break;
+                    case 'termine':
+                        badgeClass = 'bg-dark';
+                        statusBadge = 'Terminé';
+                        break;
+                    case 'en_attente':
+                    default:
+                        badgeClass = 'bg-warning';
+                        statusBadge = 'En attente';
+                        break;
+                }
+
+                const li = document.createElement("li");
+                li.classList.add("event-in-list");
+                li.style.position = 'relative'; // Pour permettre le positionnement absolu du bouton
+                
+                // Créer le bouton démarrer avec effet de clignotement si l'événement est en cours
+                let startButton = '';
+                if (event.statut === 'en_cours') {
+                    startButton = `
+                        <div class="start-btn-container start-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
+                            <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
+                                    title="Démarrer l'événement">
+                                <i class="fas fa-rocket me-1"></i>Démarrer
+                            </button>
+                        </div>
+                        <div class="start-btn-container start-btn-mobile d-block d-md-none mt-2 text-center">
+                            <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
+                                    title="Démarrer l'événement">
+                                <i class="fas fa-rocket me-1"></i>Démarrer
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                li.innerHTML = `
+                    <div class="row align-items-center py-2">
+                        <div class="col-md-4">
+                            <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
+                                ${event.titre || 'Sans titre'}
+                            </a>
+                        </div>
+                        <div class="col-md-3 text-muted small">
+                            <div>Début: <time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></div>
+                            <div>Fin: <time datetime="${event.dateFin}">${new Date(event.dateFin).toLocaleDateString()}</time></div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-info">${event.numberCompetitors || 0}</span>
+                            <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
+                        </div>
+                        <div class="col-md-3 text-center d-flex align-items-center justify-content-center">
+                            <span class="badge ${badgeClass}">${statusBadge}</span>
+                        </div>
+                    </div>
+                    ${startButton}
+                `;
+                eventsList.appendChild(li);
+            });
+        } else {
             organizedSection.style.display = 'none';
             return;
         }
-        
-        // Afficher la section
-        organizedSection.style.display = 'block';
-        
-        const eventsList = document.querySelector(".organized-events-list");
-        if (!eventsList) return;
-
-        // Ajouter la classe pour le style du tableau
-        eventsList.parentElement.classList.add('organized-events-table');
-        eventsList.innerHTML = "";
-        
-        // Ajouter l'en-tête des colonnes
-        const headerLi = document.createElement("li");
-        headerLi.innerHTML = `
-            <div class="row py-2 border-bottom fw-bold text-muted small">
-                <div class="col-md-4">Titre de l'événement</div>
-                <div class="col-md-3">Dates</div>
-                <div class="col-md-2 text-center">Participants</div>
-                <div class="col-md-3 text-center">Statut & Actions</div>
-            </div>
-        `;
-        eventsList.appendChild(headerLi);
-        
-        organizedEvents.forEach(event => {
-            // Déterminer le badge selon le statut de l'événement
-            let statusBadge;
-            let badgeClass;
-            
-            switch (event.statut) {
-                case 'valide':
-                    badgeClass = 'bg-success';
-                    statusBadge = 'Validé';
-                    break;
-                case 'refuse':
-                    badgeClass = 'bg-danger';
-                    statusBadge = 'Refusé';
-                    break;
-                case 'en_cours':
-                    badgeClass = 'bg-primary';
-                    statusBadge = 'En cours';
-                    break;
-                case 'demarre':
-                    badgeClass = 'bg-info';
-                    statusBadge = 'Démarré!!';
-                    break;
-                case 'termine':
-                    badgeClass = 'bg-dark';
-                    statusBadge = 'Terminé';
-                    break;
-                case 'en_attente':
-                default:
-                    badgeClass = 'bg-warning';
-                    statusBadge = 'En attente';
-                    break;
-            }
-
-            const li = document.createElement("li");
-            li.classList.add("event-in-list");
-            li.style.position = 'relative'; // Pour permettre le positionnement absolu du bouton
-            
-            // Créer le bouton démarrer avec effet de clignotement si l'événement est en cours
-            let startButton = '';
-            if (event.statut === 'en_cours') {
-                startButton = `
-                    <div class="start-btn-container start-btn-desktop position-absolute" style="right: -100px; top: 50%; transform: translateY(-50%);">
-                        <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
-                                title="Démarrer l'événement">
-                            <i class="fas fa-rocket me-1"></i>Démarrer
-                        </button>
-                    </div>
-                    <div class="start-btn-container start-btn-mobile d-block d-md-none mt-2 text-center">
-                        <button class="btn btn-warning btn-sm start-blink" onclick="startEventFromProfile(${event.id}, event)" 
-                                title="Démarrer l'événement">
-                            <i class="fas fa-rocket me-1"></i>Démarrer
-                        </button>
-                    </div>
-                `;
-            }
-            
-            li.innerHTML = `
-                <div class="row align-items-center py-2">
-                    <div class="col-md-4">
-                        <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
-                            ${event.titre || 'Sans titre'}
-                        </a>
-                    </div>
-                    <div class="col-md-3 text-muted small">
-                        <div>Début: <time datetime="${event.dateDebut}">${new Date(event.dateDebut).toLocaleDateString()}</time></div>
-                        <div>Fin: <time datetime="${event.dateFin}">${new Date(event.dateFin).toLocaleDateString()}</time></div>
-                    </div>
-                    <div class="col-md-2 text-center">
-                        <span class="badge bg-info">${event.numberCompetitors || 0}</span>
-                        <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
-                    </div>
-                    <div class="col-md-3 text-center d-flex align-items-center justify-content-center">
-                        <span class="badge ${badgeClass}">${statusBadge}</span>
-                    </div>
-                </div>
-                ${startButton}
-            `;
-            eventsList.appendChild(li);
-        });
     })
     .catch(err => {
         const eventsList = document.querySelector(".organized-events-list");
