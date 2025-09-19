@@ -783,7 +783,7 @@ class EvenementsController extends AbstractController
                 content: new OA\JsonContent(
                     type: 'object',
                     properties: [
-                        new OA\Property(property: 'events', type: 'array', items: new OA\Items(ref: '#/components/schemas/Evenement')),
+                        new OA\Property(property: 'events', type: 'array', items: new OA\Items(type: 'object')),
                         new OA\Property(property: 'totalCount', type: 'integer', description: 'Nombre total d\'événements trouvés'),
                         new OA\Property(property: 'page', type: 'integer', description: 'Page actuelle'),
                         new OA\Property(property: 'limit', type: 'integer', description: 'Éléments par page'),
