@@ -24,7 +24,7 @@ applications:
         "/var/cache": { source: tmp, source_path: var/cache }
 
     relationships:
-      database: "db:mysql"
+      database: "db:mariadb"
         
     hooks:
         build: |
@@ -51,7 +51,7 @@ applications:
 
 services:
   db:
-    type: mysql:8.0
+    type: mariadb:11.4
 
 routes:
   "https://{all}/":
