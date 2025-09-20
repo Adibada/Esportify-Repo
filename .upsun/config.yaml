@@ -51,7 +51,7 @@ applications:
 
 services:
   db:
-    type: mysql:8.0
+    type: oracle-mysql:8.0
 
 routes:
   "https://{all}/":
