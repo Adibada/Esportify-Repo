@@ -26,6 +26,11 @@ applications:
 
     relationships:
       database: "db:mysql"
+
+    variables:
+        env:
+            # Override database version detection
+            APP_ENV: prod
         
     hooks:
         build: |
