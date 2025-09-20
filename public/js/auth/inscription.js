@@ -79,7 +79,7 @@ export default function initInscriptionPage() {
         };
 
         // Requête POST vers l'API backend
-        fetch("http://127.0.0.1:8000/api/registration", {
+        fetch("/api/registration", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)

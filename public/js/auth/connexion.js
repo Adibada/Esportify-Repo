@@ -23,7 +23,7 @@ function checkCredential() {
         redirect: "follow"
     };
 
-    fetch("http://127.0.0.1:8000/api/login", requestOptions)
+    fetch("/api/login", requestOptions)
         .then((response) => {
             if (!response.ok) throw new Error("Identifiants incorrects");
             return response.json();
