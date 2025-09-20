@@ -22,6 +22,7 @@ applications:
 
     mounts:
         "/var/cache": { source: tmp, source_path: var/cache }
+        "/var/log": { source: tmp, source_path: var/log }
 
     relationships:
       database: "db:mysql"
