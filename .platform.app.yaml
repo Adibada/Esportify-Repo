@@ -30,8 +30,10 @@ web:
 
 mounts:
     "/var/cache": { source: local, source_path: var/cache }
-    
 
+relationships:
+  database: "db:mysql"
+    
 hooks:
     build: |
         set -x -e
