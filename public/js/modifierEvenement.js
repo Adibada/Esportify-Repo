@@ -305,11 +305,21 @@ const formatFileSize = (bytes) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Validation stricte d'URL d'image pour éviter les failles XSS
 const isValidImageUrl = (url) => {
     try {
         const urlObj = new URL(url);
-        return ['http:', 'https:'].includes(urlObj.protocol) && 
-               /\.(jpg|jpeg|png|gif|webp)$/i.test(urlObj.pathname);
+        // Refuser tout schéma non http(s)
+        if (!['http:', 'https:'].includes(urlObj.protocol)) return false;
+        // Refuser les URLs contenant javascript:, data:, vbscript:, etc.
+        if (/^(javascript:|data:|vbscript:)/i.test(url)) return false;
+        // Refuser les URLs avec des caractères suspects
+        if (/["'<>]/.test(url)) return false;
+        // Refuser les URLs avec des espaces
+        if (/\s/.test(url)) return false;
+        // Accepter uniquement les extensions d'image courantes
+        if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(urlObj.pathname)) return false;
+        return true;
     } catch {
         return false;
     }
