@@ -17,7 +17,6 @@ Site web pour une entreprise fictive d'événements e-sport.
 - **HTML5** / **CSS3** / **JavaScript ES6+**
 - **Bootstrap 5** pour le design responsive
 - **Architecture SPA** (Single Page Application) avec routing côté client
-- **Notifications temporaires** stylisées
 
 ## 🚀 Installation
 
