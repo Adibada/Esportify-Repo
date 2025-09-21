@@ -3,11 +3,17 @@
 Site web pour une entreprise fictive d'événements e-sport.  
 **Exercice réalisé dans le cadre d'une évaluation en cours de formation.**
 
+## 🌐 Site de Production
+
+**URL :** [https://main-bvxea6i-voxmustf43meq.fr-3.platformsh.site/](https://main-bvxea6i-voxmustf43meq.fr-3.platformsh.site/)
+
+**Hébergement :** Upsun (Platform.sh) avec déploiement automatique via GitHub
+
 ## 🛠️ Technologies utilisées
 
 ### Backend
 - **PHP 8.x** avec **Symfony 6.x**
-- **MySQL** pour la base de données
+- **MySQL 8.0** pour la base de données
 - **Doctrine ORM** pour la gestion des entités
 - **API Platform** pour les endpoints REST
 - **Nelmio API Doc** pour la documentation Swagger
@@ -17,6 +23,12 @@ Site web pour une entreprise fictive d'événements e-sport.
 - **HTML5** / **CSS3** / **JavaScript ES6+**
 - **Bootstrap 5** pour le design responsive
 - **Architecture SPA** (Single Page Application) avec routing côté client
+
+### Infrastructure
+- **Upsun (Platform.sh)** pour l'hébergement cloud
+- **MySQL 8.0** en production
+- **Système de fichiers persistant** pour les uploads d'images
+- **Déploiement automatique** via GitHub Actions
 
 ## 🚀 Installation
 
@@ -63,7 +75,8 @@ Site web pour une entreprise fictive d'événements e-sport.
 ## 📚 Documentation API
 
 La documentation interactive de l'API est accessible à l'adresse :
-**[http://localhost:8000/api/doc](http://localhost:8000/api/doc)**
+**[http://localhost:8000/api/doc](http://localhost:8000/api/doc)** (développement)
+**[https://main-bvxea6i-voxmustf43meq.fr-3.platformsh.site/api/doc](https://main-bvxea6i-voxmustf43meq.fr-3.platformsh.site/api/doc)** (production)
 
 ## 👤 Comptes de test
 
@@ -74,7 +87,7 @@ Plusieurs comptes sont disponibles pour tester les différentes fonctionnalités
 |-------|--------|
 | **Username** | `aaa` |
 | **Email** | `aaa@exemple.com` |
-| **Mot de passe** | `motdepasse` |
+| **Mot de passe** | `azerty` |
 | **Rôle** | `ROLE_ADMIN` |
 | **API Token** | `123azerty` |
 
@@ -108,12 +121,16 @@ Plusieurs comptes sont disponibles pour tester les différentes fonctionnalités
 
 ```
 public/
-├── Images/           # Ressources images et uploads
+├── Images/           # Ressources images statiques
 ├── js/              # Scripts JavaScript modulaires
-│   ├── auth/        # Scripts authentification (monProfil.js)
-│   ├── creationEvenement.js
-│   ├── evenement.js # Gestion détaillée des événements
-│   ├── main.js      # Router SPA principal
+│   ├── auth/        # Scripts authentification
+│   │   ├── connexion.js     # Gestion rôles admin améliorée
+│   │   ├── monProfil.js     # Panel admin + participations
+│   │   └── ...
+│   ├── creationEvenement.js # Upload images multiples
+│   ├── evenement.js         # Modal admin participants
+│   ├── modifierEvenement.js # Gestion images avancée  
+│   ├── rechercheEvenements.js # Interface recherche corrigée
 │   └── ...
 ├── Pages/           # Templates HTML du SPA
 ├── Router/          # Configuration routage client
@@ -121,8 +138,9 @@ public/
 
 src/
 ├── Controller/      # Contrôleurs API REST
-│   ├── EvenementsController.php # CRUD complet événements
-│   ├── UserController.php       # Gestion utilisateurs
+│   ├── EvenementsController.php # CRUD + admin participants
+│   ├── ImageController.php      # Serveur images Symfony
+│   ├── UserController.php       # Recherche utilisateurs
 │   └── ...
 ├── Entity/          # Entités Doctrine avec relations
 ├── Repository/      # Repositories avec queries optimisées
@@ -130,4 +148,7 @@ src/
 ├── Service/         # Services métier (EventStatusService)
 └── DataFixtures/    # Jeux de données pour développement
 
-
+var/
+└── cache/
+    └── uploads/     # Stockage images avec route Symfony
+```
