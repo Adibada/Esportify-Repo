@@ -78,8 +78,8 @@ class ImageEvenement
             return $filename;
         }
         
-        // Sinon, c'est un fichier local
-        return '/Images/images event/' . $filename;
+        // Images uploadées via la nouvelle route
+        return '/uploads/' . $filename;
     }
 
     /**
@@ -92,6 +92,6 @@ class ImageEvenement
             return null;
         }
         
-        return __DIR__ . '/../../public/Images/images event/' . $this->filename;
+        return __DIR__ . '/../../var/cache/uploads/' . $this->filename;
     }
 }
