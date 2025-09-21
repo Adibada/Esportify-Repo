@@ -686,6 +686,13 @@ function createEvent() {
     formData.append('dateStart', startDateTime);
     formData.append('dateEnd', endDateTime);
     
+    // Debug: Afficher les données envoyées
+    console.log('Données envoyées:');
+    console.log('- name:', eventName);
+    console.log('- detail:', eventDetail);
+    console.log('- dateStart:', startDateTime);
+    console.log('- dateEnd:', endDateTime);
+    
     // Gestion des images avec la nouvelle structure
     if (uploadedImages && uploadedImages.length > 0) {
         // Séparer les fichiers des URLs
