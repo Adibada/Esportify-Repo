@@ -695,29 +695,35 @@ function createEvent() {
     console.log('- uploadedImages:', uploadedImages);
     console.log('- uploadedImages length:', uploadedImages ? uploadedImages.length : 0);
     
-    // TEMPORAIRE: Skip les images pour tester
-    /*
+    // Gestion des images avec la nouvelle structure
     if (uploadedImages && uploadedImages.length > 0) {
+        console.log('Traitement des images...');
         // Séparer les fichiers des URLs
         const imageFiles = uploadedImages.filter(img => !img.isUrl && img.file);
         const imageUrls = uploadedImages.filter(img => img.isUrl);
+        
+        console.log('Images fichiers:', imageFiles.length);
+        console.log('Images URLs:', imageUrls.length);
         
         // Ajouter les fichiers
         imageFiles.forEach((imageObj, index) => {
             formData.append('images[]', imageObj.file);
             formData.append('imageDescriptions[]', imageObj.description || '');
+            console.log(`Ajout fichier ${index}:`, imageObj.file.name);
         });
         
         // Ajouter les URLs
         imageUrls.forEach((urlObj, index) => {
             formData.append('imageUrls[]', urlObj.url);
             formData.append('imageDescriptions[]', urlObj.description || '');
+            console.log(`Ajout URL ${index}:`, urlObj.url);
         });
         
         // La première image est considérée comme principale
         formData.append('mainImageIndex', '0');
+    } else {
+        console.log('Aucune image à traiter');
     }
-    */
 
     // Créer d'abord l'événement
     fetch('/api/evenements', {

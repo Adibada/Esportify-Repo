@@ -130,6 +130,22 @@ class EvenementsController extends AbstractController
         $imageDescription = $request->request->get('imageDescription'); // Description unique (ancienne API)
         $imageDescriptions = $request->request->get('imageDescriptions', []); // Descriptions multiples (nouvelle API)
         
+        // S'assurer que imageUrls et imageDescriptions sont des tableaux
+        if (!is_array($imageUrls)) {
+            $imageUrls = [];
+        }
+        if (!is_array($imageDescriptions)) {
+            $imageDescriptions = [];
+        }
+        
+        // Debug: Log des données images reçues
+        error_log('DEBUG - Images reçues:');
+        error_log('- images count: ' . count($images));
+        error_log('- imageFile: ' . ($imageFile ? 'présent' : 'null'));
+        error_log('- imageUrl: ' . ($imageUrl ?: 'null'));
+        error_log('- imageUrls: ' . json_encode($imageUrls));
+        error_log('- imageDescriptions: ' . json_encode($imageDescriptions));
+        
         // Si on utilise l'ancienne API avec un seul fichier image
         if ($imageFile && empty($images)) {
             $images = [$imageFile];
