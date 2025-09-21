@@ -281,10 +281,8 @@ const loadEvent = async () => {
         const event = await res.json();
         updateEvent(event);
         
-        // Charger la liste des participants après la mise à jour de l'événement
-        if (event.numberCompetitors > 0) {
-            loadParticipantsList();
-        }
+        // Charger la liste des participants (toujours, pour afficher l'interface admin)
+        loadParticipantsList();
         
     } catch (err) {
         setState('error', err.message);
@@ -303,9 +301,13 @@ const loadParticipantsList = async () => {
             const participations = await res.json();
             // Les participants sont déjà filtrés côté serveur (statut valide uniquement)
             displayParticipantsList(participations);
+        } else {
+            // Même en cas d'erreur, afficher l'interface pour les admins
+            displayParticipantsList([]);
         }
     } catch (err) {
-        // En cas d'erreur, ne pas afficher la section des participants
+        // Même en cas d'erreur, afficher l'interface pour les admins
+        displayParticipantsList([]);
     }
 };
 
