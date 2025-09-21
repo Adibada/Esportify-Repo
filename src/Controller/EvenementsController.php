@@ -456,7 +456,7 @@ class EvenementsController extends AbstractController
             // Créer directement l'entité ImageEvenement
             $imageEntity = new ImageEvenement();
             $imageEntity->setEvenement($evenement);
-            $imageEntity->setFilename($imagePath);
+            $imageEntity->setFilename($fileName); // Juste le nom de fichier, pas le chemin complet
             $imageEntity->setOriginalName(!empty($description) ? $description : $originalFilename);
             
             $this->manager->persist($imageEntity);
