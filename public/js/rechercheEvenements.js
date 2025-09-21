@@ -43,6 +43,24 @@ function buildSearchUrl(filters = {}, page = 1) {
     return `/api/evenements/search?${params.toString()}`;
 }
 
+// Fonction pour traiter les données de recherche
+function processSearchData(data, filters, reset) {
+    // Sauvegarder les filtres
+    currentFilters = { ...filters };
+    
+    // Mettre à jour les variables de pagination
+    const events = data.events || [];
+    hasMoreEvents = currentPage < (data.totalPages || 1);
+    
+    if (reset) {
+        allLoadedEvents = events;
+        displayResults(events, data.totalCount || 0, true);
+    } else {
+        allLoadedEvents = [...allLoadedEvents, ...events];
+        displayResults(events, data.totalCount || 0, false);
+    }
+}
+
 // Fonction pour effectuer la recherche avec infinite scroll
 async function searchEvents(filters = {}, reset = true) {
     if (isLoadingEvents || (!hasMoreEvents && !reset)) return;
@@ -69,26 +87,31 @@ async function searchEvents(filters = {}, reset = true) {
             headers: token ? { 'X-AUTH-TOKEN': token } : {}
         });
         
+        // Si erreur 401 avec token, réessayer sans token
+        if (!response.ok && response.status === 401 && token) {
+            console.warn('Token invalide, tentative sans authentification...');
+            const responseNoAuth = await fetch(url);
+            
+            if (!responseNoAuth.ok) {
+                throw new Error(`Erreur ${responseNoAuth.status}: ${responseNoAuth.statusText}`);
+            }
+            
+            const data = await responseNoAuth.json();
+            
+            // Token invalide, le supprimer du cookie
+            document.cookie = "accesstoken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            
+            // Continuer avec les données reçues
+            return processSearchData(data, filters, reset);
+        }
+        
         if (!response.ok) {
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
         
         const data = await response.json();
         
-        // Sauvegarder les filtres
-        currentFilters = { ...filters };
-        
-        // Mettre à jour les variables de pagination
-        const events = data.events || [];
-        hasMoreEvents = currentPage < (data.totalPages || 1);
-        
-        if (reset) {
-            allLoadedEvents = events;
-            displayResults(events, data.totalCount || 0, true);
-        } else {
-            allLoadedEvents = [...allLoadedEvents, ...events];
-            displayResults(events, data.totalCount || 0, false);
-        }
+        return processSearchData(data, filters, reset);
         
         currentPage++;
         
