@@ -441,7 +441,7 @@ class EvenementsController extends AbstractController
         }
 
         // Upload de l'image
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/';
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/uploads/';
         if (!is_dir($uploadsDirectory)) {
             mkdir($uploadsDirectory, 0777, true);
         }
@@ -1364,7 +1364,7 @@ class EvenementsController extends AbstractController
         }
         
         // Upload de fichier
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/';
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/uploads/';
         if (!is_dir($uploadsDirectory)) {
             if (!mkdir($uploadsDirectory, 0755, true)) {
                 throw new \RuntimeException('Impossible de créer le répertoire d\'upload: ' . $uploadsDirectory);

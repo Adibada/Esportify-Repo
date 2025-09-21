@@ -30,7 +30,7 @@ web:
 
 mounts:
     "/var/cache": { source: local, source_path: var/cache }
-    "/public/uploads": { source: local, source_path: uploads }
+    "/var/uploads": { source: local, source_path: uploads }
 
 relationships:
   database: "db:mysql"
@@ -47,6 +47,9 @@ hooks:
         set -x -e
 
         symfony-deploy
+        
+        # Créer un lien symbolique pour accéder aux uploads depuis le web
+        ln -sf ../../var/uploads public/uploads
 
 crons:
     security-check:
