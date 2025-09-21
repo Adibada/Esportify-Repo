@@ -692,8 +692,11 @@ function createEvent() {
     console.log('- detail:', eventDetail);
     console.log('- dateStart:', startDateTime);
     console.log('- dateEnd:', endDateTime);
+    console.log('- uploadedImages:', uploadedImages);
+    console.log('- uploadedImages length:', uploadedImages ? uploadedImages.length : 0);
     
-    // Gestion des images avec la nouvelle structure
+    // TEMPORAIRE: Skip les images pour tester
+    /*
     if (uploadedImages && uploadedImages.length > 0) {
         // Séparer les fichiers des URLs
         const imageFiles = uploadedImages.filter(img => !img.isUrl && img.file);
@@ -714,6 +717,7 @@ function createEvent() {
         // La première image est considérée comme principale
         formData.append('mainImageIndex', '0');
     }
+    */
 
     // Créer d'abord l'événement
     fetch('/api/evenements', {
