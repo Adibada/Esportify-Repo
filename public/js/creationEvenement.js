@@ -686,43 +686,26 @@ function createEvent() {
     formData.append('dateStart', startDateTime);
     formData.append('dateEnd', endDateTime);
     
-    // Debug: Afficher les données envoyées
-    console.log('Données envoyées:');
-    console.log('- name:', eventName);
-    console.log('- detail:', eventDetail);
-    console.log('- dateStart:', startDateTime);
-    console.log('- dateEnd:', endDateTime);
-    console.log('- uploadedImages:', uploadedImages);
-    console.log('- uploadedImages length:', uploadedImages ? uploadedImages.length : 0);
-    
     // Gestion des images avec la nouvelle structure
     if (uploadedImages && uploadedImages.length > 0) {
-        console.log('Traitement des images...');
         // Séparer les fichiers des URLs
         const imageFiles = uploadedImages.filter(img => !img.isUrl && img.file);
         const imageUrls = uploadedImages.filter(img => img.isUrl);
-        
-        console.log('Images fichiers:', imageFiles.length);
-        console.log('Images URLs:', imageUrls.length);
         
         // Ajouter les fichiers
         imageFiles.forEach((imageObj, index) => {
             formData.append('images[]', imageObj.file);
             formData.append('imageDescriptions[]', imageObj.description || '');
-            console.log(`Ajout fichier ${index}:`, imageObj.file.name);
         });
         
         // Ajouter les URLs
         imageUrls.forEach((urlObj, index) => {
             formData.append('imageUrls[]', urlObj.url);
             formData.append('imageDescriptions[]', urlObj.description || '');
-            console.log(`Ajout URL ${index}:`, urlObj.url);
         });
         
         // La première image est considérée comme principale
         formData.append('mainImageIndex', '0');
-    } else {
-        console.log('Aucune image à traiter');
     }
 
     // Créer d'abord l'événement
@@ -734,18 +717,11 @@ function createEvent() {
         body: formData
     })
     .then(response => {
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        
-        if (response.ok) {
-            return response.json();
-        } else if (response.status === 201) {
-            // Code 201 (Created) est un succès même si response.ok peut être false
+        if (response.ok || response.status === 201) {
             return response.json();
         } else {
             // Récupérer le message d'erreur détaillé
             return response.text().then(text => {
-                console.error('Erreur serveur:', text);
                 throw new Error(`Erreur ${response.status}: ${text}`);
             });
         }
@@ -786,10 +762,6 @@ function createEvent() {
         }
     })
     .catch(error => {
-        console.error('Erreur complète:', error);
-        console.error('Message:', error.message);
-        console.error('Stack:', error.stack);
-        
         // Fermer le modal en cas d'erreur aussi
         const modal = document.getElementById('confirmationModal');
         if (modal) {

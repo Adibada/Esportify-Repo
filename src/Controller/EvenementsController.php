@@ -138,14 +138,6 @@ class EvenementsController extends AbstractController
             $imageDescriptions = [];
         }
         
-        // Debug: Log des données images reçues
-        error_log('DEBUG - Images reçues:');
-        error_log('- images count: ' . count($images));
-        error_log('- imageFile: ' . ($imageFile ? 'présent' : 'null'));
-        error_log('- imageUrl: ' . ($imageUrl ?: 'null'));
-        error_log('- imageUrls: ' . json_encode($imageUrls));
-        error_log('- imageDescriptions: ' . json_encode($imageDescriptions));
-        
         // Si on utilise l'ancienne API avec un seul fichier image
         if ($imageFile && empty($images)) {
             $images = [$imageFile];
@@ -1389,11 +1381,6 @@ class EvenementsController extends AbstractController
         try {
             $imageFile->move($uploadsDirectory, $fileName);
             
-            // Debug: log du fichier créé
-            error_log('Image uploadée: ' . $uploadsDirectory . $fileName);
-            error_log('Répertoire uploads existe: ' . (is_dir($uploadsDirectory) ? 'oui' : 'non'));
-            error_log('Fichier créé: ' . (file_exists($uploadsDirectory . $fileName) ? 'oui' : 'non'));
-            
             // Créer l'entité ImageEvenement
             $imageEntity = new ImageEvenement();
             $imageEntity->setFilename($fileName);
@@ -1405,7 +1392,6 @@ class EvenementsController extends AbstractController
             
             return $imageEntity;
         } catch (\Exception $e) {
-            error_log('Erreur upload image: ' . $e->getMessage());
             throw new \RuntimeException('Erreur lors du téléchargement de l\'image: ' . $e->getMessage());
         }
     }
