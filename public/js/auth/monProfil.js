@@ -181,7 +181,7 @@ function loadUserParticipations(token) {
                     }
                 }
                 
-                .participations-table, .organized-events-table {
+                .participations-table, .organized-events-table, .pending-events-table {
                     overflow: visible;
                     position: relative;
                 }
@@ -623,6 +623,9 @@ function loadPendingEvents(token, userRoles) {
         const pendingEventsCount = document.getElementById("pendingEventsCount");
         
         if (!pendingEventsList) return;
+        
+        // Ajouter la classe pour le style du tableau
+        pendingEventsList.parentElement.classList.add('pending-events-table');
         
         // Mettre à jour le compteur
         if (pendingEventsCount) {
