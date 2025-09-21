@@ -1594,7 +1594,7 @@ const confirmAddParticipant = async () => {
             bootstrap.Modal.getInstance(document.getElementById('adminAddParticipantModal')).hide();
             
             // Rafraîchir les données de l'événement
-            await loadEventDetails(eventId);
+            await loadEvent();
             
             // Notification de succès
             showNotification(`${selectedUserForAdd.username} a été ajouté comme participant !`, 'success');
