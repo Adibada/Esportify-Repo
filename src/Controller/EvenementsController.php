@@ -1389,6 +1389,11 @@ class EvenementsController extends AbstractController
         try {
             $imageFile->move($uploadsDirectory, $fileName);
             
+            // Debug: log du fichier créé
+            error_log('Image uploadée: ' . $uploadsDirectory . $fileName);
+            error_log('Répertoire uploads existe: ' . (is_dir($uploadsDirectory) ? 'oui' : 'non'));
+            error_log('Fichier créé: ' . (file_exists($uploadsDirectory . $fileName) ? 'oui' : 'non'));
+            
             // Créer l'entité ImageEvenement
             $imageEntity = new ImageEvenement();
             $imageEntity->setFilename($fileName);
@@ -1400,6 +1405,7 @@ class EvenementsController extends AbstractController
             
             return $imageEntity;
         } catch (\Exception $e) {
+            error_log('Erreur upload image: ' . $e->getMessage());
             throw new \RuntimeException('Erreur lors du téléchargement de l\'image: ' . $e->getMessage());
         }
     }
