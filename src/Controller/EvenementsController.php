@@ -1366,11 +1366,24 @@ class EvenementsController extends AbstractController
         // Upload de fichier
         $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
         if (!is_dir($uploadsDirectory)) {
-            mkdir($uploadsDirectory, 0755, true);
+            if (!mkdir($uploadsDirectory, 0755, true)) {
+                throw new \RuntimeException('Impossible de créer le répertoire d\'upload: ' . $uploadsDirectory);
+            }
+        }
+        
+        // Vérifier que le répertoire est accessible en écriture
+        if (!is_writable($uploadsDirectory)) {
+            throw new \RuntimeException('Le répertoire d\'upload n\'est pas accessible en écriture: ' . $uploadsDirectory);
         }
         
         $originalFilename = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = transliterator_transliterate('Any-Latin; Latin-ASCII; [^A-Za-z0-9_] remove; Lower()', $originalFilename);
+        
+        // Méthode plus simple pour nettoyer le nom de fichier (sans transliterator)
+        $safeFilename = preg_replace('/[^A-Za-z0-9_-]/', '', $originalFilename);
+        if (empty($safeFilename)) {
+            $safeFilename = 'image';
+        }
+        
         $fileName = $safeFilename . '-' . uniqid() . '.' . $imageFile->guessExtension();
         
         try {
@@ -1387,7 +1400,7 @@ class EvenementsController extends AbstractController
             
             return $imageEntity;
         } catch (\Exception $e) {
-            throw new \RuntimeException('Erreur lors du téléchargement de l\'image');
+            throw new \RuntimeException('Erreur lors du téléchargement de l\'image: ' . $e->getMessage());
         }
     }
 
