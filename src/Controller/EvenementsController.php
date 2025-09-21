@@ -441,7 +441,7 @@ class EvenementsController extends AbstractController
         }
 
         // Upload de l'image
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/';
         if (!is_dir($uploadsDirectory)) {
             mkdir($uploadsDirectory, 0777, true);
         }
@@ -458,7 +458,7 @@ class EvenementsController extends AbstractController
 
         try {
             $imageFile->move($uploadsDirectory, $fileName);
-            $imagePath = '/Images/images event/' . $fileName;
+            $imagePath = '/uploads/' . $fileName;
             
             return $this->json([
                 'message' => 'Image uploadée avec succès',
@@ -1364,7 +1364,7 @@ class EvenementsController extends AbstractController
         }
         
         // Upload de fichier
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/Images/images event/';
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/';
         if (!is_dir($uploadsDirectory)) {
             if (!mkdir($uploadsDirectory, 0755, true)) {
                 throw new \RuntimeException('Impossible de créer le répertoire d\'upload: ' . $uploadsDirectory);

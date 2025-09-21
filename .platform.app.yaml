@@ -30,7 +30,7 @@ web:
 
 mounts:
     "/var/cache": { source: local, source_path: var/cache }
-    "/public/Images/images event": { source: local, source_path: images_event }
+    "/public/uploads": { source: local, source_path: uploads }
 
 relationships:
   database: "db:mysql"
