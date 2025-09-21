@@ -596,15 +596,30 @@ const handleFormSubmit = async (event) => {
         });
         
         if (res.ok) {
-            // Traiter les images : upload des nouveaux fichiers, ajout des URLs, suppression des marquées
-            await processImages();
-            
-            showMessage('Événement modifié avec succès ! <a href="/evenement?id=' + eventId + '&refresh=' + Date.now() + '" class="alert-link">Voir l\'événement mis à jour</a>', 'success');
-            
-            // Recharger les données pour mettre à jour l'affichage local
-            setTimeout(() => {
-                loadEvent();
-            }, 1000);
+            try {
+                // Traiter les images : upload des nouveaux fichiers, ajout des URLs, suppression des marquées
+                await processImages();
+                
+                showMessage('Événement modifié avec succès ! <a href="/evenement?id=' + eventId + '&refresh=' + Date.now() + '" class="alert-link">Voir l\'événement mis à jour</a>', 'success');
+                
+                // Recharger les données pour mettre à jour l'affichage local
+                setTimeout(() => {
+                    loadEvent();
+                }, 1000);
+                
+            } catch (imageError) {
+                console.error('Erreur lors du traitement des images:', imageError);
+                showMessage(
+                    'Événement modifié avec succès mais erreur lors de la sauvegarde des images: ' + imageError.message + 
+                    '<br><a href="/evenement?id=' + eventId + '&refresh=' + Date.now() + '" class="alert-link">Voir l\'événement</a>', 
+                    'warning'
+                );
+                
+                // Recharger quand même les données
+                setTimeout(() => {
+                    loadEvent();
+                }, 1000);
+            }
             
         } else {
             const errorData = await res.text();
@@ -678,8 +693,12 @@ const processImages = async () => {
                         });
                     }
                 } else {
+                    const errorText = await response.text();
+                    throw new Error(`Erreur upload fichier "${imageData.file.name}": ${errorText}`);
                 }
             } catch (error) {
+                console.error('Erreur upload fichier:', error);
+                throw error;
             }
         }
         
@@ -692,6 +711,8 @@ const processImages = async () => {
                     description: imageData.description
                 });
             } catch (error) {
+                console.error('Erreur sauvegarde URL:', error);
+                throw error;
             }
         }
         
