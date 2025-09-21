@@ -445,13 +445,21 @@ const setupAdminAddParticipant = () => {
     const role = getRole();
     const adminAddParticipant = document.getElementById('adminAddParticipant');
     
+    // Debug: Vérifier les valeurs
+    console.log('DEBUG setupAdminAddParticipant:');
+    console.log('- Role cookie:', role);
+    console.log('- adminAddParticipant element:', adminAddParticipant);
+    console.log('- All cookies:', document.cookie);
+    
     if (!adminAddParticipant) return;
     
     // Afficher l'interface seulement pour les admins
     if (role === 'ROLE_ADMIN') {
+        console.log('- Showing admin interface');
         adminAddParticipant.style.display = 'block';
         initializeUserSearch();
     } else {
+        console.log('- Hiding admin interface, role is:', role);
         adminAddParticipant.style.display = 'none';
     }
 };

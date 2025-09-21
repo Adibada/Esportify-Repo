@@ -30,9 +30,26 @@ function checkCredential() {
         })
         .then((result) => {
             setToken(result.apiToken);
-            setCookie("role", result.roles && result.roles[0] ? result.roles[0] : "user", 7);
+            
+            // Déterminer le rôle le plus élevé
+            let userRole = "ROLE_USER"; // Par défaut
+            if (result.roles) {
+                if (result.roles.includes("ROLE_ADMIN")) {
+                    userRole = "ROLE_ADMIN";
+                } else if (result.roles.includes("ROLE_ORGANISATEUR")) {
+                    userRole = "ROLE_ORGANISATEUR";
+                } else if (result.roles.includes("ROLE_USER")) {
+                    userRole = "ROLE_USER";
+                }
+            }
+            
+            setCookie("role", userRole, 7);
             setCookie("userId", result.id, 7);
             alert("Connexion réussie !");
+            
+            // Debug: Afficher les rôles
+            console.log("Rôles utilisateur:", result.roles);
+            console.log("Rôle stocké:", userRole);
             
             // Mettre à jour l'affichage des éléments de navigation
             if (typeof window.editByRoles === 'function') {
