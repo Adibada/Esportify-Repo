@@ -288,7 +288,7 @@ function displayResults(events, total = 0, reset = true) {
             return `
                 <li class="event-in-list">
                     <div class="row align-items-center py-2">
-                        <div class="col-md-4">
+                        <div class="col-md-5">
                             <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
                                 ${event.titre || 'Sans titre'}
                             </a>
@@ -297,15 +297,9 @@ function displayResults(events, total = 0, reset = true) {
                             ${dateDebut ? `<div>Début: <time datetime="${event.start}">${dateDebut.toLocaleDateString()}</time></div>` : ''}
                             ${dateFin ? `<div>Fin: <time datetime="${event.end}">${dateFin.toLocaleDateString()}</time></div>` : ''}
                         </div>
-                        <div class="col-md-2 text-center">
+                        <div class="col-md-4">
                             <span class="badge bg-info">${event.numberCompetitors || 0}</span>
                             <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
-                        </div>
-                        <div class="col-md-3">
-                            ${event.organisateur ? `
-                                <span class="text-muted small">par</span>
-                                <div class="fw-medium">${event.organisateur.username}</div>
-                            ` : '<span class="text-muted small">Non défini</span>'}
                         </div>
                     </div>
                 </li>
