@@ -375,6 +375,39 @@ const displayParticipantsList = (participants) => {
             </div>
             ${participants.length > 10 ? '<small class="text-muted d-block text-center mt-2">Faites défiler pour voir plus de participants</small>' : ''}
         </div>
+        
+        <!-- Interface Admin pour ajouter des participants -->
+        <div id="adminAddParticipant" class="admin-add-participant mt-3" style="display: none;">
+            <div class="border rounded p-3 bg-light">
+                <h6 class="mb-3 text-center text-primary">
+                    <i class="fas fa-user-plus me-2"></i>Ajouter un participant (Admin)
+                </h6>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="position-relative">
+                            <input type="text" 
+                                   id="userSearchInput" 
+                                   class="form-control" 
+                                   placeholder="Rechercher un utilisateur par nom d'utilisateur..."
+                                   autocomplete="off">
+                            <div id="userSearchResults" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" 
+                                id="addParticipantBtn" 
+                                class="btn btn-primary w-100"
+                                disabled>
+                            <i class="fas fa-plus me-1"></i>Ajouter
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Le participant sera automatiquement validé et ajouté à l'événement.
+                </small>
+            </div>
+        </div>
     `;
 
     // Ajouter les styles CSS si ce n'est pas déjà fait
@@ -402,6 +435,214 @@ const displayParticipantsList = (participants) => {
         `;
         document.head.appendChild(style);
     }
+    
+    // Configurer l'interface admin pour ajouter des participants
+    setupAdminAddParticipant();
+};
+
+// Fonction pour configurer l'interface admin d'ajout de participants
+const setupAdminAddParticipant = () => {
+    const role = getRole();
+    const adminAddParticipant = document.getElementById('adminAddParticipant');
+    
+    if (!adminAddParticipant) return;
+    
+    // Afficher l'interface seulement pour les admins
+    if (role === 'ROLE_ADMIN') {
+        adminAddParticipant.style.display = 'block';
+        initializeUserSearch();
+    } else {
+        adminAddParticipant.style.display = 'none';
+    }
+};
+
+// Variables pour la recherche d'utilisateurs
+let searchTimeout;
+let selectedUserId = null;
+let selectedUserUsername = null;
+
+// Initialiser la recherche d'utilisateurs
+const initializeUserSearch = () => {
+    const searchInput = document.getElementById('userSearchInput');
+    const searchResults = document.getElementById('userSearchResults');
+    const addBtn = document.getElementById('addParticipantBtn');
+    
+    if (!searchInput || !searchResults || !addBtn) return;
+    
+    // Recherche en temps réel
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            resetSelection();
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => searchUsers(query), 300);
+    });
+    
+    // Masquer les résultats si on clique ailleurs
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    // Bouton d'ajout
+    addBtn.addEventListener('click', addParticipant);
+};
+
+// Rechercher des utilisateurs
+const searchUsers = async (query) => {
+    const token = getToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`/api/users/search?query=${encodeURIComponent(query)}`, {
+            headers: { 'X-AUTH-TOKEN': token }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayUserSearchResults(users);
+        }
+    } catch (error) {
+        console.error('Erreur recherche utilisateurs:', error);
+    }
+};
+
+// Afficher les résultats de recherche
+const displayUserSearchResults = (users) => {
+    const searchResults = document.getElementById('userSearchResults');
+    if (!searchResults) return;
+    
+    if (users.length === 0) {
+        searchResults.innerHTML = '<div class="dropdown-item text-muted">Aucun utilisateur trouvé</div>';
+        searchResults.style.display = 'block';
+        return;
+    }
+    
+    searchResults.innerHTML = users.map(user => `
+        <div class="dropdown-item user-result" 
+             data-user-id="${user.id}" 
+             data-username="${user.username}"
+             style="cursor: pointer;">
+            <i class="fas fa-user me-2"></i>${user.username}
+            <small class="text-muted d-block">ID: ${user.id}</small>
+        </div>
+    `).join('');
+    
+    searchResults.style.display = 'block';
+    
+    // Ajouter les event listeners pour la sélection
+    searchResults.querySelectorAll('.user-result').forEach(item => {
+        item.addEventListener('click', function() {
+            selectUser(this.dataset.userId, this.dataset.username);
+        });
+    });
+};
+
+// Sélectionner un utilisateur
+const selectUser = (userId, username) => {
+    selectedUserId = userId;
+    selectedUserUsername = username;
+    
+    const searchInput = document.getElementById('userSearchInput');
+    const searchResults = document.getElementById('userSearchResults');
+    const addBtn = document.getElementById('addParticipantBtn');
+    
+    searchInput.value = username;
+    searchResults.style.display = 'none';
+    addBtn.disabled = false;
+};
+
+// Réinitialiser la sélection
+const resetSelection = () => {
+    selectedUserId = null;
+    selectedUserUsername = null;
+    document.getElementById('addParticipantBtn').disabled = true;
+};
+
+// Ajouter un participant
+const addParticipant = async () => {
+    if (!selectedUserId) return;
+    
+    const token = getToken();
+    if (!token) return;
+    
+    const addBtn = document.getElementById('addParticipantBtn');
+    const originalText = addBtn.innerHTML;
+    
+    addBtn.disabled = true;
+    addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Ajout...';
+    
+    try {
+        const response = await fetch(`/api/evenements/${eventId}/admin/add-participant`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            },
+            body: JSON.stringify({
+                userId: selectedUserId
+            })
+        });
+        
+        if (response.ok) {
+            // Succès - rafraîchir la liste des participants
+            document.getElementById('userSearchInput').value = '';
+            resetSelection();
+            
+            // Rafraîchir la liste des participants
+            await loadEventDetails(eventId);
+            
+            // Notification de succès
+            showNotification('Participant ajouté avec succès !', 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Erreur lors de l\'ajout du participant', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur ajout participant:', error);
+        showNotification('Erreur lors de l\'ajout du participant', 'error');
+    } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = originalText;
+    }
+};
+
+// Fonction pour afficher les notifications
+const showNotification = (message, type = 'info') => {
+    // Créer ou réutiliser le conteneur de notifications
+    let notificationContainer = document.getElementById('notificationContainer');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notificationContainer';
+        notificationContainer.style.position = 'fixed';
+        notificationContainer.style.top = '20px';
+        notificationContainer.style.right = '20px';
+        notificationContainer.style.zIndex = '9999';
+        document.body.appendChild(notificationContainer);
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    // Auto-supprimer après 5 secondes
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
 };
 
 const checkParticipationStatus = async (eventId) => {
