@@ -212,7 +212,14 @@ const updateEvent = (event) => {
         { id: "eventName", content: event.titre },
         { id: "eventDescription", content: event.description },
         { id: "eventOrganizer", content: event.organisateur?.username || 'Non défini', format: (c) => `<p><strong>Organisateur :</strong> ${c}</p>` },
-        { id: "numOfCompetitors", content: event.numberCompetitors || 0, format: (c) => `<p><strong>Participants :</strong> ${c}</p>` },
+        { id: "numOfCompetitors", content: event.numberCompetitors || 0, format: (c) => {
+            const role = getRole();
+            const adminButton = role === 'ROLE_ADMIN' ? 
+                `<button class="btn btn-sm btn-outline-primary ms-2" onclick="showAddParticipantModal()">
+                    <i class="fas fa-user-plus me-1"></i>Ajouter un participant
+                </button>` : '';
+            return `<p><strong>Participants :</strong> ${c}${adminButton}</p>`;
+        }},
         { id: "eventStart", content: new Date(event.start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventEnd", content: new Date(event.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
         { id: "eventStatus", content: event.statut, format: (c) => {
@@ -342,49 +349,13 @@ const displayParticipantsList = (participants) => {
     }
 
     if (participants.length === 0) {
-        // Même sans participants, afficher l'interface de base pour les admins
+        // Afficher un message simple sans participants
         participantsListContainer.innerHTML = `
             <div class="participants-scroll-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem; background-color: #f8f9fa;">
                 <h6 class="mb-3 text-center text-muted">Liste des participants</h6>
                 <p class="text-center text-muted">Aucun participant pour le moment</p>
             </div>
-            
-            <!-- Interface Admin pour ajouter des participants -->
-            <div id="adminAddParticipant" class="admin-add-participant mt-3" style="display: none;">
-                <div class="border rounded p-3 bg-light">
-                    <h6 class="mb-3 text-center text-primary">
-                        <i class="fas fa-user-plus me-2"></i>Ajouter un participant (Admin)
-                    </h6>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="position-relative">
-                                <input type="text" 
-                                       id="userSearchInput" 
-                                       class="form-control" 
-                                       placeholder="Rechercher un utilisateur par nom d'utilisateur..."
-                                       autocomplete="off">
-                                <div id="userSearchResults" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" 
-                                    id="addParticipantBtn" 
-                                    class="btn btn-primary w-100"
-                                    disabled>
-                                <i class="fas fa-plus me-1"></i>Ajouter
-                            </button>
-                        </div>
-                    </div>
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Le participant sera automatiquement validé et ajouté à l'événement.
-                    </small>
-                </div>
-            </div>
         `;
-        
-        // Configurer l'interface admin même sans participants
-        setupAdminAddParticipant();
         return;
     }
 
@@ -432,39 +403,6 @@ const displayParticipantsList = (participants) => {
             </div>
             ${participants.length > 10 ? '<small class="text-muted d-block text-center mt-2">Faites défiler pour voir plus de participants</small>' : ''}
         </div>
-        
-        <!-- Interface Admin pour ajouter des participants -->
-        <div id="adminAddParticipant" class="admin-add-participant mt-3" style="display: none;">
-            <div class="border rounded p-3 bg-light">
-                <h6 class="mb-3 text-center text-primary">
-                    <i class="fas fa-user-plus me-2"></i>Ajouter un participant (Admin)
-                </h6>
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="position-relative">
-                            <input type="text" 
-                                   id="userSearchInput" 
-                                   class="form-control" 
-                                   placeholder="Rechercher un utilisateur par nom d'utilisateur..."
-                                   autocomplete="off">
-                            <div id="userSearchResults" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="button" 
-                                id="addParticipantBtn" 
-                                class="btn btn-primary w-100"
-                                disabled>
-                            <i class="fas fa-plus me-1"></i>Ajouter
-                        </button>
-                    </div>
-                </div>
-                <small class="text-muted d-block mt-2">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Le participant sera automatiquement validé et ajouté à l'événement.
-                </small>
-            </div>
-        </div>
     `;
 
     // Ajouter les styles CSS si ce n'est pas déjà fait
@@ -492,222 +430,6 @@ const displayParticipantsList = (participants) => {
         `;
         document.head.appendChild(style);
     }
-    
-    // Configurer l'interface admin pour ajouter des participants
-    setupAdminAddParticipant();
-};
-
-// Fonction pour configurer l'interface admin d'ajout de participants
-const setupAdminAddParticipant = () => {
-    const role = getRole();
-    const adminAddParticipant = document.getElementById('adminAddParticipant');
-    
-    // Debug: Vérifier les valeurs
-    console.log('DEBUG setupAdminAddParticipant:');
-    console.log('- Role cookie:', role);
-    console.log('- adminAddParticipant element:', adminAddParticipant);
-    console.log('- All cookies:', document.cookie);
-    
-    if (!adminAddParticipant) return;
-    
-    // Afficher l'interface seulement pour les admins
-    if (role === 'ROLE_ADMIN') {
-        console.log('- Showing admin interface');
-        adminAddParticipant.style.display = 'block';
-        initializeUserSearch();
-    } else {
-        console.log('- Hiding admin interface, role is:', role);
-        adminAddParticipant.style.display = 'none';
-    }
-};
-
-// Variables pour la recherche d'utilisateurs
-let searchTimeout;
-let selectedUserId = null;
-let selectedUserUsername = null;
-
-// Initialiser la recherche d'utilisateurs
-const initializeUserSearch = () => {
-    const searchInput = document.getElementById('userSearchInput');
-    const searchResults = document.getElementById('userSearchResults');
-    const addBtn = document.getElementById('addParticipantBtn');
-    
-    if (!searchInput || !searchResults || !addBtn) return;
-    
-    // Recherche en temps réel
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        
-        clearTimeout(searchTimeout);
-        
-        if (query.length < 2) {
-            searchResults.style.display = 'none';
-            resetSelection();
-            return;
-        }
-        
-        searchTimeout = setTimeout(() => searchUsers(query), 300);
-    });
-    
-    // Masquer les résultats si on clique ailleurs
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.style.display = 'none';
-        }
-    });
-    
-    // Bouton d'ajout
-    addBtn.addEventListener('click', addParticipant);
-};
-
-// Rechercher des utilisateurs
-const searchUsers = async (query) => {
-    const token = getToken();
-    if (!token) return;
-    
-    try {
-        const response = await fetch(`/api/users/search?query=${encodeURIComponent(query)}`, {
-            headers: { 'X-AUTH-TOKEN': token }
-        });
-        
-        if (response.ok) {
-            const users = await response.json();
-            displayUserSearchResults(users);
-        }
-    } catch (error) {
-        console.error('Erreur recherche utilisateurs:', error);
-    }
-};
-
-// Afficher les résultats de recherche
-const displayUserSearchResults = (users) => {
-    const searchResults = document.getElementById('userSearchResults');
-    if (!searchResults) return;
-    
-    if (users.length === 0) {
-        searchResults.innerHTML = '<div class="dropdown-item text-muted">Aucun utilisateur trouvé</div>';
-        searchResults.style.display = 'block';
-        return;
-    }
-    
-    searchResults.innerHTML = users.map(user => `
-        <div class="dropdown-item user-result" 
-             data-user-id="${user.id}" 
-             data-username="${user.username}"
-             style="cursor: pointer;">
-            <i class="fas fa-user me-2"></i>${user.username}
-            <small class="text-muted d-block">ID: ${user.id}</small>
-        </div>
-    `).join('');
-    
-    searchResults.style.display = 'block';
-    
-    // Ajouter les event listeners pour la sélection
-    searchResults.querySelectorAll('.user-result').forEach(item => {
-        item.addEventListener('click', function() {
-            selectUser(this.dataset.userId, this.dataset.username);
-        });
-    });
-};
-
-// Sélectionner un utilisateur
-const selectUser = (userId, username) => {
-    selectedUserId = userId;
-    selectedUserUsername = username;
-    
-    const searchInput = document.getElementById('userSearchInput');
-    const searchResults = document.getElementById('userSearchResults');
-    const addBtn = document.getElementById('addParticipantBtn');
-    
-    searchInput.value = username;
-    searchResults.style.display = 'none';
-    addBtn.disabled = false;
-};
-
-// Réinitialiser la sélection
-const resetSelection = () => {
-    selectedUserId = null;
-    selectedUserUsername = null;
-    document.getElementById('addParticipantBtn').disabled = true;
-};
-
-// Ajouter un participant
-const addParticipant = async () => {
-    if (!selectedUserId) return;
-    
-    const token = getToken();
-    if (!token) return;
-    
-    const addBtn = document.getElementById('addParticipantBtn');
-    const originalText = addBtn.innerHTML;
-    
-    addBtn.disabled = true;
-    addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Ajout...';
-    
-    try {
-        const response = await fetch(`/api/evenements/${eventId}/admin/add-participant`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-AUTH-TOKEN': token
-            },
-            body: JSON.stringify({
-                userId: selectedUserId
-            })
-        });
-        
-        if (response.ok) {
-            // Succès - rafraîchir la liste des participants
-            document.getElementById('userSearchInput').value = '';
-            resetSelection();
-            
-            // Rafraîchir la liste des participants
-            await loadEventDetails(eventId);
-            
-            // Notification de succès
-            showNotification('Participant ajouté avec succès !', 'success');
-        } else {
-            const error = await response.json();
-            showNotification(error.message || 'Erreur lors de l\'ajout du participant', 'error');
-        }
-    } catch (error) {
-        console.error('Erreur ajout participant:', error);
-        showNotification('Erreur lors de l\'ajout du participant', 'error');
-    } finally {
-        addBtn.disabled = false;
-        addBtn.innerHTML = originalText;
-    }
-};
-
-// Fonction pour afficher les notifications
-const showNotification = (message, type = 'info') => {
-    // Créer ou réutiliser le conteneur de notifications
-    let notificationContainer = document.getElementById('notificationContainer');
-    if (!notificationContainer) {
-        notificationContainer = document.createElement('div');
-        notificationContainer.id = 'notificationContainer';
-        notificationContainer.style.position = 'fixed';
-        notificationContainer.style.top = '20px';
-        notificationContainer.style.right = '20px';
-        notificationContainer.style.zIndex = '9999';
-        document.body.appendChild(notificationContainer);
-    }
-    
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    notificationContainer.appendChild(notification);
-    
-    // Auto-supprimer après 5 secondes
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 5000);
 };
 
 const checkParticipationStatus = async (eventId) => {
@@ -1707,6 +1429,200 @@ window.joinEvent = async () => {
         showNotification('Erreur de connexion', 'error');
     }
 };
+
+// === INTERFACE ADMIN SIMPLIFIÉE ===
+// Variables globales pour la modal admin
+let currentUserSearchResults = [];
+let selectedUserForAdd = null;
+
+// Afficher la modal d'ajout de participant
+const showAddParticipantModal = () => {
+    // Créer la modal si elle n'existe pas
+    let modal = document.getElementById('adminAddParticipantModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminAddParticipantModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-plus me-2"></i>Ajouter un participant
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="adminUserSearch" class="form-label">Rechercher un utilisateur</label>
+                            <input type="text" 
+                                   id="adminUserSearch" 
+                                   class="form-control" 
+                                   placeholder="Tapez le nom d'utilisateur..."
+                                   autocomplete="off">
+                            <div id="adminUserSearchResults" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                        <div id="selectedUserInfo" class="alert alert-info" style="display: none;">
+                            <strong>Utilisateur sélectionné :</strong> <span id="selectedUserName"></span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" id="confirmAddParticipant" class="btn btn-primary" disabled>
+                            <i class="fas fa-plus me-1"></i>Ajouter comme participant
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Initialiser les événements de la modal
+        initializeAdminModal();
+    }
+    
+    // Réinitialiser et afficher la modal
+    resetAdminModal();
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+};
+
+// Initialiser les événements de la modal admin
+const initializeAdminModal = () => {
+    const searchInput = document.getElementById('adminUserSearch');
+    const confirmBtn = document.getElementById('confirmAddParticipant');
+    
+    // Recherche en temps réel
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+            document.getElementById('adminUserSearchResults').innerHTML = '';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => searchUsersForAdmin(query), 300);
+    });
+    
+    // Bouton de confirmation
+    confirmBtn.addEventListener('click', confirmAddParticipant);
+};
+
+// Rechercher des utilisateurs pour l'admin
+const searchUsersForAdmin = async (query) => {
+    const token = getToken();
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`/api/users/search?query=${encodeURIComponent(query)}`, {
+            headers: { 'X-AUTH-TOKEN': token }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayAdminUserSearchResults(users);
+        }
+    } catch (error) {
+        console.error('Erreur recherche utilisateurs admin:', error);
+    }
+};
+
+// Afficher les résultats de recherche dans la modal
+const displayAdminUserSearchResults = (users) => {
+    const resultsContainer = document.getElementById('adminUserSearchResults');
+    
+    if (users.length === 0) {
+        resultsContainer.innerHTML = '<div class="list-group-item text-muted">Aucun utilisateur trouvé</div>';
+        return;
+    }
+    
+    resultsContainer.innerHTML = users.map(user => `
+        <button type="button" 
+                class="list-group-item list-group-item-action"
+                onclick="selectUserForAdd(${user.id}, '${user.username}')">
+            <i class="fas fa-user me-2"></i>${user.username}
+            <small class="text-muted d-block">ID: ${user.id}</small>
+        </button>
+    `).join('');
+};
+
+// Sélectionner un utilisateur pour l'ajouter
+const selectUserForAdd = (userId, username) => {
+    selectedUserForAdd = { id: userId, username: username };
+    
+    // Afficher l'utilisateur sélectionné
+    document.getElementById('selectedUserName').textContent = username;
+    document.getElementById('selectedUserInfo').style.display = 'block';
+    
+    // Activer le bouton de confirmation
+    document.getElementById('confirmAddParticipant').disabled = false;
+    
+    // Vider les résultats de recherche
+    document.getElementById('adminUserSearchResults').innerHTML = '';
+    document.getElementById('adminUserSearch').value = username;
+};
+
+// Confirmer l'ajout du participant
+const confirmAddParticipant = async () => {
+    if (!selectedUserForAdd) return;
+    
+    const confirmBtn = document.getElementById('confirmAddParticipant');
+    const originalText = confirmBtn.innerHTML;
+    
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Ajout en cours...';
+    
+    try {
+        const token = getToken();
+        const response = await fetch(`/api/evenements/${eventId}/admin/add-participant`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-AUTH-TOKEN': token
+            },
+            body: JSON.stringify({
+                userId: selectedUserForAdd.id
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            
+            // Fermer la modal
+            bootstrap.Modal.getInstance(document.getElementById('adminAddParticipantModal')).hide();
+            
+            // Rafraîchir les données de l'événement
+            await loadEventDetails(eventId);
+            
+            // Notification de succès
+            showNotification(`${selectedUserForAdd.username} a été ajouté comme participant !`, 'success');
+        } else {
+            const error = await response.json();
+            showNotification(error.message || 'Erreur lors de l\'ajout du participant', 'error');
+        }
+    } catch (error) {
+        console.error('Erreur ajout participant:', error);
+        showNotification('Erreur lors de l\'ajout du participant', 'error');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    }
+};
+
+// Réinitialiser la modal
+const resetAdminModal = () => {
+    document.getElementById('adminUserSearch').value = '';
+    document.getElementById('adminUserSearchResults').innerHTML = '';
+    document.getElementById('selectedUserInfo').style.display = 'none';
+    document.getElementById('confirmAddParticipant').disabled = true;
+    selectedUserForAdd = null;
+};
+
+// Rendre les fonctions accessibles globalement
+window.showAddParticipantModal = showAddParticipantModal;
+window.selectUserForAdd = selectUserForAdd;
 
 // Initialisation automatique
 if (document.readyState === 'loading') {
