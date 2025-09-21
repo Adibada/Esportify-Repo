@@ -280,7 +280,7 @@ function displayResults(events, total = 0, reset = true) {
     if (reset) {
         resultsContainer.innerHTML = eventsHTML;
     } else {
-        // Ajouter les nouveaux événements à la liste existante (sans en-tête)
+                // Ajouter les nouveaux événements à la liste existante (sans en-tête)
         resultsContainer.insertAdjacentHTML('beforeend', events.map(event => {
             const dateDebut = event.start ? new Date(event.start) : null;
             const dateFin = event.end ? new Date(event.end) : null;
@@ -288,16 +288,16 @@ function displayResults(events, total = 0, reset = true) {
             return `
                 <li class="event-in-list">
                     <div class="row align-items-center py-2">
-                        <div class="col-md-5">
+                        <div class="col-md-6">
                             <a href="/evenement?id=${event.id}" onclick="window.route(event)" class="text-decoration-none fw-medium">
                                 ${event.titre || 'Sans titre'}
                             </a>
                         </div>
-                        <div class="col-md-3 text-muted small">
+                        <div class="col-md-4 text-muted small">
                             ${dateDebut ? `<div>Début: <time datetime="${event.start}">${dateDebut.toLocaleDateString()}</time></div>` : ''}
                             ${dateFin ? `<div>Fin: <time datetime="${event.end}">${dateFin.toLocaleDateString()}</time></div>` : ''}
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2 text-center">
                             <span class="badge bg-info">${event.numberCompetitors || 0}</span>
                             <small class="d-block text-muted mt-1">participant${(event.numberCompetitors || 0) !== 1 ? 's' : ''}</small>
                         </div>
