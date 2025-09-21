@@ -440,8 +440,8 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Image trop volumineuse (max 5MB)'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Upload de l'image
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/uploads/';
+        // Upload de l'image - utilisation temporaire de var/cache/uploads
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/cache/uploads/';
         if (!is_dir($uploadsDirectory)) {
             mkdir($uploadsDirectory, 0777, true);
         }
@@ -1363,8 +1363,8 @@ class EvenementsController extends AbstractController
             throw new \InvalidArgumentException('Le fichier est trop volumineux. Taille maximum: 5MB.');
         }
         
-        // Upload de fichier
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/uploads/';
+        // Upload de fichier - utilisation temporaire de var/cache/uploads
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/cache/uploads/';
         if (!is_dir($uploadsDirectory)) {
             if (!mkdir($uploadsDirectory, 0755, true)) {
                 throw new \RuntimeException('Impossible de créer le répertoire d\'upload: ' . $uploadsDirectory);

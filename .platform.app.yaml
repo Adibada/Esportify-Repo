@@ -49,7 +49,8 @@ hooks:
         symfony-deploy
         
         # Créer un lien symbolique pour accéder aux uploads depuis le web
-        ln -sf ../../var/uploads public/uploads
+        mkdir -p var/cache/uploads
+        ln -sf ../../var/cache/uploads public/uploads
 
 crons:
     security-check:
