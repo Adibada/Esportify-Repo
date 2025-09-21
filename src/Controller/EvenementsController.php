@@ -1339,6 +1339,103 @@ class EvenementsController extends AbstractController
         return $this->json(['message' => 'Participation refusée']);
     }
 
+    #[Route('/{id}/admin/add-participant', name: 'admin_add_participant', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[OA\Post(
+        summary: 'Ajouter un participant directement (Admin seulement)',
+        tags: ['Participations'],
+        security: [['X-AUTH-TOKEN' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    properties: [
+                        'userId' => new OA\Property(property: 'userId', type: 'integer', description: 'ID de l\'utilisateur à ajouter')
+                    ],
+                    required: ['userId']
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Participant ajouté avec succès'),
+            new OA\Response(response: 401, description: 'Non authentifié'),
+            new OA\Response(response: 403, description: 'Accès non autorisé - Seuls les admins peuvent utiliser cette fonction'),
+            new OA\Response(response: 404, description: 'Événement ou utilisateur non trouvé'),
+            new OA\Response(response: 400, description: 'Utilisateur déjà participant ou événement complet'),
+        ]
+    )]
+    public function adminAddParticipant(int $id, Request $request): JsonResponse
+    {
+        $currentUser = $this->getUser();
+        if (!$currentUser) {
+            return $this->json(['error' => 'Non authentifié'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Seuls les admins peuvent utiliser cette fonction
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès non autorisé. Seuls les admins peuvent ajouter directement des participants.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $evenement = $this->repository->find($id);
+        if (!$evenement) {
+            return $this->json(['error' => 'Événement non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!isset($data['userId'])) {
+            return $this->json(['error' => 'ID utilisateur requis'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = $this->userRepository->find($data['userId']);
+        if (!$user) {
+            return $this->json(['error' => 'Utilisateur non trouvé'], Response::HTTP_NOT_FOUND);
+        }
+
+        // Vérifier si l'utilisateur est déjà participant
+        $existingParticipation = $this->participationRepository->findByUserAndEvent($user, $evenement);
+        if ($existingParticipation) {
+            $status = $existingParticipation->getStatut();
+            if ($status === Participation::STATUT_VALIDE) {
+                return $this->json(['error' => 'L\'utilisateur participe déjà à cet événement'], Response::HTTP_BAD_REQUEST);
+            } elseif ($status === Participation::STATUT_EN_ATTENTE) {
+                // Si en attente, on valide directement
+                $existingParticipation->setStatut(Participation::STATUT_VALIDE);
+                $this->manager->flush();
+                return $this->json(['message' => 'Participation existante validée avec succès']);
+            } elseif ($status === Participation::STATUT_REFUSE) {
+                // Si refusée, on remet en validé
+                $existingParticipation->setStatut(Participation::STATUT_VALIDE);
+                $this->manager->flush();
+                return $this->json(['message' => 'Participation précédemment refusée, maintenant validée']);
+            }
+        }
+
+        // Vérifier si l'événement a encore de la place 
+        // (ici on utilise simplement un check avec le nombre actuel de participants validés)
+        // Si on voulait une limite, il faudrait ajouter un champ dans l'entité Evenements
+        
+        // Créer une nouvelle participation directement validée
+        $participation = new Participation();
+        $participation->setUser($user);
+        $participation->setEvenement($evenement);
+        $participation->setStatut(Participation::STATUT_VALIDE);
+
+        $this->manager->persist($participation);
+        $this->manager->flush();
+
+        return $this->json([
+            'message' => 'Participant ajouté et validé avec succès',
+            'participant' => [
+                'id' => $user->getId(),
+                'username' => $user->getUserIdentifier(),
+                'statut' => 'valide'
+            ]
+        ]);
+    }
+
     /**
      * Méthode utilitaire pour uploader et créer une ImageEvenement
      */
