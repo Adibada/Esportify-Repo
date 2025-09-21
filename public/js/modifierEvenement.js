@@ -117,7 +117,7 @@ const updateImagesDisplay = () => {
                         <label class="form-label text-sm">Description (alt text) :</label>
                         <input type="text" class="form-control form-control-sm" 
                                value="${img.description || ''}" 
-                               onchange="updateImageDescription(${img.id}, this.value)"
+                               onchange="updateImageDescriptionLocal(${img.id}, this.value)"
                                placeholder="Décrivez cette image...">
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
@@ -271,7 +271,7 @@ const removeImage = async (imageId) => {
     }
 };
 
-const updateImageDescription = async (imageId, description) => {
+const updateImageDescriptionLocal = async (imageId, description) => {
     const image = uploadedImages.find(img => img.id === imageId);
     if (!image) return;
     
@@ -329,7 +329,7 @@ const isValidImageUrl = (url) => {
 window.handleFileSelection = handleFileSelection;
 window.addImageFromUrl = addImageFromUrl;
 window.removeImage = removeImage;
-window.updateImageDescription = updateImageDescription;
+window.updateImageDescriptionLocal = updateImageDescriptionLocal;
 window.moveImageUp = moveImageUp;
 window.moveImageDown = moveImageDown;
 
@@ -667,6 +667,9 @@ const processImages = async () => {
             try {
                 const formData = new FormData();
                 formData.append('image', imageData.file);
+                if (imageData.description) {
+                    formData.append('description', imageData.description);
+                }
                 
                 const response = await fetch(`/api/evenements/${eventId}/image`, {
                     method: 'POST',
@@ -679,19 +682,13 @@ const processImages = async () => {
                 if (response.ok) {
                     const result = JSON.parse(responseText);
                     
-                    // Créer l'entité ImageEvenement avec la description
-                    if (imageData.description) {
-                        await saveImageWithDescription({
-                            url: result.imagePath,
-                            description: imageData.description
-                        });
-                    } else {
-                        // Sauvegarder l'image sans description
-                        await saveImageWithDescription({
-                            url: result.imagePath,
-                            description: ''
-                        });
-                    }
+                    // L'entité ImageEvenement a été créée côté serveur avec la description
+                    console.log('Image uploadée et sauvée:', result.imageEntity);
+                    
+                    // Mettre à jour l'objet local avec les informations du serveur
+                    imageData.serverId = result.imageId;
+                    imageData.url = result.imagePath;
+                    imageData.isNewFile = false; // Plus considéré comme nouveau
                 } else {
                     const errorText = await response.text();
                     throw new Error(`Erreur upload fichier "${imageData.file.name}": ${errorText}`);

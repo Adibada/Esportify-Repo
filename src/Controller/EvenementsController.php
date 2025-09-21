@@ -417,6 +417,7 @@ class EvenementsController extends AbstractController
         }
 
         $imageFile = $request->files->get('image');
+        $description = $request->request->get('description', '');
         
         if (!$imageFile) {
             return $this->json(['error' => 'Aucun fichier image fourni'], Response::HTTP_BAD_REQUEST);
@@ -452,12 +453,28 @@ class EvenementsController extends AbstractController
             $imageFile->move($uploadsDirectory, $fileName);
             $imagePath = '/uploads/' . $fileName;
             
+            // Créer directement l'entité ImageEvenement
+            $imageEntity = new ImageEvenement();
+            $imageEntity->setEvenement($evenement);
+            $imageEntity->setFilename($imagePath);
+            $imageEntity->setOriginalName(!empty($description) ? $description : $originalFilename);
+            
+            $this->manager->persist($imageEntity);
+            $this->manager->flush();
+            
             return $this->json([
-                'message' => 'Image uploadée avec succès',
-                'imagePath' => $imagePath
+                'message' => 'Image uploadée et sauvée avec succès',
+                'imagePath' => $imagePath,
+                'imageId' => $imageEntity->getId(),
+                'imageEntity' => [
+                    'id' => $imageEntity->getId(),
+                    'url' => $imageEntity->getUrl(),
+                    'filename' => $imageEntity->getFilename(),
+                    'originalName' => $imageEntity->getOriginalName()
+                ]
             ], Response::HTTP_OK);
         } catch (\Exception $e) {
-            return $this->json(['error' => 'Erreur lors du téléchargement de l\'image'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->json(['error' => 'Erreur lors du téléchargement de l\'image: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
