@@ -312,8 +312,12 @@ const loadParticipantsList = async () => {
 };
 
 const displayParticipantsList = (participants) => {
+    console.log('DEBUG displayParticipantsList called with:', participants.length, 'participants');
+    
     // Chercher le conteneur des participants après le nombre de participants
     let participantsListContainer = document.getElementById('participantsList');
+    
+    console.log('DEBUG participantsListContainer found:', !!participantsListContainer);
     
     if (!participantsListContainer) {
         // Créer le conteneur s'il n'existe pas
@@ -323,13 +327,64 @@ const displayParticipantsList = (participants) => {
         
         // L'insérer après l'élément numOfCompetitors
         const numOfCompetitorsElement = document.getElementById('numOfCompetitors');
+        console.log('DEBUG numOfCompetitorsElement found:', !!numOfCompetitorsElement);
+        
         if (numOfCompetitorsElement && numOfCompetitorsElement.parentNode) {
             numOfCompetitorsElement.parentNode.insertBefore(participantsListContainer, numOfCompetitorsElement.nextSibling);
+            console.log('DEBUG participantsListContainer inserted');
+        } else {
+            console.log('DEBUG ERROR: numOfCompetitorsElement not found or no parent');
+            // Fallback: essayer de l'ajouter ailleurs
+            const mainContainer = document.querySelector('.container') || document.body;
+            mainContainer.appendChild(participantsListContainer);
+            console.log('DEBUG fallback: added to main container');
         }
     }
 
     if (participants.length === 0) {
-        participantsListContainer.innerHTML = '';
+        // Même sans participants, afficher l'interface de base pour les admins
+        participantsListContainer.innerHTML = `
+            <div class="participants-scroll-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.75rem; background-color: #f8f9fa;">
+                <h6 class="mb-3 text-center text-muted">Liste des participants</h6>
+                <p class="text-center text-muted">Aucun participant pour le moment</p>
+            </div>
+            
+            <!-- Interface Admin pour ajouter des participants -->
+            <div id="adminAddParticipant" class="admin-add-participant mt-3" style="display: none;">
+                <div class="border rounded p-3 bg-light">
+                    <h6 class="mb-3 text-center text-primary">
+                        <i class="fas fa-user-plus me-2"></i>Ajouter un participant (Admin)
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="position-relative">
+                                <input type="text" 
+                                       id="userSearchInput" 
+                                       class="form-control" 
+                                       placeholder="Rechercher un utilisateur par nom d'utilisateur..."
+                                       autocomplete="off">
+                                <div id="userSearchResults" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" 
+                                    id="addParticipantBtn" 
+                                    class="btn btn-primary w-100"
+                                    disabled>
+                                <i class="fas fa-plus me-1"></i>Ajouter
+                            </button>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Le participant sera automatiquement validé et ajouté à l'événement.
+                    </small>
+                </div>
+            </div>
+        `;
+        
+        // Configurer l'interface admin même sans participants
+        setupAdminAddParticipant();
         return;
     }
 
