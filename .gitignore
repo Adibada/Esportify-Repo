@@ -71,4 +71,9 @@ yarn.lock
 .env.prod
 .env.prod.local
 /config/jwt/
+
+# Scripts d'import et fichiers temporaires de migration
+import_*.sql
+hash_password.php
+/archive/migration-scripts/
 ###< Développement ###
