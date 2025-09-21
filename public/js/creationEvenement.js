@@ -717,11 +717,18 @@ function createEvent() {
         body: formData
     })
     .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         if (response.ok) {
+            return response.json();
+        } else if (response.status === 201) {
+            // Code 201 (Created) est un succès même si response.ok peut être false
             return response.json();
         } else {
             // Récupérer le message d'erreur détaillé
             return response.text().then(text => {
+                console.error('Erreur serveur:', text);
                 throw new Error(`Erreur ${response.status}: ${text}`);
             });
         }
@@ -762,6 +769,10 @@ function createEvent() {
         }
     })
     .catch(error => {
+        console.error('Erreur complète:', error);
+        console.error('Message:', error.message);
+        console.error('Stack:', error.stack);
+        
         // Fermer le modal en cas d'erreur aussi
         const modal = document.getElementById('confirmationModal');
         if (modal) {
@@ -782,7 +793,7 @@ function createEvent() {
             backdrop.remove();
         }
         
-        alert('Erreur lors de la creation de l\'evenement. Veuillez ressayer.');
+        alert(`Erreur lors de la création de l'événement: ${error.message}\nVeuillez vérifier la console pour plus de détails.`);
     });
 }
 
