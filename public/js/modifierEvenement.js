@@ -652,9 +652,12 @@ const processImages = async () => {
                 const responseText = await response.text();
                 
                 if (response.ok) {
+                    console.log(`Image ${image.serverId} supprimée avec succès`);
                 } else {
+                    console.warn(`Erreur suppression image ${image.serverId}:`, responseText);
                 }
             } catch (error) {
+                console.error('Erreur suppression image:', error);
             }
         }
         
@@ -690,8 +693,7 @@ const processImages = async () => {
                     imageData.url = result.imagePath;
                     imageData.isNewFile = false; // Plus considéré comme nouveau
                 } else {
-                    const errorText = await response.text();
-                    throw new Error(`Erreur upload fichier "${imageData.file.name}": ${errorText}`);
+                    throw new Error(`Erreur upload fichier "${imageData.file.name}": ${responseText}`);
                 }
             } catch (error) {
                 console.error('Erreur upload fichier:', error);
