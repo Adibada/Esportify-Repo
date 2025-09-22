@@ -92,6 +92,6 @@ class ImageEvenement
             return null;
         }
         
-        return __DIR__ . '/../../var/cache/uploads/' . $this->filename;
+        return __DIR__ . '/../../public/uploads/' . $this->filename;
     }
 }

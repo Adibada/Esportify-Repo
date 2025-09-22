@@ -433,8 +433,8 @@ class EvenementsController extends AbstractController
             return $this->json(['error' => 'Image trop volumineuse (max 5MB)'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Upload de l'image - utilisation temporaire de var/cache/uploads
-        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/var/cache/uploads/';
+        // Upload de l'image - utilisation du dossier public persistant
+        $uploadsDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/';
         if (!is_dir($uploadsDirectory)) {
             mkdir($uploadsDirectory, 0777, true);
         }
