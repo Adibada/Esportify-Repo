@@ -27,7 +27,6 @@ class UserNormalizer implements ContextAwareNormalizerInterface
             return [
                 'id' => $object->getId(),
                 'username' => $object->getUsername(),
-                'mail' => $object->getMail(),
             ];
         }
 

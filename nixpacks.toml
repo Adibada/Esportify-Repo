@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ['php83', 'php83Packages.composer']
+
+[phases.install]
+cmds = ['composer install --no-dev --optimize-autoloader']
+
+[phases.build]
+cmds = [
+    'rm -rf var/cache/*',
+    'APP_ENV=prod php bin/console cache:clear --no-debug --no-warmup',
+    'APP_ENV=prod php bin/console cache:warmup --no-debug'
+]
+
+[start]
+cmd = 'php -S 0.0.0.0:$PORT -t public'

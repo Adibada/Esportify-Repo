@@ -20,7 +20,7 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
-        # Firewall pour login et registration (pas de token requis)
+        # Firewall pour login et registration 
         login_registration:
             pattern: ^/api/(login|registration)
             stateless: true
